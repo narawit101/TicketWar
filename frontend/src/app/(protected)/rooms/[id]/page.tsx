@@ -65,14 +65,17 @@ export default function RoomDetailPage() {
       try {
         const res = await fetch(`/api/rooms/${roomId}?userId=${user?.id}`);
         const data = await res.json();
+        if (ignore) return;
 
         if (res.status === 403 || data.notMember) {
-          toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว");
+          toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว", {
+            id: "room-forbidden",
+          });
           router.replace("/");
           return;
         }
 
-        if (!ignore && res.ok) {
+        if (res.ok) {
           // Double check membership
           const isMember =
             data.room?.createdById === user?.id ||
@@ -81,7 +84,9 @@ export default function RoomDetailPage() {
             );
 
           if (!isMember) {
-            toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว");
+            toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว", {
+              id: "room-forbidden",
+            });
             router.replace("/");
             return;
           }
@@ -93,12 +98,16 @@ export default function RoomDetailPage() {
             data.hasMoreMessages ?? data.messages?.length === 50,
           );
           setMembers(data.members || data.room?.members || []);
-        } else if (!res.ok) {
-          toast.error(data.error || "ไม่พบห้องนี้");
+        } else {
+          toast.error(data.error || "ไม่พบห้องนี้ในระบบ", {
+            id: "room-not-found",
+          });
           router.replace("/");
         }
       } catch (err) {
-        console.error("Failed to load room data:", err);
+        if (!ignore) {
+          console.error("Failed to load room data:", err);
+        }
       } finally {
         if (!ignore) {
           setLoading(false);
