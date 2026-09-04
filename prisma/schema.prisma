@@ -1,0 +1,142 @@
+// datasource and client configuration
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator clientFrontend {
+  provider = "prisma-client-js"
+  output   = "../frontend/node_modules/.prisma/client"
+}
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
+
+enum RoomStatus {
+  ACTIVE    // ห้องกำลังใช้งาน / เตรียมกดบัตร
+  ARCHIVED  // จบงานแล้ว เก็บไว้ดูเป็นประวัติ (Read-only)
+  DELETED   // ลบทิ้งถาวร
+}
+
+enum SeatStatus {
+  AVAILABLE        // ว่าง (ยังกดไม่ได้ตามเป้าหมาย)
+  PENDING_PAYMENT  // รอจ่าย (มีคนกดล็อคที่นั่งได้แล้ว กำลังชำระเงิน)
+  COMPLETED        // เสร็จสิ้น (ชำระเงินเรียบร้อย ได้บัตรครบแล้ว)
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ----------------------------------------------------
+// MODELS
+// ----------------------------------------------------
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String?      // Optional if using Social / OAuth
+  name         String
+  avatarUrl    String?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  ownedRooms     Room[]        @relation("RoomOwner")
+  roomMemberships RoomMember[]
+  messages       Message[]
+  updatedTasks   SeatTask[]    @relation("TaskUpdatedBy")
+
+  @@map("users")
+}
+
+model Room {
+  id          String      @id @default(uuid())
+  title       String      // ชื่องานคอนเสิร์ต / อีเวนต์
+  inviteCode  String      @unique @default(cuid()) @map("invite_code") // รหัสลิงก์ชวนเพื่อน
+  bannerUrl      String?     @map("banner_url")       // รูปโปสเตอร์คอนเสิร์ต
+  seatingPlanUrl String?     @map("seating_plan_url") // รูปผังที่นั่งคอนเสิร์ต
+  ticketUrl      String?     @map("ticket_url")       // ลิงก์เว็บกดบัตร / เว็บหลัก
+  description    String?     @map("description")      // หมายเหตุของงาน / รายละเอียดเพิ่มเติม (ไม่บังคับ)
+  eventDate      DateTime?   @map("event_date")        // วันแสดง / วันเวลากดบัตร
+  status         RoomStatus  @default(ACTIVE)
+  createdById    String      @map("created_by_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  owner       User        @relation("RoomOwner", fields: [createdById], references: [id], onDelete: Cascade)
+  members     RoomMember[]
+  seatTasks   SeatTask[]
+  messages    Message[]
+
+  @@index([inviteCode])
+  @@index([status])
+  @@map("rooms")
+}
+
+model RoomMember {
+  id        String     @id @default(uuid())
+  roomId    String     @map("room_id")
+  userId    String     @map("user_id")
+  role      MemberRole @default(MEMBER)
+  joinedAt  DateTime   @default(now()) @map("joined_at")
+
+  // Relations
+  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+  @@map("room_members")
+}
+
+model SeatTask {
+  id              String      @id @default(uuid())
+  roomId          String      @map("room_id")
+  targetLocation  String      @map("target_location")  // ที่ที่ต้องการ เช่น "โซน VIP แถว A"
+  targetDate      DateTime    @map("target_date")       // วันไหน (รอบการแสดง)
+  price           Int                                   // ราคาเท่าไหร่ (เช่น 6500)
+  quantityNeeded  Int         @map("quantity_needed")   // ต้องการกี่ใบ (เช่น 2)
+  quantitySecured Int         @default(0) @map("quantity_secured") // ได้แล้วกี่ใบ (เช่น 1)
+  note            String?                               // หมายเหตุ เผื่อใส่ที่สำรอง เช่น "ถ้า VIP หลุด เอา Zone B ทันที"
+  status          SeatStatus  @default(AVAILABLE)       // ว่าง | รอจ่าย | เสร็จสิ้น
+  
+  // บันทึกว่าใครกดได้แต่ละใบในรูปแบบ JSON: [ { "userId": "...", "name": "นายเอ", "qty": 1, "at": "..." } ]
+  securedBy       Json?       @map("secured_by")
+
+  lastUpdatedById String?     @map("last_updated_by_id") // ใครเป็นคนแก้ล่าสุด
+  lastUpdatedAt   DateTime    @default(now()) @map("last_updated_at") // แก้ล่าสุดตอนไหน
+
+  // Relations
+  room          Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  lastUpdatedBy User?       @relation("TaskUpdatedBy", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+
+  @@index([roomId])
+  @@index([status])
+  @@map("seat_tasks")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  text      String?  @db.Text
+  imageUrl  String?  @map("image_url") // รูปภาพที่บีบอัดและอัปโหลดไป Cloudinary
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@map("messages")
+}

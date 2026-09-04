@@ -1,0 +1,1444 @@
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { SeatTaskCard } from "@/components/SeatTaskCard";
+import { LiveChat } from "@/components/LiveChat";
+import { EditTaskModal } from "@/components/EditTaskModal";
+import { ShareRoomModal } from "@/components/ShareRoomModal";
+import { ImageLightboxModal } from "@/components/ImageLightboxModal";
+import { CarouselSlide } from "@/components/RoomImageCarousel";
+import {
+  ConfirmActionModal,
+  ConfirmType,
+} from "@/components/ConfirmActionModal";
+import { MembersModal } from "@/components/MembersModal";
+import { EditRoomModal } from "@/components/EditRoomModal";
+import { Room, SeatTask, Message, SeatStatus, RoomMemberItem } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "react-hot-toast";
+import { getSocket } from "@/lib/socket";
+import { playSoundAlert } from "@/lib/audio";
+import {
+  ArrowLeft,
+  Plus,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  Loader2,
+  Target,
+  MoreHorizontal,
+  Users,
+  LogOut,
+  Edit3,
+  Share2,
+  Calendar,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
+import { formatEventDate } from "@/lib/date";
+
+export default function RoomDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const roomId = (params?.id as string) || "";
+  const { user } = useAuth();
+  const currentUserName = user?.name || "Member";
+
+  const [room, setRoom] = useState<Room | null>(null);
+  const [tasks, setTasks] = useState<SeatTask[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modals
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditRoomOpen, setIsEditRoomOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<SeatTask | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: ConfirmType;
+  } | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<{
+    id: string;
+    location: string;
+  } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [members, setMembers] = useState<RoomMemberItem[]>([]);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Fetch Room, Tasks, and Messages from real DB with strict membership verification
+  useEffect(() => {
+    if (!roomId || !user?.id) return;
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch(`/api/rooms/${roomId}?userId=${user?.id}`);
+        const data = await res.json();
+
+        if (res.status === 403 || data.notMember) {
+          toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว");
+          router.replace("/");
+          return;
+        }
+
+        if (!ignore && res.ok) {
+          // Double check membership
+          const isMember =
+            data.room?.createdById === user?.id ||
+            (data.members || []).some(
+              (m: { userId: string }) => m.userId === user?.id,
+            );
+
+          if (!isMember) {
+            toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว");
+            router.replace("/");
+            return;
+          }
+
+          setRoom(data.room);
+          setTasks(data.tasks || []);
+          setMessages(data.messages || []);
+          setMembers(data.members || data.room?.members || []);
+        } else if (!res.ok) {
+          toast.error(data.error || "ไม่พบห้องนี้");
+          router.replace("/");
+        }
+      } catch (err) {
+        console.error("Failed to load room data:", err);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+          window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }
+      }
+    }
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [roomId, user?.id, router]);
+
+  // Realtime Socket.IO Connection & Events
+  useEffect(() => {
+    if (!roomId) return;
+    const socket = getSocket();
+
+    // 1. Join War Room Channel
+    socket.emit("join_room", {
+      roomId,
+      user: { id: user?.id, name: currentUserName },
+    });
+
+    // 2. Realtime Chat Messages
+    const handleNewMessage = (incomingMsg: Message) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === incomingMsg.id)) return prev;
+        return [...prev, incomingMsg];
+      });
+      if (incomingMsg.isShoutout) {
+        playSoundAlert("alert");
+      }
+    };
+
+    // 3. Shoutout Alert
+    const handleShoutout = () => {
+      playSoundAlert("alert");
+    };
+
+    // 4. Seat Task Status Updated (by other teammates)
+    const handleSeatStatusUpdated = (data: {
+      taskId: string;
+      status: SeatStatus;
+      quantitySecured?: number;
+      securedBy?: Array<{
+        userId: string;
+        name: string;
+        qty: number;
+        at: string;
+      }>;
+      note?: string;
+      targetLocation?: string;
+      targetDate?: string;
+      price?: number;
+      quantityNeeded?: number;
+      task?: SeatTask;
+      updatedBy?: string;
+      updatedAt?: string;
+    }) => {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === data.taskId
+            ? {
+                ...t,
+                ...(data.task || {}),
+                status: data.status,
+                quantitySecured:
+                  data.quantitySecured !== undefined
+                    ? data.quantitySecured
+                    : t.quantitySecured,
+                securedBy:
+                  data.securedBy !== undefined ? data.securedBy : t.securedBy,
+                note:
+                  data.note !== undefined
+                    ? data.note
+                    : data.task?.note !== undefined
+                      ? data.task.note
+                      : t.note,
+                targetLocation:
+                  data.targetLocation ||
+                  data.task?.targetLocation ||
+                  t.targetLocation,
+                targetDate:
+                  data.targetDate || data.task?.targetDate || t.targetDate,
+                price:
+                  data.price !== undefined
+                    ? data.price
+                    : data.task?.price !== undefined
+                      ? data.task.price
+                      : t.price,
+                quantityNeeded:
+                  data.quantityNeeded !== undefined
+                    ? data.quantityNeeded
+                    : data.task?.quantityNeeded !== undefined
+                      ? data.task.quantityNeeded
+                      : t.quantityNeeded,
+                lastUpdatedBy: data.updatedBy || t.lastUpdatedBy,
+                lastUpdatedAt: data.updatedAt || "เมื่อสักครู่",
+              }
+            : t,
+        ),
+      );
+    };
+
+    // 5. New Seat Task Created
+    const handleTaskCreated = (newTask: SeatTask) => {
+      setTasks((prev) => {
+        if (prev.some((t) => t.id === newTask.id)) return prev;
+        return [newTask, ...prev];
+      });
+      toast(`มีที่นั่งใหม่: ${newTask.targetLocation}`, { icon: "🎯" });
+    };
+
+    // 6. Seat Task Deleted
+    const handleTaskDeleted = (deletedTaskId: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== deletedTaskId));
+    };
+
+    // 7. Room Status Changed (Archived / Live / Deleted)
+    const handleRoomStatusChanged = (data: {
+      roomId: string;
+      status: string;
+    }) => {
+      if (data.roomId === roomId) {
+        if (data.status === "DELETED") {
+          toast.error("ห้องนี้ถูกลบโดยเจ้าของห้องแล้ว");
+          router.replace("/");
+        } else {
+          setRoom((prev) =>
+            prev ? { ...prev, status: data.status as Room["status"] } : null,
+          );
+          toast(
+            `ห้องเปลี่ยนสถานะเป็น: ${data.status === "ACTIVE" ? "ใช้งานอยู่" : "จัดเก็บ"}`,
+          );
+        }
+      }
+    };
+
+    // 8. New Member Joined
+    const handleMemberJoined = async (data: {
+      user?: { id: string; name: string };
+      memberCount: number;
+    }) => {
+      setRoom((prev) =>
+        prev ? { ...prev, memberCount: data.memberCount } : null,
+      );
+      try {
+        const res = await fetch(`/api/rooms/${roomId}/members`);
+        if (res.ok) {
+          const mData = await res.json();
+          if (mData.members) setMembers(mData.members);
+        }
+      } catch (err) {
+        console.error("Failed to refresh members on join:", err);
+      }
+      if (data.user?.name && data.user.id !== user?.id) {
+        toast(`${data.user.name} เข้าร่วมห้องแล้ว!`);
+      }
+    };
+
+    // 9. Existing Member Reconnected / Re-entered Room (no spam in chat)
+    const handleUserJoined = () => {
+      // Intentionally silent on re-connect / page refresh
+    };
+
+    // 10. Member Kicked
+    const handleMemberKicked = (data: {
+      targetUserId: string;
+      memberName: string;
+      kickedBy: string;
+    }) => {
+      if (data.targetUserId === user?.id) {
+        socket.emit("leave_room", { roomId });
+        toast.error("คุณถูกหัวห้องเตะออกจากห้องแล้ว");
+        router.replace("/");
+        return;
+      }
+      setMembers((prev) => prev.filter((m) => m.userId !== data.targetUserId));
+      setRoom((prev) =>
+        prev
+          ? { ...prev, memberCount: Math.max(1, prev.memberCount - 1) }
+          : null,
+      );
+    };
+
+    // 11. Room Details Updated (Title, Poster, Seating Plan, Date)
+    const handleRoomUpdated = (data: { room: Partial<Room> }) => {
+      setRoom((prev) => (prev ? { ...prev, ...data.room } : null));
+    };
+
+    // 12. Chat Message Deleted
+    const handleMessageDeleted = (data: { messageId: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+    };
+
+    // 13. Chat Message Edited
+    const handleMessageUpdated = (updatedMsg: Message) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m)),
+      );
+    };
+
+    socket.on("new_message", handleNewMessage);
+    socket.on("message_deleted", handleMessageDeleted);
+    socket.on("message_updated", handleMessageUpdated);
+    socket.on("shoutout_alert", handleShoutout);
+    socket.on("seat_status_updated", handleSeatStatusUpdated);
+    socket.on("task_created", handleTaskCreated);
+    socket.on("task_deleted", handleTaskDeleted);
+    socket.on("room_status_changed", handleRoomStatusChanged);
+    socket.on("room_updated", handleRoomUpdated);
+    socket.on("member_joined", handleMemberJoined);
+    socket.on("user_joined", handleUserJoined);
+    socket.on("member_kicked", handleMemberKicked);
+
+    return () => {
+      socket.emit("leave_room", { roomId });
+      socket.off("new_message", handleNewMessage);
+      socket.off("message_deleted", handleMessageDeleted);
+      socket.off("message_updated", handleMessageUpdated);
+      socket.off("shoutout_alert", handleShoutout);
+      socket.off("seat_status_updated", handleSeatStatusUpdated);
+      socket.off("task_created", handleTaskCreated);
+      socket.off("task_deleted", handleTaskDeleted);
+      socket.off("room_status_changed", handleRoomStatusChanged);
+      socket.off("room_updated", handleRoomUpdated);
+      socket.off("member_joined", handleMemberJoined);
+      socket.off("user_joined", handleUserJoined);
+      socket.off("member_kicked", handleMemberKicked);
+    };
+  }, [roomId, user?.id, currentUserName, router]);
+
+  const isReadOnly = room?.status === "ARCHIVED";
+  const isOwner = !!(room && user && room.createdById === user.id);
+
+  const handleSaveRoom = async (data: {
+    id: string;
+    title: string;
+    eventDate: string;
+    ticketUrl?: string | null;
+    description?: string | null;
+    bannerUrl?: string | null;
+    seatingPlanUrl?: string | null;
+  }) => {
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: data.title,
+          eventDate: data.eventDate,
+          ticketUrl: data.ticketUrl,
+          description: data.description,
+          bannerUrl: data.bannerUrl,
+          seatingPlanUrl: data.seatingPlanUrl,
+        }),
+      });
+      const result = await res.json();
+      if (res.ok && result.room) {
+        toast.success("บันทึกข้อมูลห้องเรียบร้อยแล้ว");
+        setRoom((prev) => (prev ? { ...prev, ...result.room } : result.room));
+        getSocket().emit("room_updated", { roomId, room: result.room });
+        handleAddChatMessage(
+          `${currentUserName} อัปเดตข้อมูลห้องเรียบร้อย`,
+          undefined,
+          true,
+        );
+        setIsEditRoomOpen(false);
+      } else {
+        toast.error(result.error || "ไม่สามารถบันทึกข้อมูลห้องได้");
+      }
+    } catch (err) {
+      console.error("Failed to update room:", err);
+      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลห้อง");
+    }
+  };
+
+  const handleKickMember = async (targetUserId: string, memberName: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(
+        `/api/rooms/${roomId}/members?userId=${targetUserId}&requesterId=${user.id}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setMembers((prev) => prev.filter((m) => m.userId !== targetUserId));
+        setRoom((prev) =>
+          prev
+            ? { ...prev, memberCount: Math.max(1, prev.memberCount - 1) }
+            : null,
+        );
+        getSocket().emit("member_kicked", {
+          roomId,
+          targetUserId,
+          memberName,
+          kickedBy: currentUserName,
+        });
+        handleAddChatMessage(
+          `${currentUserName} ให้ "${memberName}" ออกจากแชท`,
+          undefined,
+          true,
+        );
+        toast.success(`ให้ ${memberName} ออกจากแชทเรียบร้อยแล้ว`);
+      } else {
+        toast.error(data.error || "ไม่สามารถให้ออกจากแชทได้");
+      }
+    } catch (err) {
+      console.error("Failed to kick member:", err);
+      toast.error("เกิดข้อผิดพลาดในการให้ออกจากแชท");
+    }
+  };
+
+  const handleExecuteStatusChange = async () => {
+    if (!user || !room || !confirmModal) return;
+    const { type } = confirmModal;
+
+    if (type === "LEAVE") {
+      setActionLoading(true);
+      try {
+        const res = await fetch(
+          `/api/rooms/${roomId}/members?userId=${user.id}&requesterId=${user.id}`,
+          { method: "DELETE" },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "ไม่สามารถออกจากห้องได้");
+        }
+        getSocket().emit("member_kicked", {
+          roomId,
+          targetUserId: user.id,
+          memberName: currentUserName,
+          kickedBy: currentUserName,
+        });
+        handleAddChatMessage(
+          `${currentUserName} ได้ออกจากห้อง`,
+          undefined,
+          true,
+        );
+        toast.success("ออกจากห้องเรียบร้อยแล้ว");
+        router.replace("/");
+      } catch (err: unknown) {
+        toast.error(
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการออกจากห้อง",
+        );
+      } finally {
+        setActionLoading(false);
+      }
+      return;
+    }
+
+    const nextStatus: "ACTIVE" | "ARCHIVED" | "DELETED" =
+      type === "ARCHIVE"
+        ? "ARCHIVED"
+        : type === "RESTORE"
+          ? "ACTIVE"
+          : "DELETED";
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: nextStatus,
+          userId: user.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "ไม่สามารถเปลี่ยนสถานะห้องได้");
+      }
+
+      if (nextStatus === "DELETED") {
+        getSocket().emit("room_status_changed", { roomId, status: "DELETED" });
+        toast.success("ลบห้องเรียบร้อยแล้ว");
+        router.replace("/");
+        return;
+      }
+
+      setRoom((prev) => (prev ? { ...prev, status: nextStatus } : null));
+      getSocket().emit("room_status_changed", { roomId, status: nextStatus });
+      toast.success(data.message || "อัปเดตสถานะห้องสำเร็จ");
+      setConfirmModal(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Action: Increment (+1 ได้บัตรเพิ่ม)
+  const handleIncrement = async (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target || target.quantitySecured >= target.quantityNeeded) return;
+
+    playSoundAlert("success");
+    const nextSecured = target.quantitySecured + 1;
+    const nextStatus: SeatStatus =
+      nextSecured >= target.quantityNeeded ? "COMPLETED" : "AVAILABLE";
+
+    const existingIndex = (target.securedBy || []).findIndex(
+      (s) => s.userId === user?.id || s.name === currentUserName,
+    );
+    const updatedSecuredBy = [...(target.securedBy || [])];
+    if (existingIndex >= 0) {
+      updatedSecuredBy[existingIndex] = {
+        ...updatedSecuredBy[existingIndex],
+        qty: updatedSecuredBy[existingIndex].qty + 1,
+        at:
+          new Date().toLocaleTimeString("th-TH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }) + " น.",
+      };
+    } else {
+      updatedSecuredBy.push({
+        userId: user?.id || `user-${currentUserName.toLowerCase()}`,
+        name: currentUserName,
+        qty: 1,
+        at:
+          new Date().toLocaleTimeString("th-TH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }) + " น.",
+      });
+    }
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              quantitySecured: nextSecured,
+              status: nextStatus,
+              securedBy: updatedSecuredBy,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      status: nextStatus,
+      quantitySecured: nextSecured,
+      securedBy: updatedSecuredBy,
+      updatedBy: currentUserName,
+    });
+
+    // Auto-post system notification into Live Chat
+    const isNowFull = nextSecured >= target.quantityNeeded;
+    const incrementMsg = isNowFull
+      ? `${currentUserName} กด ${target.targetLocation} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
+      : `${currentUserName} กด ${target.targetLocation} ได้ +1 ใบ (${nextSecured}/${target.quantityNeeded})`;
+
+    handleAddChatMessage(incrementMsg, undefined, true);
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          status: nextStatus,
+          quantitySecured: nextSecured,
+          securedBy: updatedSecuredBy,
+          lastUpdatedById: user?.id,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save increment in DB:", err);
+    }
+  };
+
+  // Action: Decrement (-1 ลดยอด/ยกเลิก)
+  const handleDecrement = async (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target || target.quantitySecured <= 0) return;
+
+    playSoundAlert("warning");
+    const nextSecured = target.quantitySecured - 1;
+    const nextStatus: SeatStatus =
+      nextSecured >= target.quantityNeeded ? "COMPLETED" : "AVAILABLE";
+
+    const updatedSecuredBy = [...(target.securedBy || [])];
+    const existingIndex = updatedSecuredBy.findIndex(
+      (s) => s.userId === user?.id || s.name === currentUserName,
+    );
+    if (existingIndex >= 0) {
+      if (updatedSecuredBy[existingIndex].qty > 1) {
+        updatedSecuredBy[existingIndex] = {
+          ...updatedSecuredBy[existingIndex],
+          qty: updatedSecuredBy[existingIndex].qty - 1,
+        };
+      } else {
+        updatedSecuredBy.splice(existingIndex, 1);
+      }
+    } else if (updatedSecuredBy.length > 0) {
+      const lastIndex = updatedSecuredBy.length - 1;
+      if (updatedSecuredBy[lastIndex].qty > 1) {
+        updatedSecuredBy[lastIndex] = {
+          ...updatedSecuredBy[lastIndex],
+          qty: updatedSecuredBy[lastIndex].qty - 1,
+        };
+      } else {
+        updatedSecuredBy.pop();
+      }
+    }
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              quantitySecured: nextSecured,
+              status: nextStatus,
+              securedBy: updatedSecuredBy,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      status: nextStatus,
+      quantitySecured: nextSecured,
+      securedBy: updatedSecuredBy,
+      updatedBy: currentUserName,
+    });
+
+    // Auto-post system notification into Live Chat
+    const decrementMsg = `${currentUserName} ยกเลิก ${target.targetLocation} 1 ใบ (เหลือ ${nextSecured}/${target.quantityNeeded})`;
+    handleAddChatMessage(decrementMsg, undefined, true);
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          status: nextStatus,
+          quantitySecured: nextSecured,
+          securedBy: updatedSecuredBy,
+          lastUpdatedById: user?.id,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save decrement in DB:", err);
+    }
+  };
+
+  const handleSaveTask = async (taskData: Partial<SeatTask>) => {
+    try {
+      if (taskData.id) {
+        // Edit existing
+        const res = await fetch(`/api/rooms/${roomId}/tasks`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId: taskData.id,
+            status: taskData.status,
+            quantitySecured: taskData.quantitySecured,
+            targetLocation: taskData.targetLocation,
+            targetDate: taskData.targetDate,
+            price: taskData.price,
+            quantityNeeded: taskData.quantityNeeded,
+            note: taskData.note,
+            lastUpdatedById: user?.id,
+          }),
+        });
+        const result = await res.json();
+        if (res.ok && result.task) {
+          setTasks((prev) =>
+            prev.map((t) => (t.id === taskData.id ? result.task : t)),
+          );
+          getSocket().emit("update_seat_status", {
+            roomId,
+            taskId: result.task.id,
+            status: result.task.status,
+            quantitySecured: result.task.quantitySecured,
+            securedBy: result.task.securedBy,
+            note: result.task.note,
+            targetLocation: result.task.targetLocation,
+            targetDate: result.task.targetDate,
+            price: result.task.price,
+            quantityNeeded: result.task.quantityNeeded,
+            task: result.task,
+            updatedBy: currentUserName,
+          });
+          toast.success("บันทึกการแก้ไขที่นั่งเรียบร้อยแล้ว");
+          handleAddChatMessage(
+            `${currentUserName} แก้ไขที่นั่ง ${result.task.targetLocation}`,
+            undefined,
+            true,
+          );
+        }
+      } else {
+        // Create new task in DB
+        const res = await fetch(`/api/rooms/${roomId}/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetLocation: taskData.targetLocation,
+            targetDate: taskData.targetDate,
+            price: taskData.price,
+            quantityNeeded: taskData.quantityNeeded,
+            quantitySecured: taskData.quantitySecured,
+            note: taskData.note,
+            status: taskData.status || "AVAILABLE",
+            lastUpdatedById: user?.id,
+          }),
+        });
+        const result = await res.json();
+        if (res.ok && result.task) {
+          setTasks((prev) => [result.task, ...prev]);
+          getSocket().emit("task_created", { roomId, task: result.task });
+          handleAddChatMessage(
+            `${currentUserName} เพิ่มที่นั่ง ${result.task.targetLocation} (${result.task.quantityNeeded} ใบ)`,
+            undefined,
+            true,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save task:", err);
+    }
+  };
+
+  const requestDeleteTask = (taskId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    setTaskToDelete({
+      id: taskId,
+      location: target?.targetLocation || "ที่นั่งนี้",
+    });
+  };
+
+  const handleExecuteDeleteTask = async () => {
+    if (!taskToDelete) return;
+    const { id: taskId } = taskToDelete;
+    setActionLoading(true);
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    getSocket().emit("task_deleted", { roomId, taskId });
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks?taskId=${taskId}`, {
+        method: "DELETE",
+      });
+      handleAddChatMessage(
+        `${currentUserName} ลบที่นั่ง ${taskToDelete.location}`,
+        undefined,
+        true,
+      );
+      toast.success("ลบที่นั่งเรียบร้อยแล้ว");
+    } catch (err) {
+      console.error("Failed to delete task from DB:", err);
+      toast.error("เกิดข้อผิดพลาดในการลบที่นั่ง");
+    } finally {
+      setActionLoading(false);
+      setTaskToDelete(null);
+    }
+  };
+
+  const handleAddChatMessage = async (
+    text: string,
+    imageUrl?: string,
+    isShoutout?: boolean,
+  ) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          text,
+          imageUrl,
+          isShoutout,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.message) {
+        setMessages((prev) => [...prev, data.message]);
+        getSocket().emit("send_message", { roomId, message: data.message });
+        if (isShoutout) {
+          getSocket().emit("send_shoutout", {
+            roomId,
+            shoutout: { tag: "ALERT" },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save and send chat message:", err);
+      toast.error("ไม่สามารถส่งข้อความได้");
+    }
+  };
+
+  const handleEditChatMessage = async (messageId: string, text: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/messages`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          userId: user.id,
+          text,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.message) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, ...data.message } : m)),
+        );
+        getSocket().emit("edit_message", { roomId, message: data.message });
+        toast.success("แก้ไขข้อความแล้ว");
+      } else {
+        toast.error(data.error || "ไม่สามารถแก้ไขข้อความได้");
+      }
+    } catch (err) {
+      console.error("Failed to edit chat message:", err);
+      toast.error("เกิดข้อผิดพลาดในการแก้ไขข้อความ");
+    }
+  };
+
+  const handleDeleteChatMessage = async (messageId: string) => {
+    if (!user) return;
+    try {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      getSocket().emit("delete_message", { roomId, messageId });
+
+      const res = await fetch(
+        `/api/rooms/${roomId}/messages?messageId=${messageId}&userId=${user.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (res.ok) {
+        toast.success("ลบเรียบร้อยแล้ว");
+      }
+    } catch (err) {
+      console.error("Failed to delete chat message:", err);
+      toast.error("เกิดข้อผิดพลาดในการลบข้อความ");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-24 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
+        <p className="text-xs text-zinc-400">กำลังโหลดข้อมูลห้อง...</p>
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className="py-20 text-center space-y-4">
+        <h2 className="text-lg font-semibold text-zinc-100">
+          ไม่พบห้องนี้ในระบบ
+        </h2>
+        <Link
+          href="/"
+          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg inline-block transition-colors"
+        >
+          กลับสู่หน้ารวมห้อง
+        </Link>
+      </div>
+    );
+  }
+
+  const totalNeeded = tasks.reduce((acc, t) => acc + t.quantityNeeded, 0);
+  const totalSecured = tasks.reduce((acc, t) => acc + t.quantitySecured, 0);
+  const totalRemaining = Math.max(0, totalNeeded - totalSecured);
+
+  const roomSlides: CarouselSlide[] = [];
+  if (room.bannerUrl) {
+    roomSlides.push({ url: room.bannerUrl, label: "โปสเตอร์", type: "banner" });
+  }
+  if (room.seatingPlanUrl) {
+    roomSlides.push({
+      url: room.seatingPlanUrl,
+      label: "ผังที่นั่ง",
+      type: "seating",
+    });
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col gap-5 overflow-y-auto">
+      {/* Top Bar: Left (Back, Title, Status, Date) & Right (Tools) */}
+      <div className="shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 pb-3.5 border-b border-zinc-800/80">
+        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <Link
+            href="/"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors shrink-0 mt-0.5"
+            title="กลับหน้ารวมห้อง"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+
+          <div className="min-w-0 flex-1 space-y-1">
+            {/* Title & External Link */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="font-bold text-zinc-100 text-base sm:text-xl md:text-2xl tracking-tight truncate sm:line-clamp-2"
+                title={room.title}
+              >
+                {room.title}
+              </div>
+              {room.ticketUrl && (
+                <a
+                  href={
+                    room.ticketUrl.startsWith("http")
+                      ? room.ticketUrl
+                      : `https://${room.ticketUrl}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 sm:p-1.5 rounded-full bg-[#1f1f1f] hover:bg-[#282828] text-[#1ed760] hover:text-[#1cd05a] border border-[#2e2e2e] hover:border-[#1ed760]/40 transition-all inline-flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
+                  title="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
+                  aria-label="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1ed760]" />
+                </a>
+              )}
+            </div>
+
+            {/* Sub-info: Status & Date */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-zinc-300">
+              <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-[#b3b3b3] shrink-0">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    room.status === "ACTIVE" ? "bg-[#1ed760]" : "bg-zinc-500"
+                  }`}
+                />
+                <span
+                  className={
+                    room.status === "ACTIVE" ? "text-zinc-200" : "text-zinc-400"
+                  }
+                >
+                  {room.status === "ACTIVE" ? "ใช้งานอยู่" : "จัดเก็บ"}
+                </span>
+              </span>
+
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-300 font-medium whitespace-nowrap">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
+                <span>วันกดบัตร:</span>
+                <span className="text-zinc-100 font-semibold">
+                  {formatEventDate(room.eventDate)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Tools: Members Button & Management */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
+          {/* Members Button */}
+          <button
+            onClick={() => setIsMembersModalOpen(true)}
+            className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/60 text-xs gap-1.5 sm:gap-2 flex items-center font-medium transition cursor-pointer shadow-sm shrink-0"
+            title={`ดูสมาชิกในห้อง (${members.length || room.memberCount} คน)`}
+          >
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
+            <span>
+              <span className="hidden sm:inline">สมาชิก </span>(
+              {members.length || room.memberCount})
+            </span>
+          </button>
+
+          {/* Dropdown Menu (...) */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 transition cursor-pointer flex items-center justify-center shadow-sm"
+              title="เมนูเพิ่มเติม"
+              aria-label="เมนูเพิ่มเติม"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150">
+                {/* {!isReadOnly && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setEditingTask(null);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>เพิ่มที่นั่ง</span>
+                  </button>
+                )} */}
+
+                {isOwner && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsEditRoomOpen(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>แก้ไขข้อมูลห้อง</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsShareModalOpen(true);
+                  }}
+                  className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-[#1ed760]" />
+                  <span>แชร์ </span>
+                </button>
+
+                {/* {isOwner && (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsEditRoomOpen(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#1ed760]" />
+                    <span>แก้ไขข้อมูลห้อง</span>
+                  </button>
+                )} */}
+
+                {isOwner && (
+                  <>
+                    <div className="my-1 border-t border-zinc-800/70" />
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setConfirmModal({
+                          isOpen: true,
+                          type:
+                            room.status === "ACTIVE" ? "ARCHIVE" : "RESTORE",
+                        });
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      {room.status === "ACTIVE" ? (
+                        <>
+                          <Archive className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>จัดเก็บ</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArchiveRestore className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>เปิดใช้งานต่อ</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setConfirmModal({
+                          isOpen: true,
+                          type: "DELETE",
+                        });
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 transition cursor-pointer border-t border-zinc-800/60"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>ลบห้อง</span>
+                    </button>
+                  </>
+                )}
+
+                {!isOwner && (
+                  <>
+                    <div className="my-1 border-t border-zinc-800/70" />
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setConfirmModal({
+                          isOpen: true,
+                          type: "LEAVE",
+                        });
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>ออกจากห้อง</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Top Hero Poster Banner (if available) */}
+      {room.bannerUrl && (
+        <div
+          onClick={() => {
+            const bannerIdx = roomSlides.findIndex((s) => s.type === "banner");
+            if (bannerIdx !== -1) setLightboxIndex(bannerIdx);
+          }}
+          className="relative w-full h-44 sm:h-56 md:h-72 rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950 group/banner cursor-pointer shadow-xl select-none shrink-0"
+        >
+          {/* Ambience Blurred Backdrop */}
+          <div
+            className="absolute inset-0 bg-cover bg-center blur-2xl opacity-35 scale-110 pointer-events-none transition-transform duration-500 group-hover/banner:scale-125"
+            style={{ backgroundImage: `url(${room.bannerUrl})` }}
+          />
+          {/* Main Crisp Banner Image */}
+          <img
+            src={room.bannerUrl}
+            alt={`โปสเตอร์ ${room.title}`}
+            className="relative z-10 w-full h-full object-contain transition-transform duration-300 group-hover/banner:scale-[1.01]"
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/20 z-10 pointer-events-none" />
+        </div>
+      )}
+
+      {/* Note / Description (หมายเหตุของงาน) */}
+      {room.description && (
+        <div className="shrink-0 bg-[#181818] border border-[#282828] rounded-2xl p-3.5 sm:p-4 shadow-md flex items-start gap-3">
+          {/* <div className="w-8 h-8 rounded-lg bg-[#1ed760]/15 flex items-center justify-center text-[#1ed760] shrink-0 mt-0.5">
+            <FileText className="w-4 h-4 text-[#1ed760]" />
+          </div> */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                หมายเหตุ
+              </span>
+              {/* {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditRoomOpen(true)}
+                  className="text-[11px] text-[#888888] hover:text-[#1ed760] transition cursor-pointer flex items-center gap-1"
+                  title="แก้ไขหมายเหตุ"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>แก้ไข</span>
+                </button>
+              )} */}
+            </div>
+            <p className="text-xs sm:text-sm text-[#b3b3b3] leading-relaxed whitespace-pre-line wrap-break-word">
+              {room.description}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Width Summary Bar (ใต้รูปโปสเตอร์) */}
+      <div className="shrink-0 grid grid-cols-3 bg-[#181818] border border-[#282828] rounded-2xl py-3 px-2 sm:px-4 text-center shadow-lg">
+        <div className="py-1">
+          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
+            จำนวนที่ต้องการ
+          </span>
+          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            {totalNeeded}{" "}
+            <span className="text-xs font-normal text-[#888888]">ใบ</span>
+          </span>
+        </div>
+        <div className="border-x border-[#282828] py-1">
+          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
+            ได้แล้ว
+          </span>
+          <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#1ed760]">
+            {totalSecured}{" "}
+            <span className="text-xs font-normal text-[#888888]">ใบ</span>
+          </span>
+        </div>
+        <div className="py-1">
+          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
+            ยังขาดอีก
+          </span>
+          <span
+            className={`text-xl sm:text-2xl font-bold tracking-tight ${
+              totalRemaining === 0 ? "text-[#1ed760]" : "text-white"
+            }`}
+          >
+            {totalRemaining}{" "}
+            <span className="text-xs font-normal text-[#888888]">ใบ</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Main 2-Column Split (Left: Seat Tasks, Right: Live Chat) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch lg:h-195">
+        {/* Left Column: Seat Tasks (5 cols) */}
+        <div className="lg:col-span-5 h-120 sm:h-135 lg:h-full flex flex-col min-h-0 overflow-hidden">
+          {/* List Header */}
+          <div className="shrink-0 flex items-center justify-between px-0.5 mb-2">
+            <span className="text-xs text-zinc-400 font-medium">
+              รายการที่นั่ง ({tasks.length})
+            </span>
+            {!isReadOnly && (
+              <button
+                onClick={() => {
+                  setEditingTask(null);
+                  setIsEditModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-md hover:scale-105 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>เพิ่มที่นั่ง</span>
+              </button>
+            )}
+          </div>
+
+          {/* Seat Tasks List - Independently Scrollable */}
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0">
+            {tasks.length === 0 ? (
+              <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-8 text-center space-y-3">
+                <div className="w-10 h-10 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-zinc-200">
+                    ยังไม่มีที่นั่งเป้าหมาย
+                  </h4>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    กดปุ่ม &quot;เพิ่มที่นั่ง&quot;
+                    เพื่อระบุโซนและจำนวนที่ต้องการ
+                  </p>
+                </div>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => {
+                      setEditingTask(null);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-[#1ed760] hover:bg-[#1cd05a] text-black text-xs font-bold rounded-full cursor-pointer inline-flex items-center gap-1.5 transition-all shadow-md hover:scale-105 active:scale-95"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>เพิ่มที่นั่ง</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              tasks.map((task) => (
+                <SeatTaskCard
+                  key={task.id}
+                  task={task}
+                  currentUserName={currentUserName}
+                  onIncrement={handleIncrement}
+                  onDecrement={handleDecrement}
+                  onEdit={(t) => {
+                    setEditingTask(t);
+                    setIsEditModalOpen(true);
+                  }}
+                  onDelete={requestDeleteTask}
+                  isReadOnly={isReadOnly}
+                />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Full-Height Live Chat (7 cols) */}
+        <div className="lg:col-span-7 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
+          <LiveChat
+            messages={messages}
+            currentUserName={currentUserName}
+            currentUserAvatar={user?.avatarUrl}
+            currentUserId={user?.id}
+            onSendMessage={handleAddChatMessage}
+            onEditMessage={handleEditChatMessage}
+            onDeleteMessage={handleDeleteChatMessage}
+            isReadOnly={isReadOnly}
+          />
+        </div>
+      </div>
+
+      {/* Bottom Large Seating Plan (Full-Width, Just like Ticketing Sites) */}
+      {room.seatingPlanUrl && (
+        <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3.5 shrink-0">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+            <div className="flex items-center gap-2.5">
+              {/* <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[#539df5]">
+                <Map className="w-5 h-5" />
+              </div> */}
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-zinc-100 flex items-center gap-2">
+                  <span>ผังที่นั่งคอนเสิร์ต</span>
+                  {/* <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Seating Plan
+                  </span> */}
+                </h2>
+                {/* <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                  แผนผังโซนที่นั่งสำหรับวางแผนกดบัตรและประสานงานในทีม
+                </p> */}
+              </div>
+            </div>
+
+            {/* <button
+              type="button"
+              onClick={() => {
+                const planIdx = roomSlides.findIndex(
+                  (s) => s.type === "seating",
+                );
+                if (planIdx !== -1) setLightboxIndex(planIdx);
+              }}
+              className="px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm hover:text-white"
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-[#539df5]" />
+              <span>ขยายผังเต็มจอ</span>
+            </button> */}
+          </div>
+
+          <div
+            onClick={() => {
+              const planIdx = roomSlides.findIndex((s) => s.type === "seating");
+              if (planIdx !== -1) setLightboxIndex(planIdx);
+            }}
+            className="relative w-full rounded-xl overflow-hidden bg-zinc-950/90 border border-zinc-800/60 flex items-center justify-center p-3 sm:p-8 cursor-pointer group/plan select-none"
+          >
+            <img
+              src={room.seatingPlanUrl}
+              alt={`ผังที่นั่ง ${room.title}`}
+              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 group-hover/plan:scale-[1.01]"
+            />
+            {/* <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/80 text-zinc-300 group-hover/plan:text-white text-xs backdrop-blur-md border border-white/10 flex items-center gap-1.5 opacity-90 group-hover/plan:opacity-100 transition shadow-lg">
+              <Maximize2 className="w-3.5 h-3.5 text-[#539df5]" />
+              <span>คลิกเพื่อดูผังที่นั่งขนาดเต็ม</span>
+            </div> */}
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <EditRoomModal
+        isOpen={isEditRoomOpen}
+        room={room}
+        onClose={() => setIsEditRoomOpen(false)}
+        onSave={handleSaveRoom}
+      />
+
+      <EditTaskModal
+        isOpen={isEditModalOpen}
+        task={editingTask}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSaveTask}
+        onDelete={(taskId) => {
+          setIsEditModalOpen(false);
+          requestDeleteTask(taskId);
+        }}
+      />
+
+      {/* Unified Share Room Modal */}
+      <ShareRoomModal
+        isOpen={isShareModalOpen}
+        room={room}
+        onClose={() => setIsShareModalOpen(false)}
+      />
+
+      {/* Image Lightbox Modal for Poster and Seating Plan */}
+      <ImageLightboxModal
+        isOpen={lightboxIndex !== null}
+        title={room.title}
+        slides={roomSlides}
+        initialIndex={lightboxIndex ?? 0}
+        onClose={() => setLightboxIndex(null)}
+      />
+
+      {confirmModal && room && (
+        <ConfirmActionModal
+          isOpen={confirmModal.isOpen}
+          type={confirmModal.type}
+          roomTitle={room.title}
+          onConfirm={handleExecuteStatusChange}
+          onClose={() => setConfirmModal(null)}
+          loading={actionLoading}
+        />
+      )}
+
+      {taskToDelete && (
+        <ConfirmActionModal
+          isOpen={!!taskToDelete}
+          type="DELETE_TASK"
+          itemTitle={taskToDelete.location}
+          onConfirm={handleExecuteDeleteTask}
+          onClose={() => setTaskToDelete(null)}
+          loading={actionLoading}
+        />
+      )}
+
+      <MembersModal
+        isOpen={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        members={members}
+        currentUserId={user?.id}
+        isOwner={isOwner}
+        onKickMember={handleKickMember}
+      />
+
+      {room && (
+        <EditRoomModal
+          isOpen={isEditRoomOpen}
+          room={room}
+          onClose={() => setIsEditRoomOpen(false)}
+          onSave={handleSaveRoom}
+        />
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #121212;
+    --foreground: #ffffff;
+    --spotify-green: #1ed760;
+    --spotify-green-hover: #1cd05a;
+    --spotify-green-dark: #169c46;
+    --near-black: #121212;
+    --dark-surface: #181818;
+    --mid-dark: #1f1f1f;
+    --elevated-card: #252525;
+    --border-gray: #4d4d4d;
+    --light-border: #7c7c7c;
+    --text-white: #ffffff;
+    --text-silver: #b3b3b3;
+    --warning-orange: #ffa42b;
+    --negative-red: #f3727f;
+    --announcement-blue: #539df5;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Spotify Pill & Circle Styling */
+.btn-pill {
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-pill:hover {
+  transform: scale(1.02);
+}
+
+.btn-pill:active {
+  transform: scale(0.98);
+}
+
+.btn-pill-green {
+  background-color: var(--spotify-green);
+  color: #000000;
+}
+.btn-pill-green:hover {
+  background-color: var(--spotify-green-hover);
+}
+
+.btn-pill-orange {
+  background-color: var(--warning-orange);
+  color: #000000;
+}
+
+.btn-pill-dark {
+  background-color: var(--mid-dark);
+  color: var(--text-silver);
+  border: 1px solid var(--border-gray);
+}
+.btn-pill-dark:hover {
+  border-color: var(--text-white);
+  color: var(--text-white);
+}
+
+.btn-circle {
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.btn-circle:hover {
+  transform: scale(1.06);
+}
+
+/* Spotify Cards */
+.card-spotify {
+  background-color: var(--dark-surface);
+  border-radius: 8px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card-spotify:hover {
+  background-color: var(--elevated-card);
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 8px 16px;
+}
+
+/* Spotify Inputs - Standard 8px (rounded-lg) for form inputs & textareas */
+.input-spotify {
+  background-color: var(--mid-dark);
+  color: var(--text-white);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: rgb(18, 18, 18) 0px 1px 0px, rgb(77, 77, 77) 0px 0px 0px 1px inset;
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+.input-spotify:focus {
+  box-shadow: rgb(18, 18, 18) 0px 1px 0px, var(--spotify-green) 0px 0px 0px 1.5px inset;
+}
+
+/* Heavy modal shadows */
+.modal-shadow {
+  box-shadow: rgba(0, 0, 0, 0.7) 0px 16px 36px;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}

@@ -1,0 +1,195 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
+
+// GET /api/rooms - ดึงข้อมูลห้องจากฐานข้อมูล PostgreSQL (รองรับกรองตาม userId)
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const whereCondition: any = {
+      status: { not: "DELETED" },
+    };
+
+    if (userId) {
+      whereCondition.OR = [
+        { createdById: userId },
+        { members: { some: { userId } } },
+      ];
+    }
+
+    const rooms = await prisma.room.findMany({
+      where: whereCondition,
+      include: {
+        _count: {
+          select: { members: true, seatTasks: true },
+        },
+        members: userId
+          ? {
+              where: { userId },
+              select: { role: true },
+            }
+          : false,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formattedRooms = rooms.map((r: any) => {
+      const isOwner =
+        r.createdById === userId || r.members?.[0]?.role === "OWNER";
+      return {
+        id: r.id,
+        title: r.title,
+        inviteCode: r.inviteCode,
+        status: r.status,
+        createdById: r.createdById,
+        role: isOwner ? "OWNER" : "MEMBER",
+        bannerUrl: r.bannerUrl || null,
+        seatingPlanUrl: r.seatingPlanUrl || null,
+        ticketUrl: r.ticketUrl || null,
+        description: r.description || null,
+        memberCount: Math.max(1, r._count.members),
+        taskCount: r._count.seatTasks,
+        createdAt: r.createdAt.toISOString(),
+        eventDate: r.eventDate
+          ? r.eventDate.toISOString()
+          : "วันแสดงที่กำหนด",
+      };
+    });
+
+    return NextResponse.json({ rooms: formattedRooms });
+  } catch (error) {
+    console.error("[GET /api/rooms error]:", error);
+    return NextResponse.json({ error: "ไม่สามารถดึงข้อมูลห้องได้" }, { status: 500 });
+  }
+}
+
+// POST /api/rooms - สร้างห้องใหม่ลงฐานข้อมูล PostgreSQL จริง
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { title, eventDate, bannerUrl, seatingPlanUrl, ticketUrl, description, createdById } = body;
+
+    if (!title || !title.trim()) {
+      return NextResponse.json({ error: "กรุณาระบุชื่องานคอนเสิร์ต" }, { status: 400 });
+    }
+
+    // ponytail: Fallback to existing user if createdById not provided
+    let ownerId = createdById;
+    if (!ownerId) {
+      const defaultUser = await prisma.user.findFirst();
+      if (defaultUser) {
+        ownerId = defaultUser.id;
+      } else {
+        const guestUser = await prisma.user.create({
+          data: {
+            email: `guest_${Date.now()}@ticketwar.app`,
+            name: "Organizer",
+          },
+        });
+        ownerId = guestUser.id;
+      }
+    }
+
+    // Process Poster (Cloudinary upload if base64, else raw URL or null)
+    let finalBannerUrl: string | null = null;
+    if (bannerUrl && typeof bannerUrl === "string") {
+      if (bannerUrl.startsWith("data:image/")) {
+        finalBannerUrl = await uploadRoomPoster(bannerUrl, ownerId);
+      } else if (bannerUrl.trim()) {
+        finalBannerUrl = bannerUrl.trim();
+      }
+    }
+
+    // Process Seating Plan (Cloudinary upload if base64, else raw URL or null)
+    let finalSeatingPlanUrl: string | null = null;
+    if (seatingPlanUrl && typeof seatingPlanUrl === "string") {
+      if (seatingPlanUrl.startsWith("data:image/")) {
+        finalSeatingPlanUrl = await uploadRoomSeatingPlan(seatingPlanUrl, ownerId);
+      } else if (seatingPlanUrl.trim()) {
+        finalSeatingPlanUrl = seatingPlanUrl.trim();
+      }
+    }
+
+    // Process optional Ticket / Official Website URL
+    let finalTicketUrl: string | null = null;
+    if (ticketUrl && typeof ticketUrl === "string" && ticketUrl.trim()) {
+      finalTicketUrl = ticketUrl.trim();
+    }
+
+    // Process optional Room Note / Description
+    let finalDescription: string | null = null;
+    if (description && typeof description === "string" && description.trim()) {
+      finalDescription = description.trim();
+    }
+
+    // Parse Event Date
+    let parsedEventDate: Date | null = null;
+    if (eventDate) {
+      const d = new Date(eventDate);
+      if (!isNaN(d.getTime())) {
+        parsedEventDate = d;
+      }
+    }
+
+    const ownerUser = await prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { name: true },
+    });
+    const ownerName = ownerUser?.name || "Organizer";
+
+    const newRoom = await prisma.room.create({
+      data: {
+        title: title.trim(),
+        createdById: ownerId,
+        bannerUrl: finalBannerUrl,
+        seatingPlanUrl: finalSeatingPlanUrl,
+        ticketUrl: finalTicketUrl,
+        description: finalDescription,
+        eventDate: parsedEventDate,
+        members: {
+          create: {
+            userId: ownerId,
+            role: "OWNER",
+          },
+        },
+        messages: {
+          create: {
+            userId: ownerId,
+            text: `${ownerName} สร้างห้องกดบัตรแล้ว`,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: "สร้างห้องสำเร็จ",
+        room: {
+          id: newRoom.id,
+          title: newRoom.title,
+          inviteCode: newRoom.inviteCode,
+          status: newRoom.status,
+          createdById: newRoom.createdById,
+          role: "OWNER",
+          bannerUrl: newRoom.bannerUrl || null,
+          seatingPlanUrl: newRoom.seatingPlanUrl || null,
+          ticketUrl: newRoom.ticketUrl || null,
+          description: newRoom.description || null,
+          memberCount: 1,
+          createdAt: newRoom.createdAt.toISOString(),
+          eventDate: newRoom.eventDate
+            ? newRoom.eventDate.toISOString()
+            : "เร็วๆ นี้",
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("[POST /api/rooms error]:", error);
+    return NextResponse.json({ error: "ไม่สามารถสร้างห้องได้" }, { status: 500 });
+  }
+}

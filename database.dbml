@@ -1,0 +1,98 @@
+// Database Markup Language (DBML) for https://dbdiagram.io
+// Project: TicketWar - Realtime Seat Tracker & Coordination Room
+// Database: PostgreSQL (Supabase)
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar [unique, not null]
+  password_hash varchar [note: 'รองรับ Google OAuth / Hash']
+  name varchar [not null, note: 'ชื่อที่แสดง']
+  avatar_url varchar [note: 'รูปโปรไฟล์']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  Note: 'ตารางผู้ใช้งานระบบ'
+}
+
+Table rooms {
+  id uuid [pk, default: `gen_random_uuid()`]
+  title varchar [not null, note: 'ชื่องานคอนเสิร์ต เช่น BLACKPINK 2026']
+  invite_code varchar [unique, not null, note: 'รหัสหรือลิงก์สำหรับชวนเพื่อน']
+  status room_status [default: 'ACTIVE', note: 'ACTIVE(ใช้งาน) | ARCHIVED(เก็บไว้) | DELETED(ลบทิ้ง)']
+  created_by_id uuid [not null, note: 'เจ้าของห้อง']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  Note: 'ห้อง War Room สำหรับกดบัตร'
+}
+
+Table room_members {
+  id uuid [pk, default: `gen_random_uuid()`]
+  room_id uuid [not null]
+  user_id uuid [not null]
+  role member_role [default: 'MEMBER', note: 'OWNER | ADMIN | MEMBER']
+  joined_at timestamp [default: `now()`]
+
+  indexes {
+    (room_id, user_id) [unique]
+  }
+
+  Note: 'สมาชิกที่อยู่ในห้องกดบัตร'
+}
+
+Table seat_tasks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  room_id uuid [not null]
+  target_location varchar [not null, note: 'ที่ที่ต้องการ เช่น โซน VIP-A']
+  target_date date [not null, note: 'วันไหน (รอบการแสดง)']
+  price int [not null, note: 'ราคาเท่าไหร่ (บาท)']
+  quantity_needed int [not null, default: 1, note: 'ต้องการกี่ใบ']
+  quantity_secured int [not null, default: 0, note: 'ได้แล้วกี่ใบ (เหลือ = needed - secured)']
+  note text [note: 'หมายเหตุ / แผนสำรอง เช่น ถ้า VIP เต็ม เอา Zone B ทันที']
+  status seat_status [default: 'AVAILABLE', note: 'AVAILABLE(ว่าง) | PENDING_PAYMENT(รอจ่าย) | COMPLETED(เสร็จสิ้น)']
+  secured_by jsonb [note: 'ใครกดได้บ้าง [{"userId": "...", "name": "นายเอ", "qty": 1, "at": "..."}]']
+  last_updated_by_id uuid [note: 'ใครเป็นคนแก้ล่าสุด']
+  last_updated_at timestamp [default: `now()`, note: 'แก้ล่าสุดตอนไหน']
+
+  Note: 'เป้าหมายที่นั่งและสถานะการกดบัตร'
+}
+
+Table messages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  room_id uuid [not null]
+  user_id uuid [not null]
+  text text [note: 'ข้อความแชท']
+  image_url varchar [note: 'รูปภาพที่บีบอัดและอัปโหลดไป Cloudinary']
+  created_at timestamp [default: `now()`]
+
+  Note: 'ข้อความแชทและรูปภาพในห้อง'
+}
+
+Enum room_status {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+Enum seat_status {
+  AVAILABLE
+  PENDING_PAYMENT
+  COMPLETED
+}
+
+Enum member_role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ----------------------------------------------------
+// Foreign Keys & Relationships
+// ----------------------------------------------------
+Ref: rooms.created_by_id > users.id [delete: cascade]
+Ref: room_members.room_id > rooms.id [delete: cascade]
+Ref: room_members.user_id > users.id [delete: cascade]
+Ref: seat_tasks.room_id > rooms.id [delete: cascade]
+Ref: seat_tasks.last_updated_by_id > users.id [delete: set null]
+Ref: messages.room_id > rooms.id [delete: cascade]
+Ref: messages.user_id > users.id [delete: cascade]
