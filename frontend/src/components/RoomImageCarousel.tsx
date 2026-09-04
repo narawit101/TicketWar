@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ticket } from "lucide-react";
 
 export interface CarouselSlide {
   url: string;
@@ -36,7 +36,20 @@ export const RoomImageCarousel: React.FC<RoomImageCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
-  if (slides.length === 0) return null;
+  if (slides.length === 0) {
+    return (
+      <div
+        className={`relative w-full aspect-video rounded-xl overflow-hidden mb-3 border border-[#262626] bg-linear-to-br from-[#1c1c1c] via-[#171717] to-[#121212] flex flex-col items-center justify-center gap-2 select-none group/placeholder ${className}`}
+      >
+        <div className="w-10 h-10 rounded-full bg-[#222222] border border-[#2e2e2e] flex items-center justify-center text-zinc-500 shadow-inner group-hover/placeholder:scale-105 transition-transform duration-200">
+          <Ticket className="w-5 h-5 text-zinc-500 stroke-[1.8]" />
+        </div>
+        <span className="text-[11px] font-medium text-zinc-500 tracking-wide">
+          ไม่มีรูปภาพ
+        </span>
+      </div>
+    );
+  }
 
   const currentSlide = slides[currentIndex] || slides[0];
 

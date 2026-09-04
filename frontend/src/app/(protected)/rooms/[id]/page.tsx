@@ -17,7 +17,7 @@ import { MembersModal } from "@/components/MembersModal";
 import { EditRoomModal } from "@/components/EditRoomModal";
 import { RoomHero } from "@/components/RoomHero";
 import { RoomHeader } from "@/components/RoomHeader";
-import { Room, SeatTask, Message, SeatStatus, RoomMemberItem } from "@/types";
+import { Room, SeatTask, Message, SeatStatus, RoomMemberItem, PendingPaymentRecord, TaskAssignee, SecuredByRecord } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
@@ -84,9 +84,12 @@ export default function RoomDetailPage() {
             );
 
           if (!isMember) {
-            toast.error("คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว", {
-              id: "room-forbidden",
-            });
+            toast.error(
+              "คุณไม่ได้เป็นสมาชิกในห้องนี้ หรือถูกนำออกจากห้องแล้ว",
+              {
+                id: "room-forbidden",
+              },
+            );
             router.replace("/");
             return;
           }
@@ -120,6 +123,18 @@ export default function RoomDetailPage() {
       ignore = true;
     };
   }, [roomId, user?.id, router]);
+
+  // Set document title to concert / room title on browser tab
+  useEffect(() => {
+    if (room?.title) {
+      document.title = `${room.title} | TicketWar`;
+    } else {
+      document.title = "TicketWar";
+    }
+    return () => {
+      document.title = "TicketWar";
+    };
+  }, [room?.title]);
 
   // Realtime Socket.IO Connection & Events
   useEffect(() => {
@@ -158,13 +173,19 @@ export default function RoomDetailPage() {
         name: string;
         qty: number;
         at: string;
+        zoneName?: string;
       }>;
+      pendingPayments?: PendingPaymentRecord[];
+      backupLocation?: string | null;
+      backupPrice?: number | null;
       note?: string;
       targetLocation?: string;
       targetDate?: string;
       price?: number;
       quantityNeeded?: number;
       task?: SeatTask;
+      assignee?: TaskAssignee | null;
+      assignees?: TaskAssignee[];
       updatedBy?: string;
       updatedAt?: string;
     }) => {
@@ -181,6 +202,33 @@ export default function RoomDetailPage() {
                     : t.quantitySecured,
                 securedBy:
                   data.securedBy !== undefined ? data.securedBy : t.securedBy,
+                assignees:
+                  data.assignees !== undefined
+                    ? data.assignees
+                    : data.securedBy !== undefined
+                      ? (data.securedBy as unknown as SecuredByRecord[])
+                          .filter((s) => Boolean(s.isAssignee))
+                          .map((s) => ({
+                            userId: s.userId,
+                            name: s.name,
+                          }))
+                      : t.assignees,
+                assignee:
+                  data.assignee !== undefined
+                    ? data.assignee
+                    : data.assignees && data.assignees.length > 0
+                      ? data.assignees[0]
+                      : (() => {
+                          const firstAssignee = (
+                            data.securedBy as unknown as SecuredByRecord[]
+                          )?.find((s) => Boolean(s.isAssignee));
+                          return firstAssignee
+                            ? {
+                                userId: firstAssignee.userId,
+                                name: firstAssignee.name,
+                              }
+                            : t.assignee;
+                        })(),
                 note:
                   data.note !== undefined
                     ? data.note
@@ -205,6 +253,24 @@ export default function RoomDetailPage() {
                     : data.task?.quantityNeeded !== undefined
                       ? data.task.quantityNeeded
                       : t.quantityNeeded,
+                pendingPayments:
+                  data.pendingPayments !== undefined
+                    ? data.pendingPayments
+                    : data.task?.pendingPayments !== undefined
+                      ? data.task.pendingPayments
+                      : t.pendingPayments,
+                backupLocation:
+                  data.backupLocation !== undefined
+                    ? data.backupLocation
+                    : data.task?.backupLocation !== undefined
+                      ? data.task.backupLocation
+                      : t.backupLocation,
+                backupPrice:
+                  data.backupPrice !== undefined
+                    ? data.backupPrice
+                    : data.task?.backupPrice !== undefined
+                      ? data.task.backupPrice
+                      : t.backupPrice,
                 lastUpdatedBy: data.updatedBy || t.lastUpdatedBy,
                 lastUpdatedAt: data.updatedAt || "เมื่อสักครู่",
               }
@@ -524,43 +590,256 @@ export default function RoomDetailPage() {
   };
 
   // Action: Increment (+1 ได้บัตรเพิ่ม)
-  const handleIncrement = async (taskId: string) => {
+  // Action: Start Pending Payment (กดได้แล้ว เข้าสู่สถานะรอจ่ายเงิน)
+  const handleStartPendingPayment = async (
+    taskId: string,
+    zoneType: "MAIN" | "BACKUP",
+    zoneName: string,
+    price: number,
+  ) => {
     const target = tasks.find((t) => t.id === taskId);
-    if (!target || target.quantitySecured >= target.quantityNeeded) return;
+    if (!target) return;
+
+    const isBackup = zoneType === "BACKUP";
+    const pendingList = target.pendingPayments || [];
+    const securedList = target.securedBy || [];
+
+    const isRecordBackup = (item: { zoneType?: string; zoneName?: string }) => {
+      if (item.zoneType === "BACKUP") return true;
+      if (item.zoneType === "MAIN") return false;
+      const name = (item.zoneName || "").trim();
+      if (!name) return false;
+      if (name.includes("สำรอง")) return true;
+      if (
+        target.backupLocation &&
+        (name === target.backupLocation ||
+          name.includes(target.backupLocation) ||
+          target.backupLocation.includes(name))
+      ) {
+        return true;
+      }
+      return false;
+    };
+
+    const zonePendingCount = pendingList.filter((p) =>
+      isBackup ? isRecordBackup(p) : !isRecordBackup(p),
+    ).length;
+
+    const zoneSecuredCount =
+      securedList.length > 0
+        ? securedList
+            .filter((s) => (isBackup ? isRecordBackup(s) : !isRecordBackup(s)))
+            .reduce((acc, s) => acc + (s.qty || 1), 0)
+        : isBackup
+          ? 0
+          : target.quantitySecured;
+
+    if (zonePendingCount + zoneSecuredCount >= target.quantityNeeded) {
+      toast.error(
+        `${isBackup ? "โซนสำรอง" : "โซนหลัก"} ครบจำนวนที่ต้องการแล้ว (${target.quantityNeeded} ใบ)`,
+      );
+      return;
+    }
+
+    playSoundAlert("success");
+
+    const newPending: PendingPaymentRecord = {
+      id: crypto.randomUUID(),
+      userId: user?.id || "",
+      name: currentUserName,
+      zoneType,
+      zoneName,
+      price,
+      at: new Date().toISOString(),
+    };
+
+    const updatedPending = [...(target.pendingPayments || []), newPending];
+    const nextStatus: SeatStatus =
+      target.quantitySecured >= target.quantityNeeded
+        ? "COMPLETED"
+        : "PENDING_PAYMENT";
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              pendingPayments: updatedPending,
+              status: nextStatus,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      status: nextStatus,
+      pendingPayments: updatedPending,
+      quantitySecured: target.quantitySecured,
+      securedBy: target.securedBy,
+      updatedBy: currentUserName,
+    });
+
+    const cleanZone = zoneName.trim();
+    const zoneLabel = cleanZone.startsWith("โซน")
+      ? cleanZone
+      : `${zoneType === "MAIN" ? "โซนหลัก" : "โซนสำรอง"} ${cleanZone}`;
+    const pendingMsg = `${currentUserName} ล็อคที่นั่งได้แล้ว! กำลังรอจ่ายเงิน (${zoneLabel} - ${price.toLocaleString()} THB)`;
+    handleAddChatMessage(pendingMsg, undefined, true);
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          status: nextStatus,
+          pendingPayments: updatedPending,
+          lastUpdatedById: user?.id,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save pending payment in DB:", err);
+    }
+  };
+
+  // Action: Confirm Payment (ชำระเงินสำเร็จ ได้บัตร +1 ใบ)
+  const handleConfirmPayment = async (taskId: string, pendingId: string) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    const pendingItem = target.pendingPayments?.find((p) => p.id === pendingId);
+    const remainingPending = (target.pendingPayments || []).filter(
+      (p) => p.id !== pendingId,
+    );
 
     playSoundAlert("success");
     const nextSecured = target.quantitySecured + 1;
-    const nextStatus: SeatStatus =
-      nextSecured >= target.quantityNeeded ? "COMPLETED" : "AVAILABLE";
+    const isNowFull = nextSecured >= target.quantityNeeded;
+    const nextStatus: SeatStatus = isNowFull
+      ? "COMPLETED"
+      : remainingPending.length > 0
+        ? "PENDING_PAYMENT"
+        : "AVAILABLE";
 
-    const existingIndex = (target.securedBy || []).findIndex(
-      (s) => s.userId === user?.id || s.name === currentUserName,
-    );
     const updatedSecuredBy = [...(target.securedBy || [])];
-    if (existingIndex >= 0) {
-      updatedSecuredBy[existingIndex] = {
-        ...updatedSecuredBy[existingIndex],
-        qty: updatedSecuredBy[existingIndex].qty + 1,
-        at:
-          new Date().toLocaleTimeString("th-TH", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }) + " น.",
-      };
-    } else {
-      updatedSecuredBy.push({
-        userId: user?.id || `user-${currentUserName.toLowerCase()}`,
-        name: currentUserName,
-        qty: 1,
-        at:
-          new Date().toLocaleTimeString("th-TH", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }) + " น.",
+    const buyerName = pendingItem?.name || currentUserName;
+    const buyerId = pendingItem?.userId || user?.id || "";
+    const zoneLabel =
+      pendingItem?.zoneName ||
+      (pendingItem?.zoneType === "BACKUP"
+        ? target.backupLocation || "โซนสำรอง"
+        : target.targetLocation);
+
+    updatedSecuredBy.push({
+      userId: buyerId,
+      name: buyerName,
+      qty: 1,
+      at:
+        new Date().toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }) + " น.",
+      zoneName: zoneLabel,
+      zoneType: pendingItem?.zoneType,
+    });
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              quantitySecured: nextSecured,
+              status: nextStatus,
+              securedBy: updatedSecuredBy,
+              pendingPayments: remainingPending,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      status: nextStatus,
+      quantitySecured: nextSecured,
+      securedBy: updatedSecuredBy,
+      pendingPayments: remainingPending,
+      updatedBy: currentUserName,
+    });
+
+    const confirmMsg = isNowFull
+      ? `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
+      : `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} แล้ว (+1 ใบ)`;
+
+    handleAddChatMessage(confirmMsg, undefined, true);
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          status: nextStatus,
+          quantitySecured: nextSecured,
+          securedBy: updatedSecuredBy,
+          pendingPayments: remainingPending,
+          lastUpdatedById: user?.id,
+        }),
       });
+    } catch (err) {
+      console.error("Failed to save confirm payment in DB:", err);
     }
+  };
+
+  // Action: Direct Secured (เปลี่ยนสถานะเป็นสำเร็จโดยตรง)
+  const handleDirectSecured = async (
+    taskId: string,
+    zoneType: "MAIN" | "BACKUP",
+    zoneName: string,
+  ) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+    if (target.quantitySecured >= target.quantityNeeded) {
+      toast.error(
+        `ที่นั่งครบตามจำนวนที่ต้องการแล้ว (${target.quantityNeeded} ใบ)`,
+      );
+      return;
+    }
+
+    playSoundAlert("success");
+    const nextSecured = target.quantitySecured + 1;
+    const isNowFull = nextSecured >= target.quantityNeeded;
+    const remainingPending = target.pendingPayments || [];
+    const nextStatus: SeatStatus = isNowFull
+      ? "COMPLETED"
+      : remainingPending.length > 0
+        ? "PENDING_PAYMENT"
+        : "AVAILABLE";
+
+    const updatedSecuredBy = [...(target.securedBy || [])];
+    const buyerName = currentUserName;
+    const buyerId = user?.id || "";
+
+    updatedSecuredBy.push({
+      userId: buyerId,
+      name: buyerName,
+      qty: 1,
+      at:
+        new Date().toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }) + " น.",
+      zoneName,
+      zoneType,
+    });
 
     setTasks((prev) =>
       prev.map((t) =>
@@ -583,16 +862,14 @@ export default function RoomDetailPage() {
       status: nextStatus,
       quantitySecured: nextSecured,
       securedBy: updatedSecuredBy,
+      pendingPayments: remainingPending,
       updatedBy: currentUserName,
     });
 
-    // Auto-post system notification into Live Chat
-    const isNowFull = nextSecured >= target.quantityNeeded;
-    const incrementMsg = isNowFull
-      ? `${currentUserName} กด ${target.targetLocation} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
-      : `${currentUserName} กด ${target.targetLocation} ได้ +1 ใบ (${nextSecured}/${target.quantityNeeded})`;
-
-    handleAddChatMessage(incrementMsg, undefined, true);
+    const msg = isNowFull
+      ? `${buyerName} ได้บัตร ${zoneName} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
+      : `${buyerName} ได้บัตร ${zoneName} แล้ว! (+1 ใบ)`;
+    handleAddChatMessage(msg, undefined, true);
 
     try {
       await fetch(`/api/rooms/${roomId}/tasks`, {
@@ -607,7 +884,179 @@ export default function RoomDetailPage() {
         }),
       });
     } catch (err) {
-      console.error("Failed to save increment in DB:", err);
+      console.error("Failed to save direct secured in DB:", err);
+    }
+  };
+
+  // Action: Assign Task (มอบหมายงานให้สมาชิกในห้องแบบ ClickUp - มอบหมายได้ทีละหลายคน)
+  const handleAssignTask = async (
+    taskId: string,
+    targetMember: TaskAssignee | null,
+  ) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    const currentAssignees: TaskAssignee[] =
+      target.assignees && target.assignees.length > 0
+        ? target.assignees
+        : target.assignee
+          ? [target.assignee]
+          : [];
+
+    let newAssignees: TaskAssignee[] = [];
+    let isRemoved = false;
+
+    if (targetMember === null) {
+      // ล้างการมอบหมายทั้งหมด
+      newAssignees = [];
+      isRemoved = true;
+    } else {
+      const isAlreadyAssigned = currentAssignees.some(
+        (a) => a.userId === targetMember.userId || a.name === targetMember.name,
+      );
+
+      if (isAlreadyAssigned) {
+        newAssignees = currentAssignees.filter(
+          (a) =>
+            a.userId !== targetMember.userId && a.name !== targetMember.name,
+        );
+        isRemoved = true;
+      } else {
+        newAssignees = [...currentAssignees, targetMember];
+        isRemoved = false;
+      }
+    }
+
+    // กรอง isAssignee เดิมออกจาก securedBy
+    const cleanSecured = (target.securedBy || []).filter((s) => !s.isAssignee);
+    const updatedSecuredBy = [
+      ...cleanSecured,
+      ...newAssignees.map((a) => ({
+        isAssignee: true,
+        userId: a.userId,
+        name: a.name,
+        qty: 0,
+        at: "",
+      })),
+    ];
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              assignee: newAssignees[0] || null,
+              assignees: newAssignees,
+              securedBy: updatedSecuredBy,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      assignee: newAssignees[0] || null,
+      assignees: newAssignees,
+      securedBy: updatedSecuredBy,
+      updatedBy: currentUserName,
+    });
+
+    if (targetMember === null) {
+      playSoundAlert("warning");
+      const unassignMsg = `${currentUserName} ยกเลิกการมอบหมายงาน ${target.targetLocation} ทั้งหมด`;
+      handleAddChatMessage(unassignMsg, undefined, true);
+      toast.success("ยกเลิกการมอบหมายงานทั้งหมดเรียบร้อย");
+    } else if (isRemoved) {
+      playSoundAlert("warning");
+      const unassignMsg = `📢 ${currentUserName} ถอนการมอบหมายงาน ${target.targetLocation} จาก ${targetMember.name}`;
+      handleAddChatMessage(unassignMsg, undefined, true);
+      toast.success(`ถอนการมอบหมาย ${targetMember.name} เรียบร้อย`);
+    } else {
+      playSoundAlert("success");
+      const assignMsg = `📢 ${currentUserName} มอบหมายงาน ${target.targetLocation} ให้กับ ${targetMember.name}`;
+      handleAddChatMessage(assignMsg, undefined, true);
+      toast.success(`มอบหมายงานให้ ${targetMember.name} เรียบร้อย`);
+    }
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          securedBy: updatedSecuredBy,
+          lastUpdatedById: user?.id,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save assignment in DB:", err);
+    }
+  };
+
+  // Action: Cancel Pending Payment (หลุดชำระเงิน หรือ กดยกเลิก)
+  const handleCancelPendingPayment = async (
+    taskId: string,
+    pendingId: string,
+  ) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    const pendingItem = target.pendingPayments?.find((p) => p.id === pendingId);
+    const remainingPending = (target.pendingPayments || []).filter(
+      (p) => p.id !== pendingId,
+    );
+
+    playSoundAlert("warning");
+    const nextStatus: SeatStatus =
+      target.quantitySecured >= target.quantityNeeded
+        ? "COMPLETED"
+        : remainingPending.length > 0
+          ? "PENDING_PAYMENT"
+          : "AVAILABLE";
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: nextStatus,
+              pendingPayments: remainingPending,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            }
+          : t,
+      ),
+    );
+
+    getSocket().emit("update_seat_status", {
+      roomId,
+      taskId,
+      status: nextStatus,
+      pendingPayments: remainingPending,
+      quantitySecured: target.quantitySecured,
+      securedBy: target.securedBy,
+      updatedBy: currentUserName,
+    });
+
+    const cancelMsg = `${currentUserName} ยกเลิกการชำระเงิน (${pendingItem?.zoneName || "ที่นั่ง"})`;
+    handleAddChatMessage(cancelMsg, undefined, true);
+
+    try {
+      await fetch(`/api/rooms/${roomId}/tasks`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId,
+          status: nextStatus,
+          pendingPayments: remainingPending,
+          lastUpdatedById: user?.id,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to cancel pending payment in DB:", err);
     }
   };
 
@@ -691,10 +1140,27 @@ export default function RoomDetailPage() {
     }
   };
 
-  const handleSaveTask = async (taskData: Partial<SeatTask>) => {
+  const handleSaveTask = async (
+    taskData: Partial<SeatTask> & { assignees?: TaskAssignee[] },
+  ): Promise<boolean> => {
     try {
+      const assignees = taskData.assignees || [];
+      const assigneeSecured = assignees.map((a) => ({
+        isAssignee: true,
+        userId: a.userId,
+        name: a.name,
+        qty: 0,
+        at: "",
+      }));
+
       if (taskData.id) {
         // Edit existing
+        const existingTarget = tasks.find((t) => t.id === taskData.id);
+        const cleanSecured = (existingTarget?.securedBy || []).filter(
+          (s) => !s.isAssignee,
+        );
+        const updatedSecuredBy = [...cleanSecured, ...assigneeSecured];
+
         const res = await fetch(`/api/rooms/${roomId}/tasks`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -702,9 +1168,12 @@ export default function RoomDetailPage() {
             taskId: taskData.id,
             status: taskData.status,
             quantitySecured: taskData.quantitySecured,
+            securedBy: updatedSecuredBy,
             targetLocation: taskData.targetLocation,
+            backupLocation: taskData.backupLocation,
             targetDate: taskData.targetDate,
             price: taskData.price,
+            backupPrice: taskData.backupPrice,
             quantityNeeded: taskData.quantityNeeded,
             note: taskData.note,
             lastUpdatedById: user?.id,
@@ -712,21 +1181,31 @@ export default function RoomDetailPage() {
         });
         const result = await res.json();
         if (res.ok && result.task) {
+          const updatedTask = {
+            ...result.task,
+            securedBy: updatedSecuredBy,
+            assignees,
+            assignee: assignees[0] || null,
+          };
           setTasks((prev) =>
-            prev.map((t) => (t.id === taskData.id ? result.task : t)),
+            prev.map((t) => (t.id === taskData.id ? updatedTask : t)),
           );
           getSocket().emit("update_seat_status", {
             roomId,
             taskId: result.task.id,
             status: result.task.status,
             quantitySecured: result.task.quantitySecured,
-            securedBy: result.task.securedBy,
+            securedBy: updatedSecuredBy,
+            assignees,
+            assignee: assignees[0] || null,
             note: result.task.note,
             targetLocation: result.task.targetLocation,
+            backupLocation: result.task.backupLocation,
             targetDate: result.task.targetDate,
             price: result.task.price,
+            backupPrice: result.task.backupPrice,
             quantityNeeded: result.task.quantityNeeded,
-            task: result.task,
+            task: updatedTask,
             updatedBy: currentUserName,
           });
           toast.success("บันทึกการแก้ไขที่นั่งเรียบร้อยแล้ว");
@@ -735,36 +1214,62 @@ export default function RoomDetailPage() {
             undefined,
             true,
           );
+          return true;
+        } else {
+          toast.error(result.error || "ไม่สามารถบันทึกการแก้ไขได้");
+          return false;
         }
       } else {
         // Create new task in DB
+        const updatedSecuredBy = [...assigneeSecured];
+
         const res = await fetch(`/api/rooms/${roomId}/tasks`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             targetLocation: taskData.targetLocation,
+            backupLocation: taskData.backupLocation,
             targetDate: taskData.targetDate,
             price: taskData.price,
+            backupPrice: taskData.backupPrice,
             quantityNeeded: taskData.quantityNeeded,
             quantitySecured: taskData.quantitySecured,
             note: taskData.note,
             status: taskData.status || "AVAILABLE",
+            securedBy: updatedSecuredBy,
             lastUpdatedById: user?.id,
           }),
         });
         const result = await res.json();
         if (res.ok && result.task) {
-          setTasks((prev) => [result.task, ...prev]);
-          getSocket().emit("task_created", { roomId, task: result.task });
+          const newTask = {
+            ...result.task,
+            securedBy: updatedSecuredBy,
+            assignees,
+            assignee: assignees[0] || null,
+          };
+          setTasks((prev) => [newTask, ...prev]);
+          getSocket().emit("task_created", { roomId, task: newTask });
+          toast.success("เพิ่มที่นั่งเป้าหมายสำเร็จ");
+          const assigneeMsg =
+            assignees.length > 0
+              ? ` (มอบหมายให้ ${assignees.map((a) => a.name).join(", ")})`
+              : "";
           handleAddChatMessage(
-            `${currentUserName} เพิ่มที่นั่ง ${result.task.targetLocation} (${result.task.quantityNeeded} ใบ)`,
+            `${currentUserName} เพิ่มที่นั่ง ${result.task.targetLocation} (${result.task.quantityNeeded} ใบ)${assigneeMsg}`,
             undefined,
             true,
           );
+          return true;
+        } else {
+          toast.error(result.error || "ไม่สามารถเพิ่มที่นั่งได้");
+          return false;
         }
       }
     } catch (err) {
       console.error("Failed to save task:", err);
+      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      return false;
     }
   };
 
@@ -977,28 +1482,42 @@ export default function RoomDetailPage() {
         }}
       />
 
-      {/* Main 2-Column Split (Left: Seat Tasks 30%, Right: Live Chat 70%) */}
+      {/* Main 2-Column Split (Left: Seat Tasks 40%, Right: Live Chat 60%) */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-stretch lg:h-195">
-        {/* Left Column: Seat Tasks (3 cols = 30%) */}
+        {/* Left Column: Seat Tasks (4 cols = 40%) */}
         <RoomSeatTasksList
           tasks={tasks}
+          members={members}
+          currentUserId={user?.id}
           currentUserName={currentUserName}
           isReadOnly={isReadOnly}
           onAddTask={() => {
             setEditingTask(null);
             setIsEditModalOpen(true);
           }}
-          onIncrement={handleIncrement}
+          onAssignTask={handleAssignTask}
+          onStartPendingPayment={handleStartPendingPayment}
+          onConfirmPayment={handleConfirmPayment}
+          onDirectSecured={handleDirectSecured}
+          onCancelPendingPayment={handleCancelPendingPayment}
           onDecrement={handleDecrement}
           onEditTask={(t) => {
             setEditingTask(t);
             setIsEditModalOpen(true);
           }}
           onDeleteTask={requestDeleteTask}
+          onViewSeatingPlan={() => {
+            const planIdx = roomSlides.findIndex((s) => s.type === "seating");
+            if (planIdx !== -1) {
+              setLightboxIndex(planIdx);
+            } else {
+              toast("ห้องนี้ไม่มีรูปผังที่นั่ง", { icon: "ℹ️" });
+            }
+          }}
         />
 
-        {/* Right Column: Full-Height Live Chat (7 cols = 70%) */}
-        <div className="lg:col-span-7 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
+        {/* Right Column: Full-Height Live Chat (6 cols = 60%) */}
+        <div className="lg:col-span-6 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
           <LiveChat
             messages={messages}
             currentUserName={currentUserName}
@@ -1038,8 +1557,16 @@ export default function RoomDetailPage() {
             <img
               src={room.seatingPlanUrl}
               alt={`ผังที่นั่ง ${room.title}`}
-              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 "
+              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 group-hover/plan:scale-[1.01]"
             />
+
+            {/* Hover overlay hint */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/plan:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+              {/* <span className="px-4 py-2 rounded-full bg-black/80 border border-white/20 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 backdrop-blur-md shadow-xl">
+                <ZoomIn className="w-4 h-4 text-[#1ed760]" />
+                <span>คลิกเพื่อดูภาพขยายและซูมรายละเอียด</span>
+              </span> */}
+            </div>
           </div>
         </div>
       )}
@@ -1055,6 +1582,9 @@ export default function RoomDetailPage() {
       <EditTaskModal
         isOpen={isEditModalOpen}
         task={editingTask}
+        members={members}
+        currentUserId={user?.id}
+        currentUserName={currentUserName}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSaveTask}
         onDelete={(taskId) => {

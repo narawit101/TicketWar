@@ -172,7 +172,7 @@ const CreateRoomDialog: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col text-left">
+      <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col text-left">
         {/* Header (Pinned at top) */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#252525] bg-[#1a1a1a]">
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">

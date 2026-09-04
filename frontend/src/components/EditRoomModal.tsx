@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Room } from "@/types";
+import { toInputDateTime } from "@/lib/date";
 
 interface EditRoomModalProps {
   isOpen: boolean;
@@ -31,19 +32,6 @@ interface EditRoomModalProps {
     seatingPlanUrl?: string | null;
   }) => Promise<void> | void;
 }
-
-const toInputDateTime = (dateStr?: string | null) => {
-  if (!dateStr || dateStr === "วันแสดงที่กำหนด" || dateStr === "เร็วๆ นี้")
-    return "";
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return "";
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return "";
-  }
-};
 
 export const EditRoomModal: React.FC<EditRoomModalProps> = ({
   isOpen,
@@ -222,6 +210,19 @@ const EditRoomDialog: React.FC<{
           onSubmit={handleSubmit}
           className="p-6 space-y-4 overflow-y-auto text-sm flex-1"
         >
+          {" "}
+          <div className="space-y-1.5">
+            <label className="font-semibold text-zinc-200 flex items-center gap-1.5 text-sm">
+              <Calendar className="w-4 h-4 text-[#1ed760]" />
+              วันเวลากดบัตร (ไม่บังคับ)
+            </label>
+            <input
+              type="datetime-local"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white scheme-dark"
+            />
+          </div>
           {/* 1. Concert Title */}
           <div className="space-y-1.5">
             <label className="font-semibold text-zinc-200 flex items-center gap-1.5 text-sm">
@@ -241,21 +242,7 @@ const EditRoomDialog: React.FC<{
               className="input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white"
             />
           </div>
-
           {/* 2. Event Date & Time */}
-          <div className="space-y-1.5">
-            <label className="font-semibold text-zinc-200 flex items-center gap-1.5 text-sm">
-              <Calendar className="w-4 h-4 text-[#1ed760]" />
-              วันแสดง / วันเวลากดบัตร (ไม่บังคับ)
-            </label>
-            <input
-              type="datetime-local"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white scheme-dark"
-            />
-          </div>
-
           {/* 3. Ticket / Official Website URL */}
           <div className="space-y-1.5">
             <label className="font-semibold text-zinc-200 flex items-center justify-between text-sm">
@@ -273,7 +260,6 @@ const EditRoomDialog: React.FC<{
               className="input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white placeholder:text-zinc-500"
             />
           </div>
-
           {/* 4. Room Note / Description */}
           <div className="space-y-1.5">
             <label className="font-semibold text-zinc-200 flex items-center justify-between text-sm">
@@ -288,10 +274,9 @@ const EditRoomDialog: React.FC<{
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="เช่น กติกาการกดบัตร"
-              className="min-h-40 input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white placeholder:text-zinc-500 resize-none leading-relaxed"
+              className="min-h-60 input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white placeholder:text-zinc-500 resize-none leading-relaxed"
             />
           </div>
-
           {/* 3. Concert Poster Banner */}
           <div className="p-3.5 rounded-xl bg-[#141414] border border-[#222222] space-y-2.5">
             <div className="flex items-center justify-between">
@@ -392,7 +377,6 @@ const EditRoomDialog: React.FC<{
               </div>
             )}
           </div>
-
           {/* 4. Seating Plan Map */}
           <div className="p-3.5 rounded-xl bg-[#141414] border border-[#222222] space-y-2.5">
             <div className="flex items-center justify-between">
@@ -493,8 +477,6 @@ const EditRoomDialog: React.FC<{
               </div>
             )}
           </div>
-
-
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#252525]">
             <button

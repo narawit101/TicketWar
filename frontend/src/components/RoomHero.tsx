@@ -49,7 +49,7 @@ export const RoomHero: React.FC<RoomHeroProps> = ({
                 หมายเหตุ
               </span>
             </div>
-            <div className="max-h-28 sm:max-h-35 overflow-y-auto pr-1.5">
+            <div className="max-h-28 sm:max-h-52 overflow-y-auto pr-1.5">
               <p className="text-xs sm:text-sm text-[#b3b3b3] leading-relaxed whitespace-pre-line wrap-break-word">
                 {room.description}
               </p>

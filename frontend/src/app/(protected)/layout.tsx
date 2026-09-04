@@ -87,7 +87,7 @@ export default function ProtectedLayout({
 
           {/* Spotify-styled Profile Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#1a1a1a] border border-[#282828] shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
+            <div className="absolute right-0 mt-2 w-72 rounded-xl bg-[#1a1a1a] border border-[#282828] shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-left">
               {/* User Info Header */}
               <div className="px-4 py-3 border-b border-[#252525]">
                 <div className="flex items-center gap-3">
@@ -96,11 +96,11 @@ export default function ProtectedLayout({
                     name={user.name}
                     size="md"
                   />
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">
+                  <div className="overflow-hidden min-w-0 flex-1">
+                    <p className="text-sm sm:text-base font-bold text-white truncate leading-snug">
                       {user.name}
                     </p>
-                    <p className="text-[10.5px] text-[#888888] truncate">
+                    <p className="text-xs text-[#a0a0a0] truncate mt-0.5 font-normal">
                       {user.email}
                     </p>
                   </div>
@@ -108,14 +108,14 @@ export default function ProtectedLayout({
               </div>
 
               {/* Menu Actions */}
-              <div className="p-1 space-y-0.5">
+              <div className="p-1.5 space-y-0.5">
                 <button
                   type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
                     setIsEditProfileOpen(true);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs text-[#cbcbcb] hover:text-white hover:bg-[#252525] transition cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#d4d4d4] hover:text-white hover:bg-[#252525] transition cursor-pointer font-medium"
                 >
                   <UserCog className="w-4 h-4 text-[#1ed760]" />
                   <span>แก้ไขข้อมูลส่วนตัว</span>
@@ -129,7 +129,7 @@ export default function ProtectedLayout({
                     setIsDropdownOpen(false);
                     logout();
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs text-[#cbcbcb] hover:text-[#f3727f] hover:bg-[#2a1517] transition cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#d4d4d4] hover:text-[#f3727f] hover:bg-[#2a1517] transition cursor-pointer font-medium"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>ออกจากระบบ</span>

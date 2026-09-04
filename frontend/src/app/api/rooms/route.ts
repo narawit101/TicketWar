@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
+import { parseDateInBangkok } from "@/lib/date";
 
 // GET /api/rooms - ดึงข้อมูลห้องจากฐานข้อมูล PostgreSQL (รองรับกรองตาม userId)
 export async function GET(req: Request) {
@@ -126,14 +127,8 @@ export async function POST(req: Request) {
       finalDescription = description.trim();
     }
 
-    // Parse Event Date
-    let parsedEventDate: Date | null = null;
-    if (eventDate) {
-      const d = new Date(eventDate);
-      if (!isNaN(d.getTime())) {
-        parsedEventDate = d;
-      }
-    }
+    // Parse Event Date (guarantees Asia/Bangkok time interpretation)
+    const parsedEventDate: Date | null = eventDate ? parseDateInBangkok(eventDate) : null;
 
     const ownerUser = await prisma.user.findUnique({
       where: { id: ownerId },

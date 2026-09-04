@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { isSystemShoutout } from "@/lib/validation";
+import { parseDateInBangkok } from "@/lib/date";
 
 export async function GET(
   req: Request,
@@ -65,20 +66,43 @@ export async function GET(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedTasks = room.seatTasks.map((t: any) => ({
-      id: t.id,
-      roomId: t.roomId,
-      targetLocation: t.targetLocation,
-      targetDate: t.targetDate.toISOString().split("T")[0],
-      price: t.price,
-      quantityNeeded: t.quantityNeeded,
-      quantitySecured: t.quantitySecured,
-      note: t.note || "",
-      status: t.status,
-      securedBy: (t.securedBy as Array<{ userId: string; name: string; qty: number; at: string }>) || [],
-      lastUpdatedBy: t.lastUpdatedBy?.name || "Member",
-      lastUpdatedAt: t.lastUpdatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    }));
+    const formattedTasks = room.seatTasks.map((t: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const securedList = (t.securedBy as any[]) || [];
+      const assigneeRecords = securedList.filter((s) => s.isAssignee);
+      const regularSecured = securedList.filter((s) => !s.isAssignee);
+      const assignees = assigneeRecords.map((s) => ({
+        userId: s.userId,
+        name: s.name,
+      }));
+
+      return {
+        id: t.id,
+        roomId: t.roomId,
+        targetLocation: t.targetLocation,
+        backupLocation: t.backupLocation || null,
+        targetDate: t.targetDate.toISOString().split("T")[0],
+        price: t.price,
+        backupPrice:
+          t.backupPrice !== undefined && t.backupPrice !== null
+            ? t.backupPrice
+            : null,
+        quantityNeeded: t.quantityNeeded,
+        quantitySecured: t.quantitySecured,
+        note: t.note || "",
+        status: t.status,
+        securedBy: regularSecured,
+        assignees,
+        assignee: assignees[0] || null,
+        pendingPayments:
+          (t.pendingPayments as Array<Record<string, unknown>>) || [],
+        lastUpdatedBy: t.lastUpdatedBy?.name || "Member",
+        lastUpdatedAt: t.lastUpdatedAt.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedMessages = [...room.messages].reverse().map((m: any) => ({
@@ -174,8 +198,7 @@ export async function PATCH(
 
     if (eventDate !== undefined) {
       if (eventDate) {
-        const d = new Date(eventDate);
-        updateData.eventDate = !isNaN(d.getTime()) ? d : null;
+        updateData.eventDate = parseDateInBangkok(eventDate);
       } else {
         updateData.eventDate = null;
       }

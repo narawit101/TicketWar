@@ -1,6 +1,7 @@
 /**
  * Thai Date Utilities (Zero-dependency, Ponytail senior implementation)
  * Formats dates to Thai Buddhist Era (พ.ศ.) and provides clean date picker parsing.
+ * Guaranteed consistent timezone (Asia/Bangkok) across SSR, deployed servers (UTC), and client browsers.
  */
 
 export const THAI_MONTHS_SHORT = [
@@ -20,6 +21,7 @@ interface FormatOptions {
 
 /**
  * Formats an ISO string, YYYY-MM-DD, or Date object into a readable Thai date (พ.ศ.)
+ * Always formats in Asia/Bangkok timezone to prevent server (UTC) vs client (UTC+7) shifts.
  * Examples:
  *   formatThaiDate("2026-10-24") -> "24 ต.ค. 2569"
  *   formatThaiDate("2026-10-24", { format: "full" }) -> "24 ตุลาคม 2569"
@@ -35,7 +37,7 @@ export function formatThaiDate(
   }
 
   try {
-    // If it's a simple YYYY-MM-DD string, parse parts manually to avoid UTC timezone shifts
+    // If it's a simple YYYY-MM-DD string without time, parse parts directly
     if (typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
       const [yearStr, monthStr, dayStr] = dateInput.split("-");
       const year = parseInt(yearStr, 10) + 543;
@@ -52,20 +54,37 @@ export function formatThaiDate(
 
     const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
     if (isNaN(d.getTime())) {
-      // If it cannot be parsed as a date, return the original string (e.g. "รอบการแสดงที่ 1")
+      // If it cannot be parsed as a date, return original string
       return String(dateInput);
     }
 
-    const day = d.getDate();
+    // Always extract date parts in Asia/Bangkok timezone
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(d);
+
+    const map: Record<string, string> = {};
+    for (const p of parts) {
+      map[p.type] = p.value;
+    }
+
+    const day = parseInt(map.day || "1", 10);
+    const monthIdx = parseInt(map.month || "1", 10) - 1;
+    const year = parseInt(map.year || "2026", 10) + 543;
     const monthName =
       options.format === "full"
-        ? THAI_MONTHS_FULL[d.getMonth()]
-        : THAI_MONTHS_SHORT[d.getMonth()];
-    const year = d.getFullYear() + 543;
+        ? THAI_MONTHS_FULL[monthIdx] || ""
+        : THAI_MONTHS_SHORT[monthIdx] || "";
 
     if (options.includeTime) {
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const hours = (map.hour || "00").padStart(2, "0");
+      const minutes = (map.minute || "00").padStart(2, "0");
       return `${day} ${monthName} ${year} ${hours}:${minutes} น.`;
     }
 
@@ -76,31 +95,85 @@ export function formatThaiDate(
 }
 
 /**
- * Formatter for event/booking dates (includes Thai time if available)
+ * Formatter for event/booking dates (includes Thai time in Bangkok timezone)
  */
-export const formatEventDate = (dateStr?: string): string =>
+export const formatEventDate = (dateStr?: string | Date | null): string =>
   formatThaiDate(dateStr, { includeTime: true });
 
 /**
- * Normalizes any date string into YYYY-MM-DD for native HTML <input type="date">
+ * Normalizes any date string or Date object into YYYY-MM-DD for native HTML <input type="date">
+ * in Asia/Bangkok timezone.
  */
-export function toInputDateValue(raw?: string | null): string {
+export function toInputDateValue(raw?: string | Date | null): string {
   if (!raw) {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    return toInputDateTime(new Date()).split("T")[0];
   }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   try {
-    const d = new Date(raw);
+    const d = typeof raw === "string" ? new Date(raw) : raw;
     if (!isNaN(d.getTime())) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
+      return toInputDateTime(d).split("T")[0];
     }
   } catch {}
-  return raw;
+  return String(raw);
+}
+
+/**
+ * Converts any date or ISO string into YYYY-MM-DDTHH:mm for native HTML <input type="datetime-local">
+ * in Asia/Bangkok timezone.
+ */
+export function toInputDateTime(dateInput?: string | Date | null): string {
+  if (!dateInput || dateInput === "วันแสดงที่กำหนด" || dateInput === "เร็วๆ นี้") {
+    return "";
+  }
+  try {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    if (isNaN(d.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Bangkok",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(d);
+
+    const map: Record<string, string> = {};
+    for (const p of parts) {
+      map[p.type] = p.value;
+    }
+
+    return `${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}`;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Parses a date or datetime string into a valid Date object.
+ * If the string has no timezone offset (e.g. from <input type="datetime-local"> like "2026-09-04T19:00"
+ * or <input type="date"> like "2026-09-04"), treats it as Asia/Bangkok (+07:00).
+ * Prevents UTC servers (Node in Docker/Vercel) from shifting user-selected Thai times.
+ */
+export function parseDateInBangkok(input?: string | Date | null): Date | null {
+  if (!input) return null;
+  if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
+  const str = String(input).trim();
+  if (!str) return null;
+
+  // YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss without timezone offset
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(str)) {
+    const d = new Date(`${str}+07:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // YYYY-MM-DD without time
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const d = new Date(`${str}T00:00:00+07:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
 }

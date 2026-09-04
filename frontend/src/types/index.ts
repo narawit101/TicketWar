@@ -7,19 +7,43 @@ export interface SecuredByRecord {
   name: string;
   qty: number;
   at: string;
+  zoneName?: string; // เช่น "VIP Zone A (หลัก)" หรือ "Zone B (สำรอง)"
+  zoneType?: "MAIN" | "BACKUP";
+  isAssignee?: boolean;
+}
+
+export interface TaskAssignee {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export interface PendingPaymentRecord {
+  id: string;
+  userId: string;
+  name: string;
+  zoneType: "MAIN" | "BACKUP";
+  zoneName: string;
+  price: number;
+  at: string;
 }
 
 export interface SeatTask {
   id: string;
   roomId: string;
   targetLocation: string; // เช่น "VIP Zone A"
+  backupLocation?: string | null; // เช่น "Zone B" (ไม่บังคับ)
   targetDate: string;     // เช่น "25 Oct 2026"
   price: number;          // เช่น 6500
+  backupPrice?: number | null; // เช่น 4500 (ไม่บังคับ)
   quantityNeeded: number; // เช่น 2
   quantitySecured: number;// เช่น 1
   note?: string;          // แผนสำรอง เช่น "ถ้า VIP หลุด เอา Zone B ทันที"
   status: SeatStatus;     // "AVAILABLE" | "PENDING_PAYMENT" | "COMPLETED"
   securedBy: SecuredByRecord[];
+  pendingPayments?: PendingPaymentRecord[];
+  assignee?: TaskAssignee | null;
+  assignees?: TaskAssignee[];
   lastUpdatedBy: string;  // เช่น "Mark"
   lastUpdatedAt: string;  // เช่น "15s ago" หรือ ISO String
 }

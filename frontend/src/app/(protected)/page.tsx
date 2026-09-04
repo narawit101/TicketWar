@@ -150,9 +150,6 @@ export default function RoomsPage() {
         }
 
         refreshRooms();
-
-        // Auto open Share Modal so creator can immediately copy link/code
-        setShareRoom(result.room);
       } else {
         toast.error(result.error || "ไม่สามารถสร้างห้องได้");
       }

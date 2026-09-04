@@ -62,13 +62,9 @@ io.on("connection", (socket) => {
 
   // Seat tasks
   socket.on("update_seat_status", (data) => {
-    const { roomId, taskId, status, quantitySecured, updatedBy, securedBy } = data;
+    const { roomId, ...rest } = data;
     socket.to(roomId).emit("seat_status_updated", {
-      taskId,
-      status,
-      quantitySecured,
-      updatedBy,
-      securedBy,
+      ...rest,
       updatedAt: "เมื่อสักครู่",
     });
   });

@@ -108,15 +108,19 @@ model SeatTask {
   id              String      @id @default(uuid())
   roomId          String      @map("room_id")
   targetLocation  String      @map("target_location")  // ที่ที่ต้องการ เช่น "โซน VIP แถว A"
+  backupLocation  String?     @map("backup_location")  // โซนสำรอง (ไม่บังคับ) เช่น "Zone B"
   targetDate      DateTime    @map("target_date")       // วันไหน (รอบการแสดง)
   price           Int                                   // ราคาเท่าไหร่ (เช่น 6500)
+  backupPrice     Int?        @map("backup_price")      // ราคาโซนสำรอง (ไม่บังคับ)
   quantityNeeded  Int         @map("quantity_needed")   // ต้องการกี่ใบ (เช่น 2)
   quantitySecured Int         @default(0) @map("quantity_secured") // ได้แล้วกี่ใบ (เช่น 1)
   note            String?                               // หมายเหตุ เผื่อใส่ที่สำรอง เช่น "ถ้า VIP หลุด เอา Zone B ทันที"
   status          SeatStatus  @default(AVAILABLE)       // ว่าง | รอจ่าย | เสร็จสิ้น
   
-  // บันทึกว่าใครกดได้แต่ละใบในรูปแบบ JSON: [ { "userId": "...", "name": "นายเอ", "qty": 1, "at": "..." } ]
+  // บันทึกว่าใครกดได้แต่ละใบในรูปแบบ JSON: [ { "userId": "...", "name": "นายเอ", "qty": 1, "at": "...", "zoneName": "..." } ]
   securedBy       Json?       @map("secured_by")
+  // บันทึกรายการรอจ่ายเงิน: [ { "id": "...", "userId": "...", "name": "...", "zoneType": "MAIN"|"BACKUP", "zoneName": "...", "price": 6500, "at": "..." } ]
+  pendingPayments Json?       @map("pending_payments")
 
   lastUpdatedById String?     @map("last_updated_by_id") // ใครเป็นคนแก้ล่าสุด
   lastUpdatedAt   DateTime    @default(now()) @map("last_updated_at") // แก้ล่าสุดตอนไหน

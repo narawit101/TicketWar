@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
+import { formatEventDate } from "@/lib/date";
 
 interface JoinRoomModalProps {
   isOpen: boolean;
@@ -42,27 +43,6 @@ function extractInviteCode(input: string): string {
   }
   return trimmed;
 }
-
-const formatEventDate = (dateStr?: string) => {
-  if (!dateStr || dateStr === "วันแสดงที่กำหนด" || dateStr === "เร็วๆ นี้") {
-    return dateStr || "ยังไม่ระบุวัน";
-  }
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return (
-      d.toLocaleDateString("th-TH", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }) + " น."
-    );
-  } catch {
-    return dateStr;
-  }
-};
 
 export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
   isOpen,
