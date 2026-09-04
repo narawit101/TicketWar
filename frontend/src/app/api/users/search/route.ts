@@ -39,8 +39,10 @@ export async function GET(req: Request) {
       if (room) {
         memberUserIds.add(room.createdById);
       }
-      members.forEach((m) => memberUserIds.add(m.userId));
-      pendingInvites.forEach((i) => pendingInviteeIds.add(i.inviteeId));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      members.forEach((m: any) => memberUserIds.add(m.userId));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pendingInvites.forEach((i: any) => pendingInviteeIds.add(i.inviteeId));
     }
 
     const users = await prisma.user.findMany({
@@ -64,7 +66,8 @@ export async function GET(req: Request) {
       take: 8,
     });
 
-    const enrichedUsers = users.map((u) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const enrichedUsers = users.map((u: any) => {
       let membershipStatus: "MEMBER" | "INVITED" | null = null;
       if (memberUserIds.has(u.id)) {
         membershipStatus = "MEMBER";

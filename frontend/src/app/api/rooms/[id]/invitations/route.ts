@@ -39,9 +39,12 @@ export async function GET(
 
     const counts = {
       total: formatted.length,
-      pending: formatted.filter((i) => i.status === "PENDING").length,
-      accepted: formatted.filter((i) => i.status === "ACCEPTED").length,
-      declined: formatted.filter((i) => i.status === "DECLINED").length,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pending: formatted.filter((i: any) => i.status === "PENDING").length,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      accepted: formatted.filter((i: any) => i.status === "ACCEPTED").length,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      declined: formatted.filter((i: any) => i.status === "DECLINED").length,
     };
 
     return NextResponse.json({

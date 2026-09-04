@@ -158,7 +158,8 @@ export async function POST(req: Request) {
         where: { id: { in: validInviteeIds } },
         select: { name: true },
       });
-      const inviteeNames = invitedUsers.map((u) => u.name).filter(Boolean);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inviteeNames = invitedUsers.map((u: any) => u.name).filter(Boolean);
       if (inviteeNames.length > 0) {
         initialMessages.push({
           userId: ownerId,
@@ -208,7 +209,8 @@ export async function POST(req: Request) {
       },
     });
 
-    const formattedInvitations = newRoom.invitations.map((inv) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const formattedInvitations = newRoom.invitations.map((inv: any) => ({
       id: inv.id,
       roomId: newRoom.id,
       roomTitle: newRoom.title,

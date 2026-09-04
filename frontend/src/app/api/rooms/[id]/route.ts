@@ -50,7 +50,8 @@ export async function GET(
     if (userId) {
       const isMember =
         room.createdById === userId ||
-        room.members.some((m) => m.userId === userId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        room.members.some((m: any) => m.userId === userId);
 
       if (!isMember) {
         return NextResponse.json(
