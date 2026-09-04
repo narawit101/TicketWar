@@ -88,7 +88,10 @@ export const RoomImageCarousel: React.FC<RoomImageCarouselProps> = ({
       className={`relative w-full aspect-video rounded-xl overflow-hidden mb-3 border border-[#2a2a2a] bg-[#121212] group/carousel select-none cursor-pointer ${className}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onClick={() => onExpand?.(currentIndex)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onExpand?.(currentIndex);
+      }}
     >
       {/* Blurred Ambience Background for letterboxing */}
       <div

@@ -102,17 +102,19 @@ export const RoomCard: React.FC<RoomCardProps> = ({
           </div>
         </div>
 
-        {/* Room Image Carousel */}
-        <RoomImageCarousel
-          title={room.title}
-          bannerUrl={room.bannerUrl}
-          seatingPlanUrl={room.seatingPlanUrl}
-          onExpand={
-            onOpenLightbox && slides.length > 0
-              ? (idx) => onOpenLightbox(slides, idx)
-              : undefined
-          }
-        />
+        {/* Room Image Carousel (stops propagation to card click) */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <RoomImageCarousel
+            title={room.title}
+            bannerUrl={room.bannerUrl}
+            seatingPlanUrl={room.seatingPlanUrl}
+            onExpand={
+              onOpenLightbox && slides.length > 0
+                ? (idx) => onOpenLightbox(slides, idx)
+                : undefined
+            }
+          />
+        </div>
 
         {/* Room Title with Hover Tooltip */}
         <div className="relative group/title mb-2">
