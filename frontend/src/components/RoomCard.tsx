@@ -7,7 +7,6 @@ import {
   Crown,
   Users,
   Calendar,
-  ArrowRight,
   MoreVertical,
   Edit3,
   Share2,
@@ -153,10 +152,10 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               e.stopPropagation();
               onEnterRoom(room.id);
             }}
-            className="flex-1 py-2.5 px-4 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+            className="flex-1 py-2.5 px-4 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md  active:scale-[0.98] cursor-pointer"
           >
-            <span>เข้าสู่ห้อง</span>
-            <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>เข้าห้อง</span>
+            {/* <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" /> */}
           </button>
 
           {/* Consolidated Action Dropdown */}

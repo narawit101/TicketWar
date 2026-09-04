@@ -37,7 +37,7 @@ export async function GET(
             },
           },
           orderBy: { createdAt: "desc" },
-          take: 100,
+          take: 50,
         },
       },
     });
@@ -123,6 +123,7 @@ export async function GET(
       members: formattedMembers,
       tasks: formattedTasks,
       messages: formattedMessages,
+      hasMoreMessages: room.messages.length === 50,
     });
   } catch (error) {
     console.error("[GET /api/rooms/[id] error]:", error);

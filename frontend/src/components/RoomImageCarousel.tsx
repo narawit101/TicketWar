@@ -87,7 +87,7 @@ export const RoomImageCarousel: React.FC<RoomImageCarouselProps> = ({
       <img
         src={currentSlide.url}
         alt={`${title} - ${currentSlide.label}`}
-        className="relative z-10 w-full h-full object-contain transition-transform duration-300 group-hover/carousel:scale-[1.02]"
+        className="relative z-10 w-full h-full object-contain transition-transform duration-300 "
         loading="lazy"
       />
 

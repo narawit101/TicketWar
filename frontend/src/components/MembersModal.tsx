@@ -1,14 +1,14 @@
-"use client";
-
 import React, { useState } from "react";
 import { RoomMemberItem } from "@/types";
-import { Users, X, Crown, UserX, Loader2, AlertTriangle } from "lucide-react";
+import { X, Crown, UserX, Loader2, AlertTriangle } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { RoomInviteSection } from "./RoomInviteSection";
 
 interface MembersModalProps {
   isOpen: boolean;
   onClose: () => void;
   members: RoomMemberItem[];
+  roomId?: string;
   currentUserId?: string;
   isOwner: boolean;
   onKickMember: (userId: string, memberName: string) => Promise<void> | void;
@@ -18,6 +18,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   isOpen,
   onClose,
   members,
+  roomId,
   currentUserId,
   isOwner,
   onKickMember,
@@ -45,18 +46,13 @@ export const MembersModal: React.FC<MembersModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#181818] border border-[#282828] w-full max-w-lg rounded-2xl p-5 sm:p-6 relative shadow-2xl animate-in zoom-in-95 duration-150 text-left"
+        className="bg-[#181818] border border-[#282828] w-full max-w-lg rounded-2xl p-5 sm:p-6 relative shadow-2xl animate-in zoom-in-95 duration-150 text-left flex flex-col min-h-85 max-h-[88vh]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-[#282828] mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#1ed760]/15 flex items-center justify-center text-[#1ed760]">
-              <Users className="w-4.5 h-4.5 text-[#1ed760]" />
-            </div>
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              สมาชิกในห้อง ({members.length})
-            </h2>
-          </div>
+        <div className="flex items-center justify-between pb-3.5 border-b border-[#252525] mb-3">
+          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+            สมาชิกในห้อง ({members.length})
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -106,71 +102,85 @@ export const MembersModal: React.FC<MembersModalProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-2.5 max-h-105 overflow-y-auto pr-1">
-            {members.map((member) => {
-              const isCurrentUser = member.userId === currentUserId;
-              const isMemberOwner = member.role === "OWNER";
+          <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar pb-8">
+            {/* Active Members */}
+            <div className="space-y-2">
+              {members.map((member) => {
+                const isCurrentUser = member.userId === currentUserId;
+                const isMemberOwner = member.role === "OWNER";
 
-              return (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-[#121212] border border-[#282828] hover:border-[#383838] transition"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Avatar */}
-                    <Avatar
-                      src={member.avatarUrl}
-                      name={member.name}
-                      size="md"
-                    />
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-[#121212] border border-[#282828] hover:border-[#383838] transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Avatar */}
+                      <Avatar
+                        src={member.avatarUrl}
+                        name={member.name}
+                        size="md"
+                      />
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm sm:text-base font-bold text-white truncate">
-                          {member.name}
-                        </span>
-                        {isCurrentUser && (
-                          <span className="text-xs text-[#1ed760] font-medium">
-                            (คุณ)
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm sm:text-base font-bold text-white truncate">
+                            {member.name}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="text-xs text-[#1ed760] font-medium">
+                              (คุณ)
+                            </span>
+                          )}
+                        </div>
+                        {member.email && (
+                          <span className="text-xs sm:text-sm text-[#888888] block truncate mt-0.5">
+                            {member.email}
                           </span>
                         )}
                       </div>
-                      {member.email && (
-                        <span className="text-xs sm:text-sm text-[#888888] block truncate mt-0.5">
-                          {member.email}
+                    </div>
+
+                    {/* Role badge and Kick button */}
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {isMemberOwner ? (
+                        <span className="text-xs sm:text-sm px-3 py-1 rounded-full font-semibold bg-[#1f1f1f] text-[#1ed760] border border-[#1ed760]/30 flex items-center gap-1.5 shadow-sm">
+                          <Crown className="w-3.5 h-3.5 text-[#1ed760]" />
+                          <span>เจ้าของห้อง</span>
                         </span>
+                      ) : (
+                        <span className="text-xs sm:text-sm px-3 py-1 rounded-full font-semibold bg-[#1f1f1f] text-zinc-400 border border-zinc-700/60">
+                          สมาชิก
+                        </span>
+                      )}
+
+                      {/* Kick Button (Only for Room Owner, cannot kick self or owner) */}
+                      {isOwner && !isMemberOwner && !isCurrentUser && (
+                        <button
+                          onClick={() => setMemberToKick(member)}
+                          className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
+                          title={`ให้ ${member.name} ออกจากแชท`}
+                          aria-label={`ให้ ${member.name} ออกจากแชท`}
+                        >
+                          <UserX className="w-4 h-4" />
+                        </button>
                       )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Role badge and Kick button */}
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {isMemberOwner ? (
-                      <span className="text-xs sm:text-sm px-3 py-1 rounded-full font-semibold bg-[#1f1f1f] text-[#1ed760] border border-[#1ed760]/30 flex items-center gap-1.5 shadow-sm">
-                        <Crown className="w-3.5 h-3.5 text-[#1ed760]" />
-                        <span>เจ้าของห้อง</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs sm:text-sm px-3 py-1 rounded-full font-semibold bg-[#1f1f1f] text-zinc-400 border border-zinc-700/60">
-                        สมาชิก
-                      </span>
-                    )}
-
-                    {/* Kick Button (Only for Room Owner, cannot kick self or owner) */}
-                    {isOwner && !isMemberOwner && !isCurrentUser && (
-                      <button
-                        onClick={() => setMemberToKick(member)}
-                        className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition cursor-pointer"
-                        title={`ให้ ${member.name} ออกจากแชท`}
-                        aria-label={`ให้ ${member.name} ออกจากแชท`}
-                      >
-                        <UserX className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {/* Invite Friends Section */}
+            {roomId && (
+              <div className="pt-3.5 border-t border-[#252525]">
+                <RoomInviteSection
+                  roomId={roomId}
+                  currentUserId={currentUserId}
+                  isOwner={isOwner}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

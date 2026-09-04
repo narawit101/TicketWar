@@ -1,8 +1,8 @@
-"use client";
-
 import React, { useState } from "react";
 import { X, Copy, Check, Link2, KeyRound } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { RoomInviteSection } from "./RoomInviteSection";
+import { useAuth } from "@/context/AuthContext";
 
 interface ShareRoomModalProps {
   isOpen: boolean;
@@ -11,18 +11,25 @@ interface ShareRoomModalProps {
     title: string;
     inviteCode: string;
     bannerUrl?: string | null;
+    createdById?: string;
   } | null;
+  isOwner?: boolean;
   onClose: () => void;
 }
 
 export const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
   isOpen,
   room,
+  isOwner,
   onClose,
 }) => {
+  const { user } = useAuth();
   const [copiedType, setCopiedType] = useState<"link" | "code" | null>(null);
 
   if (!isOpen || !room) return null;
+
+  const effectiveIsOwner =
+    isOwner !== undefined ? isOwner : room.createdById === user?.id;
 
   const origin =
     typeof window !== "undefined"
@@ -47,7 +54,7 @@ export const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col"
+        className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-md min-h-80 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col custom-scrollbar "
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -76,11 +83,11 @@ export const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold text-white flex items-center gap-2 text-sm">
                 <Link2 className="w-4 h-4 text-[#1ed760]" />
-                ลิงก์คำเชิญ (กดเข้าได้ทันที)
+                ลิงก์คำเชิญ
               </span>
-              <span className="text-xs text-[#1ed760] font-medium bg-[#1ed760]/10 px-2 py-0.5 rounded-full">
+              {/* <span className="text-xs text-[#1ed760] font-medium bg-[#1ed760]/10 px-2 py-0.5 rounded-full">
                 แนะนำ
-              </span>
+              </span> */}
             </div>
 
             <div className="flex items-center gap-2 bg-[#1f1f1f] p-2 pl-3.5 rounded-xl border border-[#333333]">
@@ -114,11 +121,11 @@ export const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold text-white flex items-center gap-2 text-sm">
                 <KeyRound className="w-4 h-4 text-[#539df5]" />
-                เฉพาะรหัสห้อง (Room Code)
+                รหัสห้อง
               </span>
-              <span className="text-xs text-[#888888]">
+              {/* <span className="text-xs text-[#888888]">
                 สำหรับกรอกในหน้าแรก
-              </span>
+              </span> */}
             </div>
 
             <div className="flex items-center gap-2 bg-[#1f1f1f] p-2 pl-3.5 rounded-xl border border-[#333333]">
@@ -149,6 +156,16 @@ export const ShareRoomModal: React.FC<ShareRoomModalProps> = ({
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Option 3: เชิญเพื่อนเข้าห้องโดยตรง */}
+          <div className="p-4 rounded-xl bg-[#141414] border border-[#262626]">
+            <RoomInviteSection
+              roomId={room.id}
+              currentUserId={user?.id}
+              isOwner={effectiveIsOwner}
+              label="เชิญเพื่อนร่วมห้องโดยตรง"
+            />
           </div>
         </div>
       </div>

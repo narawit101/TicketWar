@@ -36,6 +36,12 @@ enum MemberRole {
   MEMBER
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 // ----------------------------------------------------
 // MODELS
 // ----------------------------------------------------
@@ -50,10 +56,12 @@ model User {
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
   // Relations
-  ownedRooms     Room[]        @relation("RoomOwner")
-  roomMemberships RoomMember[]
-  messages       Message[]
-  updatedTasks   SeatTask[]    @relation("TaskUpdatedBy")
+  ownedRooms          Room[]           @relation("RoomOwner")
+  roomMemberships     RoomMember[]
+  messages            Message[]
+  updatedTasks        SeatTask[]       @relation("TaskUpdatedBy")
+  sentInvitations     RoomInvitation[] @relation("SentInvitations")
+  receivedInvitations RoomInvitation[] @relation("ReceivedInvitations")
 
   @@map("users")
 }
@@ -73,10 +81,11 @@ model Room {
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  owner       User        @relation("RoomOwner", fields: [createdById], references: [id], onDelete: Cascade)
+  owner       User             @relation("RoomOwner", fields: [createdById], references: [id], onDelete: Cascade)
   members     RoomMember[]
   seatTasks   SeatTask[]
   messages    Message[]
+  invitations RoomInvitation[]
 
   @@index([inviteCode])
   @@index([status])
@@ -140,4 +149,24 @@ model Message {
 
   @@index([roomId, createdAt])
   @@map("messages")
+}
+
+model RoomInvitation {
+  id        String           @id @default(uuid())
+  roomId    String           @map("room_id")
+  inviterId String           @map("inviter_id")
+  inviteeId String           @map("invitee_id")
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  room    Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  inviter User @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee User @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([roomId])
+  @@map("room_invitations")
 }

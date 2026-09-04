@@ -8,7 +8,10 @@ import Link from "next/link";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { TicketWarLogo } from "@/components/TicketWarLogo";
 import { useClickOutside } from "@/lib/hooks";
+import { getSocket } from "@/lib/socket";
 
 export default function ProtectedLayout({
   children,
@@ -25,6 +28,9 @@ export default function ProtectedLayout({
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
+    } else if (user) {
+      const socket = getSocket();
+      socket.emit("join_user", { userId: user.id });
     }
   }, [user, loading, router]);
 
@@ -53,32 +59,31 @@ export default function ProtectedLayout({
       <header className="h-16 border-b border-[#252525] bg-[#121212] px-4 md:px-8 flex items-center justify-between sticky top-0 z-30">
         <Link
           href="/"
-          className="flex items-center gap-2.5 hover:opacity-90 transition"
+          className="hover:opacity-90 transition inline-flex items-center"
         >
-          <div className="w-8 h-8 rounded-full bg-[#1ed760] flex items-center justify-center font-bold text-black text-sm">
-            TW
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white">
-            Ticket<span className="text-[#1ed760]">War</span>
-          </span>
+          <TicketWarLogo size={34} showText textSize="text-xl" />
         </Link>
 
-        {/* Current User Profile Dropdown (Circle Avatar Only) */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="rounded-full hover:scale-105 transition-transform cursor-pointer p-0.5 focus:outline-none"
-            aria-label="เมนูผู้ใช้งาน"
-            aria-expanded={isDropdownOpen}
-          >
-            <Avatar
-              src={user.avatarUrl}
-              name={user.name}
-              size="md"
-              className="border-2 border-transparent hover:border-[#1ed760] transition-colors shadow-md"
-            />
-          </button>
+        {/* Right Header Controls: Notification + Profile */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <NotificationDropdown />
+
+          {/* Current User Profile Dropdown (Circle Avatar Only) */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="rounded-full hover:scale-105 transition-transform cursor-pointer p-0.5 focus:outline-none"
+              aria-label="เมนูผู้ใช้งาน"
+              aria-expanded={isDropdownOpen}
+            >
+              <Avatar
+                src={user.avatarUrl}
+                name={user.name}
+                size="md"
+                className="border-2 border-transparent hover:border-[#1ed760] transition-colors shadow-md"
+              />
+            </button>
 
           {/* Spotify-styled Profile Dropdown Menu */}
           {isDropdownOpen && (
@@ -132,6 +137,7 @@ export default function ProtectedLayout({
               </div>
             </div>
           )}
+          </div>
         </div>
       </header>
 

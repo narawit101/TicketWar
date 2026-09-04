@@ -26,6 +26,32 @@ io.on("connection", (socket) => {
   // Lobby
   socket.on("join_lobby", () => socket.join("lobby"));
 
+  // Personal user channel for real-time notifications
+  socket.on("join_user", ({ userId }) => {
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+  });
+
+  // Invitation events
+  socket.on("send_room_invitation", ({ inviteeId, invitation }) => {
+    if (inviteeId) {
+      io.to(`user:${inviteeId}`).emit("room_invitation_received", invitation);
+    }
+  });
+
+  socket.on("cancel_room_invitation", ({ inviteeId, roomId, invitationId }) => {
+    if (inviteeId) {
+      io.to(`user:${inviteeId}`).emit("room_invitation_canceled", { roomId, invitationId });
+    }
+  });
+
+  socket.on("room_invitation_responded", ({ inviterId, roomId, member, status }) => {
+    if (inviterId) {
+      io.to(`user:${inviterId}`).emit("room_invitation_update", { roomId, member, status });
+    }
+  });
+
   // Room lifecycle
   socket.on("join_room", ({ roomId, user }) => {
     socket.join(roomId);
@@ -69,13 +95,26 @@ io.on("connection", (socket) => {
 
   socket.on("room_created", ({ room }) => io.to("lobby").emit("lobby_room_created", room));
 
-  socket.on("member_joined", ({ roomId, user, memberCount }) => {
-    io.to(roomId).emit("member_joined", { user, memberCount });
+  socket.on("member_joined", ({ roomId, user, memberCount, message }) => {
+    io.to(roomId).emit("member_joined", { user, memberCount, message });
+    if (message) {
+      io.to(roomId).emit("new_message", message);
+    }
     io.to("lobby").emit("lobby_room_updated", { roomId, memberCount });
   });
 
-  socket.on("member_kicked", ({ roomId, targetUserId, memberName, kickedBy }) => {
-    io.to(roomId).emit("member_kicked", { targetUserId, memberName, kickedBy });
+  socket.on("send_room_invitation_chat", ({ roomId, message }) => {
+    if (roomId && message) {
+      io.to(roomId).emit("new_message", message);
+    }
+  });
+
+  socket.on("member_kicked", (data) => {
+    const { roomId, message } = data;
+    io.to(roomId).emit("member_kicked", data);
+    if (message) {
+      io.to(roomId).emit("new_message", message);
+    }
     io.to("lobby").emit("lobby_room_updated", { roomId });
   });
 

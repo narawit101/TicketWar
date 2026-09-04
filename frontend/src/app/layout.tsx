@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TicketWar - Realtime Concert Ticket War Room",
-  description: "Coordinate ticket drops in real-time with your team",
+  title: "TicketWar",
+  description: "TicketWar",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

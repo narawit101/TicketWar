@@ -39,6 +39,9 @@ interface LiveChatProps {
   onEditMessage?: (messageId: string, newText: string) => Promise<void> | void;
   onDeleteMessage?: (messageId: string) => Promise<void> | void;
   isReadOnly?: boolean;
+  hasMoreMessages?: boolean;
+  onLoadMoreMessages?: () => Promise<void>;
+  isLoadingMore?: boolean;
 }
 
 // ponytail: strip emojis from chat messages without external libs
@@ -257,6 +260,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   onEditMessage,
   onDeleteMessage,
   isReadOnly = false,
+  hasMoreMessages = false,
+  onLoadMoreMessages,
+  isLoadingMore = false,
 }) => {
   const [inputText, setInputText] = useState("");
   const [isUploading] = useState(false);
@@ -289,6 +295,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
   const prevMessagesLengthRef = useRef(messages.length);
+  const prevLastMsgIdRef = useRef<string | undefined>(undefined);
+  const prevFirstMsgIdRef = useRef<string | undefined>(undefined);
+  const isPrependingRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
 
   // Focus chat input on mount without scrolling the outer page
   useEffect(() => {
@@ -336,23 +346,77 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     const el = chatBodyRef.current;
     if (!el) return;
 
-    const isInitial =
-      prevMessagesLengthRef.current === 0 && messages.length > 0;
-    const hasAddedMessage = messages.length > prevMessagesLengthRef.current;
+    if (messages.length === 0) {
+      prevMessagesLengthRef.current = 0;
+      prevLastMsgIdRef.current = undefined;
+      prevFirstMsgIdRef.current = undefined;
+      return;
+    }
 
-    if (isInitial || isAtBottomRef.current) {
+    const currentFirstMsgId = messages[0]?.id;
+    const currentLastMsgId = messages[messages.length - 1]?.id;
+
+    const isInitial = !prevLastMsgIdRef.current;
+
+    // Check if new messages were added at the bottom (new chat messages)
+    const hasNewBottomMessages =
+      !isInitial &&
+      prevLastMsgIdRef.current !== undefined &&
+      currentLastMsgId !== prevLastMsgIdRef.current &&
+      messages.length > prevMessagesLengthRef.current;
+
+    // Check if older messages were prepended at the top (history pagination)
+    const isPrepended =
+      !isInitial &&
+      currentFirstMsgId !== prevFirstMsgIdRef.current &&
+      currentLastMsgId === prevLastMsgIdRef.current;
+
+    if (isPrepended || isPrependingRef.current) {
+      // Adjust scroll offset after prepending older messages so view stays fixed
+      if (prevScrollHeightRef.current > 0) {
+        const heightDiff = el.scrollHeight - prevScrollHeightRef.current;
+        el.scrollTop = heightDiff;
+      }
+      isPrependingRef.current = false;
+      prevScrollHeightRef.current = 0;
+    } else if (isInitial || isAtBottomRef.current) {
       el.scrollTop = el.scrollHeight;
       setShowScrollBottom(false);
       setNewMessagesCount(0);
-    } else if (hasAddedMessage) {
-      setShowScrollBottom(true);
-      setNewMessagesCount(
-        (prev) => prev + (messages.length - prevMessagesLengthRef.current),
-      );
+    } else if (hasNewBottomMessages) {
+      const newMessages = messages.slice(prevMessagesLengthRef.current);
+      const lastNewMsg = newMessages[newMessages.length - 1];
+      const isLastFromMe = lastNewMsg
+        ? currentUserId
+          ? lastNewMsg.userId === currentUserId
+          : lastNewMsg.userName === currentUserName
+        : false;
+
+      if (isLastFromMe) {
+        // Own message: smoothly stay at the bottom, never show "new message" for self
+        el.scrollTop = el.scrollHeight;
+        setShowScrollBottom(false);
+        setNewMessagesCount(0);
+        isAtBottomRef.current = true;
+      } else {
+        // Only count unread messages from others
+        const incomingFromOthers = newMessages.filter((msg) => {
+          return currentUserId
+            ? msg.userId !== currentUserId
+            : msg.userName !== currentUserName;
+        });
+
+        setShowScrollBottom(true);
+        if (incomingFromOthers.length > 0) {
+          setNewMessagesCount((prev) => prev + incomingFromOthers.length);
+        }
+      }
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages]);
+    prevFirstMsgIdRef.current = currentFirstMsgId;
+    prevLastMsgIdRef.current = currentLastMsgId;
+  }, [messages, currentUserId, currentUserName]);
 
   const scrollToBottom = () => {
     if (chatBodyRef.current) {
@@ -442,6 +506,8 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     // Clear input immediately for smooth UX
     setInputText("");
     setPendingFiles([]);
+    isAtBottomRef.current = true;
+    scrollToBottom();
 
     // 1. Send text as separate message if user typed anything
     if (textToSend) {
@@ -463,7 +529,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     for (const file of files) {
       if (!file.type.startsWith("image/") && !isPdfFile(file)) continue;
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error(`ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 3.5 MB)`);
+        toast.error(
+          `ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 3.5 MB)`,
+        );
         continue;
       }
       validFiles.push(file);
@@ -539,9 +607,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             ข้อความในห้อง
           </h3>
         </div>
-        <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-md">
+        {/* <span className="text-xs text-zinc-400 bg-zinc-800 px-2.5 py-0.5 rounded-md">
           {messages.length} ข้อความ
-        </span>
+        </span> */}
       </div>
 
       {/* Messages Stream */}
@@ -550,6 +618,33 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         onScroll={handleScroll}
         className="flex-1 p-4 overflow-y-auto space-y-3 min-h-0"
       >
+        {/* Load More Top Indicator */}
+        {isLoadingMore ? (
+          <div className="flex items-center justify-center py-2 select-none">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1e1e]/90 border border-zinc-700/50 text-[11px] font-medium text-zinc-400 shadow-sm">
+              <Loader2 className="w-3 h-3 animate-spin text-[#1ed760]" />
+              <span>กำลังโหลดข้อความก่อนหน้า...</span>
+            </div>
+          </div>
+        ) : hasMoreMessages ? (
+          <div className="flex justify-center my-1 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                const el = chatBodyRef.current;
+                if (el && onLoadMoreMessages) {
+                  prevScrollHeightRef.current = el.scrollHeight;
+                  isPrependingRef.current = true;
+                  onLoadMoreMessages();
+                }
+              }}
+              className="text-[11px] text-zinc-400 hover:text-white bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/60 px-3 py-1 rounded-full transition cursor-pointer"
+            >
+              โหลดข้อความก่อนหน้า
+            </button>
+          </div>
+        ) : null}
+
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-center">
             <p className="text-sm text-zinc-500">

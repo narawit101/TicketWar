@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { SeatTaskCard } from "@/components/SeatTaskCard";
+import { RoomSeatTasksList } from "@/components/RoomSeatTasksList";
 import { LiveChat } from "@/components/LiveChat";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { ShareRoomModal } from "@/components/ShareRoomModal";
@@ -15,30 +15,15 @@ import {
 } from "@/components/ConfirmActionModal";
 import { MembersModal } from "@/components/MembersModal";
 import { EditRoomModal } from "@/components/EditRoomModal";
+import { RoomHero } from "@/components/RoomHero";
+import { RoomHeader } from "@/components/RoomHeader";
 import { Room, SeatTask, Message, SeatStatus, RoomMemberItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
 import { playSoundAlert } from "@/lib/audio";
-import {
-  ArrowLeft,
-  Plus,
-  Archive,
-  ArchiveRestore,
-  Trash2,
-  Loader2,
-  Target,
-  MoreHorizontal,
-  Users,
-  LogOut,
-  Edit3,
-  Share2,
-  Calendar,
-  ExternalLink,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { formatEventDate } from "@/lib/date";
-import { useClickOutside } from "@/lib/hooks";
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -67,12 +52,10 @@ export default function RoomDetailPage() {
     location: string;
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [members, setMembers] = useState<RoomMemberItem[]>([]);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside(menuRef, () => setIsMenuOpen(false));
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
 
   // Fetch Room, Tasks, and Messages from real DB with strict membership verification
   useEffect(() => {
@@ -106,6 +89,9 @@ export default function RoomDetailPage() {
           setRoom(data.room);
           setTasks(data.tasks || []);
           setMessages(data.messages || []);
+          setHasMoreMessages(
+            data.hasMoreMessages ?? data.messages?.length === 50,
+          );
           setMembers(data.members || data.room?.members || []);
         } else if (!res.ok) {
           toast.error(data.error || "ไม่พบห้องนี้");
@@ -256,15 +242,33 @@ export default function RoomDetailPage() {
     const handleMemberJoined = async (data: {
       user?: { id: string; name: string };
       memberCount: number;
+      message?: Message;
     }) => {
       setRoom((prev) =>
         prev ? { ...prev, memberCount: data.memberCount } : null,
       );
+
+      if (data.message) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message?.id)) return prev;
+          return [...prev, data.message!];
+        });
+      }
+
       try {
-        const res = await fetch(`/api/rooms/${roomId}/members`);
-        if (res.ok) {
-          const mData = await res.json();
+        const [mRes, msgRes] = await Promise.all([
+          fetch(`/api/rooms/${roomId}/members`),
+          !data.message
+            ? fetch(`/api/rooms/${roomId}/messages`)
+            : Promise.resolve(null),
+        ]);
+        if (mRes.ok) {
+          const mData = await mRes.json();
           if (mData.members) setMembers(mData.members);
+        }
+        if (msgRes && msgRes.ok) {
+          const msgData = await msgRes.json();
+          if (msgData.messages) setMessages(msgData.messages);
         }
       } catch (err) {
         console.error("Failed to refresh members on join:", err);
@@ -279,15 +283,19 @@ export default function RoomDetailPage() {
       // Intentionally silent on re-connect / page refresh
     };
 
-    // 10. Member Kicked
+    // 10. Member Kicked or Left
     const handleMemberKicked = (data: {
       targetUserId: string;
       memberName: string;
       kickedBy: string;
+      isSelfLeave?: boolean;
+      message?: Message;
     }) => {
       if (data.targetUserId === user?.id) {
         socket.emit("leave_room", { roomId });
-        toast.error("คุณถูกหัวห้องเตะออกจากห้องแล้ว");
+        if (!data.isSelfLeave) {
+          toast.error("คุณถูกหัวห้องเตะออกจากห้องแล้ว");
+        }
         router.replace("/");
         return;
       }
@@ -297,6 +305,12 @@ export default function RoomDetailPage() {
           ? { ...prev, memberCount: Math.max(1, prev.memberCount - 1) }
           : null,
       );
+      if (data.message) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message?.id)) return prev;
+          return [...prev, data.message!];
+        });
+      }
     };
 
     // 11. Room Details Updated (Title, Poster, Seating Plan, Date)
@@ -411,12 +425,9 @@ export default function RoomDetailPage() {
           targetUserId,
           memberName,
           kickedBy: currentUserName,
+          isSelfLeave: false,
+          message: data.chatMessage,
         });
-        handleAddChatMessage(
-          `${currentUserName} ให้ "${memberName}" ออกจากแชท`,
-          undefined,
-          true,
-        );
         toast.success(`ให้ ${memberName} ออกจากแชทเรียบร้อยแล้ว`);
       } else {
         toast.error(data.error || "ไม่สามารถให้ออกจากแชทได้");
@@ -447,12 +458,9 @@ export default function RoomDetailPage() {
           targetUserId: user.id,
           memberName: currentUserName,
           kickedBy: currentUserName,
+          isSelfLeave: true,
+          message: data.chatMessage,
         });
-        handleAddChatMessage(
-          `${currentUserName} ได้ออกจากห้อง`,
-          undefined,
-          true,
-        );
         toast.success("ออกจากห้องเรียบร้อยแล้ว");
         router.replace("/");
       } catch (err: unknown) {
@@ -868,6 +876,36 @@ export default function RoomDetailPage() {
     }
   };
 
+  // ponytail: fetch older messages on demand without page reload
+  const handleLoadMoreMessages = async () => {
+    if (isLoadingMoreMessages || !hasMoreMessages || messages.length === 0)
+      return;
+    const oldestMsg = messages[0];
+    if (!oldestMsg) return;
+
+    try {
+      setIsLoadingMoreMessages(true);
+      const res = await fetch(
+        `/api/rooms/${roomId}/messages?cursor=${oldestMsg.id}&limit=50`,
+      );
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.messages)) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newOldMsgs = data.messages.filter(
+            (m: Message) => !existingIds.has(m.id),
+          );
+          return [...newOldMsgs, ...prev];
+        });
+        setHasMoreMessages(Boolean(data.hasMore));
+      }
+    } catch (err) {
+      console.error("Failed to load more messages:", err);
+    } finally {
+      setIsLoadingMoreMessages(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-24 flex flex-col items-center justify-center gap-3">
@@ -893,10 +931,6 @@ export default function RoomDetailPage() {
     );
   }
 
-  const totalNeeded = tasks.reduce((acc, t) => acc + t.quantityNeeded, 0);
-  const totalSecured = tasks.reduce((acc, t) => acc + t.quantitySecured, 0);
-  const totalRemaining = Math.max(0, totalNeeded - totalSecured);
-
   const roomSlides: CarouselSlide[] = [];
   if (room.bannerUrl) {
     roomSlides.push({ url: room.bannerUrl, label: "โปสเตอร์", type: "banner" });
@@ -911,381 +945,50 @@ export default function RoomDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col gap-5 overflow-y-auto">
-      {/* Top Bar: Left (Back, Title, Status, Date) & Right (Tools) */}
-      <div className="shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 pb-3.5 border-b border-zinc-800/80">
-        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <Link
-            href="/"
-            className="p-1.5 sm:p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors shrink-0 mt-0.5"
-            title="กลับหน้ารวมห้อง"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+      {/* Top Bar: Back, Title, Status, Date & Right Tools */}
+      <RoomHeader
+        room={room}
+        isOwner={isOwner}
+        memberCount={members.length || room.memberCount}
+        onOpenMembers={() => setIsMembersModalOpen(true)}
+        onOpenEditRoom={() => setIsEditRoomOpen(true)}
+        onOpenShare={() => setIsShareModalOpen(true)}
+        onConfirmStatusChange={(type) =>
+          setConfirmModal({ isOpen: true, type })
+        }
+      />
 
-          <div className="min-w-0 flex-1 space-y-1">
-            {/* Title & External Link */}
-            <div className="flex items-center gap-2 min-w-0">
-              <div
-                className="font-bold text-zinc-100 text-base sm:text-xl md:text-2xl tracking-tight truncate sm:line-clamp-2"
-                title={room.title}
-              >
-                {room.title}
-              </div>
-              {room.ticketUrl && (
-                <a
-                  href={
-                    room.ticketUrl.startsWith("http")
-                      ? room.ticketUrl
-                      : `https://${room.ticketUrl}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1 sm:p-1.5 rounded-full bg-[#1f1f1f] hover:bg-[#282828] text-[#1ed760] hover:text-[#1cd05a] border border-[#2e2e2e] hover:border-[#1ed760]/40 transition-all inline-flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
-                  title="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
-                  aria-label="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1ed760]" />
-                </a>
-              )}
-            </div>
+      {/* Hero: Poster Banner, Description, and Summary Bar */}
+      <RoomHero
+        room={room}
+        tasks={tasks}
+        onOpenBanner={() => {
+          const bannerIdx = roomSlides.findIndex((s) => s.type === "banner");
+          if (bannerIdx !== -1) setLightboxIndex(bannerIdx);
+        }}
+      />
 
-            {/* Sub-info: Status & Date */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-zinc-300">
-              <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-[#b3b3b3] shrink-0">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    room.status === "ACTIVE" ? "bg-[#1ed760]" : "bg-zinc-500"
-                  }`}
-                />
-                <span
-                  className={
-                    room.status === "ACTIVE" ? "text-zinc-200" : "text-zinc-400"
-                  }
-                >
-                  {room.status === "ACTIVE" ? "ใช้งานอยู่" : "จัดเก็บ"}
-                </span>
-              </span>
-
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-300 font-medium whitespace-nowrap">
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
-                <span>วันกดบัตร:</span>
-                <span className="text-zinc-100 font-semibold">
-                  {formatEventDate(room.eventDate)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Tools: Members Button & Management */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
-          {/* Members Button */}
-          <button
-            onClick={() => setIsMembersModalOpen(true)}
-            className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/60 text-xs gap-1.5 sm:gap-2 flex items-center font-medium transition cursor-pointer shadow-sm shrink-0"
-            title={`ดูสมาชิกในห้อง (${members.length || room.memberCount} คน)`}
-          >
-            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
-            <span>
-              <span className="hidden sm:inline">สมาชิก </span>(
-              {members.length || room.memberCount})
-            </span>
-          </button>
-
-          {/* Dropdown Menu (...) */}
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((prev) => !prev)}
-              className="p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 transition cursor-pointer flex items-center justify-center shadow-sm"
-              title="เมนูเพิ่มเติม"
-              aria-label="เมนูเพิ่มเติม"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150">
-                {/* {!isReadOnly && (
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setEditingTask(null);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>เพิ่มที่นั่ง</span>
-                  </button>
-                )} */}
-
-                {isOwner && (
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsEditRoomOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>แก้ไขข้อมูลห้อง</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsShareModalOpen(true);
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-[#1ed760]" />
-                  <span>แชร์ </span>
-                </button>
-
-                {/* {isOwner && (
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsEditRoomOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#1ed760]" />
-                    <span>แก้ไขข้อมูลห้อง</span>
-                  </button>
-                )} */}
-
-                {isOwner && (
-                  <>
-                    <div className="my-1 border-t border-zinc-800/70" />
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setConfirmModal({
-                          isOpen: true,
-                          type:
-                            room.status === "ACTIVE" ? "ARCHIVE" : "RESTORE",
-                        });
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                    >
-                      {room.status === "ACTIVE" ? (
-                        <>
-                          <Archive className="w-3.5 h-3.5 text-zinc-400" />
-                          <span>จัดเก็บ</span>
-                        </>
-                      ) : (
-                        <>
-                          <ArchiveRestore className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>เปิดใช้งานต่อ</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setConfirmModal({
-                          isOpen: true,
-                          type: "DELETE",
-                        });
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 transition cursor-pointer border-t border-zinc-800/60"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>ลบห้อง</span>
-                    </button>
-                  </>
-                )}
-
-                {!isOwner && (
-                  <>
-                    <div className="my-1 border-t border-zinc-800/70" />
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setConfirmModal({
-                          isOpen: true,
-                          type: "LEAVE",
-                        });
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>ออกจากห้อง</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Top Hero Poster Banner (if available) */}
-      {room.bannerUrl && (
-        <div
-          onClick={() => {
-            const bannerIdx = roomSlides.findIndex((s) => s.type === "banner");
-            if (bannerIdx !== -1) setLightboxIndex(bannerIdx);
+      {/* Main 2-Column Split (Left: Seat Tasks 30%, Right: Live Chat 70%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-stretch lg:h-195">
+        {/* Left Column: Seat Tasks (3 cols = 30%) */}
+        <RoomSeatTasksList
+          tasks={tasks}
+          currentUserName={currentUserName}
+          isReadOnly={isReadOnly}
+          onAddTask={() => {
+            setEditingTask(null);
+            setIsEditModalOpen(true);
           }}
-          className="relative w-full h-44 sm:h-56 md:h-72 rounded-2xl overflow-hidden border border-zinc-800/80 bg-zinc-950 group/banner cursor-pointer shadow-xl select-none shrink-0"
-        >
-          {/* Ambience Blurred Backdrop */}
-          <div
-            className="absolute inset-0 bg-cover bg-center blur-2xl opacity-35 scale-110 pointer-events-none transition-transform duration-500 group-hover/banner:scale-125"
-            style={{ backgroundImage: `url(${room.bannerUrl})` }}
-          />
-          {/* Main Crisp Banner Image */}
-          <img
-            src={room.bannerUrl}
-            alt={`โปสเตอร์ ${room.title}`}
-            className="relative z-10 w-full h-full object-contain transition-transform duration-300 group-hover/banner:scale-[1.01]"
-          />
-          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/20 z-10 pointer-events-none" />
-        </div>
-      )}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
+          onEditTask={(t) => {
+            setEditingTask(t);
+            setIsEditModalOpen(true);
+          }}
+          onDeleteTask={requestDeleteTask}
+        />
 
-      {/* Note / Description (หมายเหตุของงาน) */}
-      {room.description && (
-        <div className="shrink-0 bg-[#181818] border border-[#282828] rounded-2xl p-3.5 sm:p-4 shadow-md flex items-start gap-3">
-          {/* <div className="w-8 h-8 rounded-lg bg-[#1ed760]/15 flex items-center justify-center text-[#1ed760] shrink-0 mt-0.5">
-            <FileText className="w-4 h-4 text-[#1ed760]" />
-          </div> */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                หมายเหตุ
-              </span>
-              {/* {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditRoomOpen(true)}
-                  className="text-[11px] text-[#888888] hover:text-[#1ed760] transition cursor-pointer flex items-center gap-1"
-                  title="แก้ไขหมายเหตุ"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>แก้ไข</span>
-                </button>
-              )} */}
-            </div>
-            <p className="text-xs sm:text-sm text-[#b3b3b3] leading-relaxed whitespace-pre-line wrap-break-word">
-              {room.description}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Full-Width Summary Bar (ใต้รูปโปสเตอร์) */}
-      <div className="shrink-0 grid grid-cols-3 bg-[#181818] border border-[#282828] rounded-2xl py-3 px-2 sm:px-4 text-center shadow-lg">
-        <div className="py-1">
-          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
-            จำนวนที่ต้องการ
-          </span>
-          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-            {totalNeeded}{" "}
-            <span className="text-xs font-normal text-[#888888]">ใบ</span>
-          </span>
-        </div>
-        <div className="border-x border-[#282828] py-1">
-          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
-            ได้แล้ว
-          </span>
-          <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#1ed760]">
-            {totalSecured}{" "}
-            <span className="text-xs font-normal text-[#888888]">ใบ</span>
-          </span>
-        </div>
-        <div className="py-1">
-          <span className="text-[#b3b3b3] text-xs font-medium block mb-1">
-            ยังขาดอีก
-          </span>
-          <span
-            className={`text-xl sm:text-2xl font-bold tracking-tight ${
-              totalRemaining === 0 ? "text-[#1ed760]" : "text-white"
-            }`}
-          >
-            {totalRemaining}{" "}
-            <span className="text-xs font-normal text-[#888888]">ใบ</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Main 2-Column Split (Left: Seat Tasks, Right: Live Chat) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch lg:h-195">
-        {/* Left Column: Seat Tasks (5 cols) */}
-        <div className="lg:col-span-5 h-120 sm:h-135 lg:h-full flex flex-col min-h-0 overflow-hidden">
-          {/* List Header */}
-          <div className="shrink-0 flex items-center justify-between px-0.5 mb-2">
-            <span className="text-xs text-zinc-400 font-medium">
-              รายการที่นั่ง ({tasks.length})
-            </span>
-            {!isReadOnly && (
-              <button
-                onClick={() => {
-                  setEditingTask(null);
-                  setIsEditModalOpen(true);
-                }}
-                className="px-3.5 py-1.5 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-md hover:scale-105 active:scale-95"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>เพิ่มที่นั่ง</span>
-              </button>
-            )}
-          </div>
-
-          {/* Seat Tasks List - Independently Scrollable */}
-          <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0">
-            {tasks.length === 0 ? (
-              <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-8 text-center space-y-3">
-                <div className="w-10 h-10 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto">
-                  <Target className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-zinc-200">
-                    ยังไม่มีที่นั่งเป้าหมาย
-                  </h4>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    กดปุ่ม &quot;เพิ่มที่นั่ง&quot;
-                    เพื่อระบุโซนและจำนวนที่ต้องการ
-                  </p>
-                </div>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => {
-                      setEditingTask(null);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="px-4 py-2 bg-[#1ed760] hover:bg-[#1cd05a] text-black text-xs font-bold rounded-full cursor-pointer inline-flex items-center gap-1.5 transition-all shadow-md hover:scale-105 active:scale-95"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>เพิ่มที่นั่ง</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              tasks.map((task) => (
-                <SeatTaskCard
-                  key={task.id}
-                  task={task}
-                  currentUserName={currentUserName}
-                  onIncrement={handleIncrement}
-                  onDecrement={handleDecrement}
-                  onEdit={(t) => {
-                    setEditingTask(t);
-                    setIsEditModalOpen(true);
-                  }}
-                  onDelete={requestDeleteTask}
-                  isReadOnly={isReadOnly}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Full-Height Live Chat (7 cols) */}
+        {/* Right Column: Full-Height Live Chat (7 cols = 70%) */}
         <div className="lg:col-span-7 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
           <LiveChat
             messages={messages}
@@ -1296,6 +999,9 @@ export default function RoomDetailPage() {
             onEditMessage={handleEditChatMessage}
             onDeleteMessage={handleDeleteChatMessage}
             isReadOnly={isReadOnly}
+            hasMoreMessages={hasMoreMessages}
+            onLoadMoreMessages={handleLoadMoreMessages}
+            isLoadingMore={isLoadingMoreMessages}
           />
         </div>
       </div>
@@ -1323,7 +1029,7 @@ export default function RoomDetailPage() {
             <img
               src={room.seatingPlanUrl}
               alt={`ผังที่นั่ง ${room.title}`}
-              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 group-hover/plan:scale-[1.01]"
+              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 "
             />
           </div>
         </div>
@@ -1390,6 +1096,7 @@ export default function RoomDetailPage() {
         isOpen={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
         members={members}
+        roomId={roomId}
         currentUserId={user?.id}
         isOwner={isOwner}
         onKickMember={handleKickMember}

@@ -23,17 +23,38 @@ export async function GET(
 ) {
   try {
     const { id: roomId } = await context.params;
+    const { searchParams } = new URL(req.url);
+    const cursor = searchParams.get("cursor");
+    const limit = Math.min(
+      Math.max(parseInt(searchParams.get("limit") || "50", 10), 1),
+      100
+    );
 
+    let cursorDate: Date | null = null;
+    if (cursor) {
+      const cursorMsg = await prisma.message.findUnique({
+        where: { id: cursor },
+        select: { createdAt: true },
+      });
+      if (cursorMsg) {
+        cursorDate = cursorMsg.createdAt;
+      }
+    }
+
+    // ponytail: fetch recent messages in desc order then reverse for chronological display
     const messages = await prisma.message.findMany({
-      where: { roomId },
+      where: {
+        roomId,
+        ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
+      },
       include: {
         user: { select: { id: true, name: true, avatarUrl: true } },
       },
-      orderBy: { createdAt: "asc" },
-      take: 100,
+      orderBy: { createdAt: "desc" },
+      take: limit,
     });
 
-    const formatted = messages.map((m: MessageWithUser) => ({
+    const formatted = [...messages].reverse().map((m: MessageWithUser) => ({
       id: m.id,
       roomId: m.roomId,
       userId: m.userId,
@@ -45,7 +66,10 @@ export async function GET(
       createdAt: m.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({ messages: formatted });
+    return NextResponse.json({
+      messages: formatted,
+      hasMore: messages.length === limit,
+    });
   } catch (error) {
     console.error("[GET /api/rooms/[id]/messages error]:", error);
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });

@@ -1,21 +1,19 @@
 import React from "react";
 import Link from "next/link";
+import { TicketWarLogo } from "./TicketWarLogo";
 
 export const Footer: React.FC = () => {
   return (
     <footer className="w-full border-t border-[#252525] bg-[#121212] py-5 px-4 md:px-8 mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#888888]">
         {/* Brand */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded-full bg-[#1ed760] flex items-center justify-center font-bold text-black text-[10px] select-none">
-            TW
-          </div>
-          <span className="font-semibold text-zinc-300">
-            Ticket<span className="text-[#1ed760]">War</span>
-          </span>
-          {/* <span className="text-[#444444]">•</span> */}
-          {/* <span className="text-[#727272]">Realtime War Room</span> */}
-        </div>
+        <Link
+          href="/"
+          className="hover:opacity-80 transition inline-flex items-center gap-2.5 cursor-pointer"
+          title="กลับสู่หน้าหลัก TicketWar"
+        >
+          <TicketWarLogo size={22} showText textSize="text-sm font-semibold" />
+        </Link>
 
         {/* Fast Links */}
         <div className="flex items-center gap-4 text-xs">

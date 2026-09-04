@@ -13,8 +13,11 @@ import {
   ExternalLink,
   FileText,
   Music,
+  Users,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { UserInviteInput } from "./UserInviteInput";
+import { SearchUserResult } from "@/types";
 
 interface CreateRoomModalProps {
   isOpen: boolean;
@@ -26,6 +29,7 @@ interface CreateRoomModalProps {
     description?: string;
     bannerUrl?: string;
     seatingPlanUrl?: string;
+    invitedUserIds?: string[];
   }) => Promise<void> | void;
 }
 
@@ -47,12 +51,14 @@ const CreateRoomDialog: React.FC<{
     description?: string;
     bannerUrl?: string;
     seatingPlanUrl?: string;
+    invitedUserIds?: string[];
   }) => Promise<void> | void;
 }> = ({ onClose, onCreate }) => {
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [ticketUrl, setTicketUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [invitedUsers, setInvitedUsers] = useState<SearchUserResult[]>([]);
 
   // Poster state
   const [posterMode, setPosterMode] = useState<"upload" | "url">("upload");
@@ -154,6 +160,7 @@ const CreateRoomDialog: React.FC<{
         description: description.trim() || undefined,
         bannerUrl: finalPoster || undefined,
         seatingPlanUrl: finalSeating || undefined,
+        invitedUserIds: invitedUsers.map((u) => u.id),
       });
       onClose();
     } catch {
@@ -455,6 +462,22 @@ const CreateRoomDialog: React.FC<{
                 />
               </div>
             )}
+          </div>
+
+          {/* Section: เชิญเพื่อนเข้าห้อง */}
+          <div className="space-y-2 pt-1 border-t border-[#252525]">
+            <label className="text-xs font-semibold text-[#b3b3b3] flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-[#1ed760]" />
+              <span>เชิญเพื่อนร่วมห้อง (ไม่บังคับ)</span>
+            </label>
+            <UserInviteInput
+              selectedUsers={invitedUsers}
+              onChange={setInvitedUsers}
+              placeholder="พิมพ์ @email หรือชื่อเพื่อนในระบบ..."
+            />
+            <p className="text-[11px] text-[#777777]">
+              เพื่อนที่ถูกระบุจะได้รับการแจ้งเตือนคำเชิญทันทีเมื่อสร้างห้องเสร็จ
+            </p>
           </div>
 
           {/* Action Buttons */}

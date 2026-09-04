@@ -50,3 +50,35 @@ export const playSoundAlert = (type: "alert" | "success" | "warning") => {
     // Ignore audio autoplay restrictions gracefully
   }
 };
+
+// Subtle Web Audio chime for incoming invitations
+export const playNotificationChime = () => {
+  if (typeof window === "undefined") return;
+
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.setValueAtTime(880, now + 0.09); // A5
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  } catch {
+    // Ignore audio autoplay restrictions gracefully
+  }
+};

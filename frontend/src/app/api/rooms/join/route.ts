@@ -139,6 +139,7 @@ export async function POST(req: Request) {
       select: { id: true, name: true, email: true, avatarUrl: true },
     });
 
+    let joinedMessage = null;
     if (!existingMember) {
       // เพิ่มผู้ใช้เป็นสมาชิกใหม่ (role: MEMBER)
       await prisma.roomMember.create({
@@ -150,11 +151,16 @@ export async function POST(req: Request) {
       });
 
       // ponytail: persist entered announcement without emojis
-      await prisma.message.create({
+      joinedMessage = await prisma.message.create({
         data: {
           roomId: room.id,
           userId,
           text: `${joinedUser?.name || "สมาชิกใหม่"} เข้ามาแล้ว`,
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, avatarUrl: true },
+          },
         },
       });
     }
@@ -163,12 +169,27 @@ export async function POST(req: Request) {
       where: { roomId: room.id },
     });
 
+    const formattedChatMessage = joinedMessage
+      ? {
+          id: joinedMessage.id,
+          roomId: joinedMessage.roomId,
+          userId: joinedMessage.userId,
+          userName: joinedMessage.user.name,
+          userAvatar: joinedMessage.user.avatarUrl || undefined,
+          text: joinedMessage.text || "",
+          imageUrl: undefined,
+          isShoutout: true,
+          createdAt: joinedMessage.createdAt.toISOString(),
+        }
+      : null;
+
     return NextResponse.json({
       message: "เข้าร่วมห้องสำเร็จ",
       roomId: room.id,
       roomTitle: room.title,
       memberCount,
       user: joinedUser,
+      chatMessage: formattedChatMessage,
     });
   } catch (error) {
     console.error("[POST /api/rooms/join error]:", error);

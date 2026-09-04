@@ -64,3 +64,31 @@ export interface Room {
   createdAt?: string;
   members?: RoomMemberItem[];
 }
+
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+
+export interface RoomInvitationItem {
+  id: string;
+  roomId: string;
+  roomTitle: string;
+  roomBannerUrl?: string | null;
+  roomEventDate?: string | null;
+  inviteCode: string;
+  inviterId: string;
+  inviterName: string;
+  inviterAvatarUrl?: string | null;
+  inviteeId: string;
+  inviteeName?: string;
+  inviteeEmail?: string;
+  inviteeAvatarUrl?: string | null;
+  status: InvitationStatus;
+  createdAt: string;
+}
+
+export interface SearchUserResult {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  membershipStatus?: "MEMBER" | "INVITED" | null;
+}

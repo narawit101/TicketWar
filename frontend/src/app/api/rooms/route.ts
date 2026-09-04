@@ -71,7 +71,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, eventDate, bannerUrl, seatingPlanUrl, ticketUrl, description, createdById } = body;
+    const {
+      title,
+      eventDate,
+      bannerUrl,
+      seatingPlanUrl,
+      ticketUrl,
+      description,
+      createdById,
+      invitedUserIds,
+    } = body;
 
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "กรุณาระบุชื่องานคอนเสิร์ต" }, { status: 400 });
@@ -128,9 +137,35 @@ export async function POST(req: Request) {
 
     const ownerUser = await prisma.user.findUnique({
       where: { id: ownerId },
-      select: { name: true },
+      select: { id: true, name: true, avatarUrl: true },
     });
     const ownerName = ownerUser?.name || "Organizer";
+
+    // Prepare invitations list
+    const validInviteeIds: string[] = Array.isArray(invitedUserIds)
+      ? invitedUserIds.filter((id) => typeof id === "string" && id !== ownerId)
+      : [];
+
+    const initialMessages = [
+      {
+        userId: ownerId,
+        text: `${ownerName} สร้างห้องกดบัตรแล้ว`,
+      },
+    ];
+
+    if (validInviteeIds.length > 0) {
+      const invitedUsers = await prisma.user.findMany({
+        where: { id: { in: validInviteeIds } },
+        select: { name: true },
+      });
+      const inviteeNames = invitedUsers.map((u) => u.name).filter(Boolean);
+      if (inviteeNames.length > 0) {
+        initialMessages.push({
+          userId: ownerId,
+          text: `${ownerName} ได้เชิญ ${inviteeNames.join(", ")} เข้าร่วมห้อง`,
+        });
+      }
+    }
 
     const newRoom = await prisma.room.create({
       data: {
@@ -148,13 +183,48 @@ export async function POST(req: Request) {
           },
         },
         messages: {
-          create: {
-            userId: ownerId,
-            text: `${ownerName} สร้างห้องกดบัตรแล้ว`,
+          create: initialMessages,
+        },
+        ...(validInviteeIds.length > 0
+          ? {
+              invitations: {
+                create: validInviteeIds.map((inviteeId) => ({
+                  inviterId: ownerId,
+                  inviteeId,
+                  status: "PENDING",
+                })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        invitations: {
+          include: {
+            invitee: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
           },
         },
       },
     });
+
+    const formattedInvitations = newRoom.invitations.map((inv) => ({
+      id: inv.id,
+      roomId: newRoom.id,
+      roomTitle: newRoom.title,
+      roomBannerUrl: newRoom.bannerUrl,
+      roomEventDate: newRoom.eventDate ? newRoom.eventDate.toISOString() : null,
+      inviteCode: newRoom.inviteCode,
+      inviterId: ownerId,
+      inviterName: ownerName,
+      inviterAvatarUrl: ownerUser?.avatarUrl || null,
+      inviteeId: inv.inviteeId,
+      inviteeName: inv.invitee.name,
+      inviteeEmail: inv.invitee.email,
+      inviteeAvatarUrl: inv.invitee.avatarUrl,
+      status: inv.status,
+      createdAt: inv.createdAt.toISOString(),
+    }));
 
     return NextResponse.json(
       {
@@ -176,6 +246,7 @@ export async function POST(req: Request) {
             ? newRoom.eventDate.toISOString()
             : "เร็วๆ นี้",
         },
+        invitations: formattedInvitations,
       },
       { status: 201 }
     );

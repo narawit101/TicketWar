@@ -90,6 +90,12 @@ export async function DELETE(
       );
     }
 
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, name: true, avatarUrl: true },
+    });
+    const targetUserName = targetUser?.name || "สมาชิก";
+
     await prisma.roomMember.deleteMany({
       where: {
         roomId,
@@ -97,7 +103,38 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ success: true });
+    const actionText = isSelfLeaving
+      ? `${targetUserName} ออกจากห้องแล้ว`
+      : `${targetUserName} ถูกเตะออกจากห้อง`;
+
+    // ponytail: persist kicked or self-leave system notification in chat
+    const chatMessage = await prisma.message.create({
+      data: {
+        roomId,
+        userId: requesterId,
+        text: actionText,
+      },
+      include: {
+        user: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    const formattedChatMessage = {
+      id: chatMessage.id,
+      roomId: chatMessage.roomId,
+      userId: chatMessage.userId,
+      userName: chatMessage.user.name,
+      userAvatar: chatMessage.user.avatarUrl || undefined,
+      text: chatMessage.text || "",
+      imageUrl: undefined,
+      isShoutout: true,
+      createdAt: chatMessage.createdAt.toISOString(),
+    };
+
+    return NextResponse.json({
+      success: true,
+      chatMessage: formattedChatMessage,
+    });
   } catch (error) {
     console.error("[DELETE /api/rooms/[id]/members error]:", error);
     return NextResponse.json({ error: "เกิดข้อผิดพลาดในการเตะสมาชิก" }, { status: 500 });

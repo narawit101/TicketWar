@@ -158,7 +158,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
             <button
               onClick={() => onIncrement(task.id)}
               disabled={isComplete}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] disabled:opacity-20 disabled:cursor-not-allowed text-black font-bold flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer shadow-md"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] disabled:opacity-20 disabled:cursor-not-allowed text-black font-bold flex items-center justify-center transition active:scale-95 cursor-pointer shadow-md"
               title="กดได้ +1 ใบ"
             >
               <Plus className="w-4 h-4 text-black stroke-[2.5]" />

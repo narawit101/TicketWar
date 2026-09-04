@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { validatePassword } from "@/lib/validation";
 import { toast } from "react-hot-toast";
+import { TicketWarLogo } from "@/components/TicketWarLogo";
 
 export default function LoginPage() {
   const [tab, setTab] = useState<"login" | "signup">("login");
@@ -93,23 +94,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
       {/* Spotify Styled Auth Card */}
-      <div className="bg-[#181818] border border-[#252525] w-full max-w-100 rounded-2xl modal-shadow p-8 relative animate-in fade-in zoom-in-95 duration-200 text-center">
+      <div className="bg-[#181818] border border-[#282828] w-full max-w-105 rounded-2xl sm:rounded-3xl modal-shadow p-8 sm:p-10 relative animate-in fade-in zoom-in-95 duration-200 text-center">
         {/* Brand Logo Header */}
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-[#1ed760] flex items-center justify-center font-bold text-black text-sm">
-            TW
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Ticket<span className="text-[#1ed760]">War</span>
-          </h1>
+        <div className="mb-8 flex items-center justify-center">
+          <TicketWarLogo size={42} showText textSize="text-2xl sm:text-3xl" />
         </div>
 
         {/* Smooth Sliding Underline Tabs */}
-        <div className="relative flex border-b border-[#252525] mb-6">
+        <div className="relative flex border-b border-[#2e2e2e] mb-7">
           <button
             type="button"
             onClick={() => setTab("login")}
-            className={`w-1/2 pb-2.5 text-sm font-bold tracking-wide transition-colors cursor-pointer text-center ${
+            className={`w-1/2 pb-3 text-base sm:text-lg font-bold tracking-wide transition-colors cursor-pointer text-center ${
               tab === "login" ? "text-white" : "text-[#777777] hover:text-white"
             }`}
           >
@@ -119,8 +115,10 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setTab("signup")}
-            className={`w-1/2 pb-2.5 text-sm font-bold tracking-wide transition-colors cursor-pointer text-center ${
-              tab === "signup" ? "text-white" : "text-[#777777] hover:text-white"
+            className={`w-1/2 pb-3 text-base sm:text-lg font-bold tracking-wide transition-colors cursor-pointer text-center ${
+              tab === "signup"
+                ? "text-white"
+                : "text-[#777777] hover:text-white"
             }`}
           >
             สมัครสมาชิก
@@ -128,14 +126,18 @@ export default function LoginPage() {
 
           {/* Smooth Sliding Underline Indicator (GPU-accelerated transform) */}
           <span
-            className={`absolute bottom-0 left-0 h-0.5 w-1/2 bg-white rounded-full transition-transform duration-300 ease-out pointer-events-none ${
+            className={`absolute bottom-0 left-0 h-1 w-1/2 bg-white rounded-full transition-transform duration-300 ease-out pointer-events-none ${
               tab === "signup" ? "translate-x-full" : "translate-x-0"
             }`}
           />
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4 text-left">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="space-y-4 sm:space-y-5 text-left"
+        >
           {tab === "signup" && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-200">
               <input
@@ -144,7 +146,7 @@ export default function LoginPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="ชื่อที่แสดง"
-                className="input-spotify w-full text-xs py-3 px-4 rounded-lg bg-[#1f1f1f] text-white"
+                className="input-spotify w-full text-sm sm:text-base py-3.5 px-4 sm:px-5 rounded-xl bg-[#1f1f1f] text-white placeholder:text-[#777777]"
               />
             </div>
           )}
@@ -156,7 +158,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="อีเมล หรือ ชื่อผู้ใช้"
-              className="input-spotify w-full text-xs py-3 px-4 rounded-lg bg-[#1f1f1f] text-white"
+              className="input-spotify w-full text-sm sm:text-base py-3.5 px-4 sm:px-5 rounded-xl bg-[#1f1f1f] text-white placeholder:text-[#777777]"
             />
           </div>
 
@@ -168,36 +170,58 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="รหัสผ่าน"
-                className="input-spotify w-full text-xs py-3 pl-4 pr-10 rounded-lg bg-[#1f1f1f] text-white"
+                className="input-spotify w-full text-sm sm:text-base py-3.5 pl-4 sm:pl-5 pr-12 rounded-xl bg-[#1f1f1f] text-white placeholder:text-[#777777]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888888] hover:text-white transition cursor-pointer p-1"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#888888] hover:text-white transition cursor-pointer p-1"
                 aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
               >
                 {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>
             {tab === "signup" && (
-              <div className="mt-2 text-[11px] text-[#888888] text-left space-y-1 bg-[#141414] p-2.5 rounded-lg border border-[#252525] animate-in fade-in slide-in-from-top-2 duration-200">
-                <p className="font-semibold text-white/80 mb-1">ข้อกำหนดรหัสผ่าน:</p>
-                <div className="grid grid-cols-2 gap-1 text-[10px]">
-                  <span className={`flex items-center gap-1.5 transition-colors ${password.length >= 8 ? "text-[#1ed760] font-medium" : "text-[#666666]"}`}>
-                    <span>{password.length >= 8 ? "✓" : "•"}</span> อย่างน้อย 8 ตัวอักษร
+              <div className="mt-3 text-xs sm:text-sm text-[#888888] text-left space-y-1.5 bg-[#141414] p-3.5 sm:p-4 rounded-xl border border-[#282828] animate-in fade-in slide-in-from-top-2 duration-200">
+                <p className="font-semibold text-white/90 mb-1.5 text-xs sm:text-sm">
+                  ข้อกำหนดรหัสผ่าน:
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <span
+                    className={`flex items-center gap-1.5 transition-colors ${password.length >= 8 ? "text-[#1ed760] font-medium" : "text-[#777777]"}`}
+                  >
+                    <span className="text-sm font-bold">
+                      {password.length >= 8 ? "✓" : "•"}
+                    </span>{" "}
+                    อย่างน้อย 8 ตัวอักษร
                   </span>
-                  <span className={`flex items-center gap-1.5 transition-colors ${/[A-Z]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#666666]"}`}>
-                    <span>{/[A-Z]/.test(password) ? "✓" : "•"}</span> ตัวพิมพ์ใหญ่ (A-Z)
+                  <span
+                    className={`flex items-center gap-1.5 transition-colors ${/[A-Z]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#777777]"}`}
+                  >
+                    <span className="text-sm font-bold">
+                      {/[A-Z]/.test(password) ? "✓" : "•"}
+                    </span>{" "}
+                    ตัวพิมพ์ใหญ่ (A-Z)
                   </span>
-                  <span className={`flex items-center gap-1.5 transition-colors ${/[a-z]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#666666]"}`}>
-                    <span>{/[a-z]/.test(password) ? "✓" : "•"}</span> ตัวพิมพ์เล็ก (a-z)
+                  <span
+                    className={`flex items-center gap-1.5 transition-colors ${/[a-z]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#777777]"}`}
+                  >
+                    <span className="text-sm font-bold">
+                      {/[a-z]/.test(password) ? "✓" : "•"}
+                    </span>{" "}
+                    ตัวพิมพ์เล็ก (a-z)
                   </span>
-                  <span className={`flex items-center gap-1.5 transition-colors ${/[0-9]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#666666]"}`}>
-                    <span>{/[0-9]/.test(password) ? "✓" : "•"}</span> ตัวเลข (0-9)
+                  <span
+                    className={`flex items-center gap-1.5 transition-colors ${/[0-9]/.test(password) ? "text-[#1ed760] font-medium" : "text-[#777777]"}`}
+                  >
+                    <span className="text-sm font-bold">
+                      {/[0-9]/.test(password) ? "✓" : "•"}
+                    </span>{" "}
+                    ตัวเลข (0-9)
                   </span>
                 </div>
               </div>
@@ -208,11 +232,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-pill btn-pill-green w-full py-3 text-xs tracking-wider cursor-pointer font-bold mt-2 flex items-center justify-center gap-2"
+            className="btn-pill btn-pill-green w-full py-3.5 sm:py-4 text-sm sm:text-base tracking-wider cursor-pointer font-bold mt-3 sm:mt-4 flex items-center justify-center gap-2 shadow-lg shadow-[#1ed760]/10"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
                 <span>กำลังดำเนินการ...</span>
               </>
             ) : (

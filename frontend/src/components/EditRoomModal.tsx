@@ -52,7 +52,14 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
   onSave,
 }) => {
   if (!isOpen || !room) return null;
-  return <EditRoomDialog key={room.id} room={room} onClose={onClose} onSave={onSave} />;
+  return (
+    <EditRoomDialog
+      key={room.id}
+      room={room}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
 };
 
 const EditRoomDialog: React.FC<{
@@ -90,9 +97,7 @@ const EditRoomDialog: React.FC<{
     room.seatingPlanUrl || "",
   );
   const seatingFileRef = useRef<HTMLInputElement>(null);
-
   const [loading, setLoading] = useState(false);
-
 
   // Compress image helper via HTML5 Canvas
   const processImageFile = (
@@ -488,6 +493,7 @@ const EditRoomDialog: React.FC<{
               </div>
             )}
           </div>
+
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#252525]">

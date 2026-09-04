@@ -114,6 +114,7 @@ export default function RoomsPage() {
     description?: string;
     bannerUrl?: string;
     seatingPlanUrl?: string;
+    invitedUserIds?: string[];
   }) => {
     try {
       const res = await fetch("/api/rooms", {
@@ -127,14 +128,31 @@ export default function RoomsPage() {
           bannerUrl: data.bannerUrl,
           seatingPlanUrl: data.seatingPlanUrl,
           createdById: user?.id,
+          invitedUserIds: data.invitedUserIds,
         }),
       });
       const result = await res.json();
       if (res.ok && result.room) {
         toast.success(`สร้างห้อง "${result.room.title}" สำเร็จ!`);
         setIsCreateOpen(false);
-        getSocket().emit("room_created", { room: result.room });
+        const socket = getSocket();
+        socket.emit("room_created", { room: result.room });
+
+        // Broadcast real-time invitations to invited users
+        if (Array.isArray(result.invitations)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          result.invitations.forEach((inv: any) => {
+            socket.emit("send_room_invitation", {
+              inviteeId: inv.inviteeId,
+              invitation: inv,
+            });
+          });
+        }
+
         refreshRooms();
+
+        // Auto open Share Modal so creator can immediately copy link/code
+        setShareRoom(result.room);
       } else {
         toast.error(result.error || "ไม่สามารถสร้างห้องได้");
       }
@@ -192,6 +210,38 @@ export default function RoomsPage() {
     if (!user || !confirmModal) return;
     const { roomId, type } = confirmModal;
 
+    setActionLoadingId(roomId);
+
+    // Handle Leave Room (for non-owner members)
+    if (type === "LEAVE") {
+      try {
+        const res = await fetch(
+          `/api/rooms/${roomId}/members?userId=${user.id}&requesterId=${user.id}`,
+          { method: "DELETE" },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "ไม่สามารถออกจากห้องได้");
+        }
+        toast.success("คุณได้ออกจากห้องแล้ว");
+        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+        getSocket().emit("member_kicked", {
+          roomId,
+          targetUserId: user.id,
+          memberName: user.name || "สมาชิก",
+          kickedBy: user.name || "สมาชิก",
+          isSelfLeave: true,
+          message: data.chatMessage,
+        });
+        setConfirmModal(null);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "เกิดข้อผิดพลาด");
+      } finally {
+        setActionLoadingId(null);
+      }
+      return;
+    }
+
     const nextStatus: "ACTIVE" | "ARCHIVED" | "DELETED" =
       type === "ARCHIVE"
         ? "ARCHIVED"
@@ -199,7 +249,6 @@ export default function RoomsPage() {
           ? "ACTIVE"
           : "DELETED";
 
-    setActionLoadingId(roomId);
     try {
       const res = await fetch(`/api/rooms/${roomId}/status`, {
         method: "PATCH",
@@ -292,8 +341,10 @@ export default function RoomsPage() {
             onClick={() => setIsJoinOpen(true)}
             className="flex-1 md:flex-none px-4 py-2 rounded-full text-xs font-bold text-white bg-[#222222] hover:bg-[#2e2e2e] border border-[#333333] hover:border-[#555555] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
           >
-            <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
-            <span>เข้าร่วมด้วยรหัส</span>
+            <div className="flex items-center justify-center gap-2.5">
+              <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
+              <span>เข้าร่วมด้วยรหัส</span>
+            </div>
           </button>
 
           <button
@@ -301,8 +352,10 @@ export default function RoomsPage() {
             onClick={() => setIsCreateOpen(true)}
             className="flex-1 md:flex-none btn-pill btn-pill-green text-xs px-4 py-2 gap-1.5 cursor-pointer font-bold shadow-lg flex items-center justify-center"
           >
-            <Plus className="w-4 h-4 text-black stroke-3" />
-            <span>สร้างห้องใหม่</span>
+            <div className="flex items-center justify-center gap-2.5">
+              <Plus className="w-4 h-4 text-black stroke-3" />
+              <span>สร้างห้องใหม่</span>
+            </div>
           </button>
         </div>
       </div>
