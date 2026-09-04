@@ -4,46 +4,47 @@
 
 ---
 
-## 📁 Clean Architecture (Single Prisma at Root)
+## 📁 Clean Architecture & Deep Modules
 
 ```
 task/
 ├── prisma/                 # 🗄️ Single Source of Truth (Database Schema & PostgreSQL Client)
-│   └── schema.prisma       # PostgreSQL Schema
+│   └── schema.prisma       # Schema supporting Pooled (6543) & Direct (5432) connections
 │
 ├── frontend/               # 🌐 Next.js 16 (React 19, Tailwind CSS v4 Turbopack, API Routes)
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── (protected)/# Protected Route Group (Lobby & War Rooms)
+│   │   │   ├── (protected)/# Protected Routes (Streamlined Lobby Dashboard & War Rooms)
 │   │   │   ├── login/      # Spotify-styled Auth Page
-│   │   │   └── api/        # 100% Real PostgreSQL API routes (No mock data!)
-│   │   ├── components/     # UI Components (Spotify Dark UI, Anti-Cutoff Modals, Minimal Footer)
+│   │   │   └── api/        # 100% Real PostgreSQL API routes (Bounded queries with take: 100)
+│   │   ├── components/     # UI Components (RoomCard, RoomFilters, RoomEmptyState, Avatar, Modals)
 │   │   ├── context/        # Auth Context (Session & Auth state)
-│   │   ├── lib/            # Prisma Client, Cloudinary Uploaders & Web Audio API
+│   │   ├── lib/            # Prisma Client, Hooks (useClickOutside), Cloudinary & Socket Connector
 │   │   └── types/          # TypeScript Domain Interfaces
 │   └── package.json
 │
 ├── backend/                # 🔌 Standalone WebSocket Server (Node.js + Socket.io)
-│   ├── server.js           # Realtime Socket.io server with DB logging
-│   └── package.json
+│   ├── server.js           # Realtime Socket.io relay server (Zero DB bottleneck, low RAM)
+│   └── package.json        # Production ready ("start": "node server.js")
 │
 ├── prototypes/             # High-resolution UI Mockups & Implementation Plans
 ├── package.json            # Root runner scripts (npm run dev / npm run server / prisma)
-├── CONTEXT.md              # System Architecture & Technical Specifications
+├── CONTEXT.md              # System Architecture, Deep Modules & Deployment Specifications
 ├── DESIGN.md               # Spotify Design System & Tailwind v4 Canonical Standard
 └── README.md
 ```
 
 ---
 
-## 🛠️ Technology Stack (Save-Cost Philosophy)
+## 🛠️ Technology Stack (Free-Tier Hardened)
 
-- **Frontend**: [Next.js 16](https://nextjs.org) (App Router, Turbopack) + React 19 + Tailwind CSS v4 (Deployable on Vercel Hobby Tier)
-- **Backend & Realtime**: [Node.js](https://nodejs.org) + [Socket.io](https://socket.io) for persistent, low-latency WebSocket communication (Deployable on Render / Railway)
-- **Database**: [PostgreSQL](https://supabase.com) managed via [Prisma ORM](https://www.prisma.io) — **100% Real Database Persistence, Zero Mock Data**
-- **Cloud Storage**: [Cloudinary](https://cloudinary.com) with folder segregation (`ticketwar/chat` for compressed images, `ticketwar/files` for PDF receipts)
-- **Audio Alerts**: Zero-dependency Web Audio API synthesizing immediate alert pings directly in-browser
-- **Styling Standard**: Spotify Design System tokens ([`DESIGN.md`](./DESIGN.md)) strictly adhering to **Tailwind CSS v4 Canonical Classes** (`tailwindcss(suggestCanonicalClasses)`)
+- **Frontend**: [Next.js 16](https://nextjs.org) (App Router, Turbopack) + React 19 + Tailwind CSS v4 (Deployable on **Vercel Hobby Tier** with client-side 3.5 MB file size guards).
+- **Backend & Realtime**: [Node.js](https://nodejs.org) + [Socket.io](https://socket.io) for persistent WebSocket communication (Deployable on **Render Web Service** with exponential backoff handling 50–60s cold starts).
+- **Database**: [PostgreSQL (Supabase)](https://supabase.com) managed via [Prisma ORM](https://www.prisma.io) — **Supports Transaction Connection Pooler (Port 6543) and Direct Migrations (Port 5432)**.
+- **Cloud Storage**: [Cloudinary](https://cloudinary.com) with folder segregation (`ticketwar/chat` for images, `ticketwar/files` for PDF receipts).
+- **Audio Alerts**: Zero-dependency Web Audio API synthesizing immediate alert pings directly in-browser.
+- **Deep Modules**: Standardized `<Avatar />` component, `<RoomCard />` with localized menus, and `useClickOutside` hook.
+- **Styling Standard**: Spotify Design System tokens ([`DESIGN.md`](./DESIGN.md)) strictly adhering to **Tailwind CSS v4 Canonical Classes** (`tailwindcss(suggestCanonicalClasses)`).
 
 ---
 
@@ -73,12 +74,16 @@ In accordance with [`DESIGN.md`](./DESIGN.md), all styling across the codebase m
    - Bi-directional Socket.io messaging with low-latency delivery.
    - Quick Audio Shoutouts (`🎉 ได้บัตรแล้ว!`, `⚠️ คิวหลุด!`, `🆘 ขอกำลังเสริม!`).
    - Multi-format proof sharing: automatic image lightbox viewing and PDF document file cards with direct download.
-3. **Room Sharing & Lifecycle**:
+   - Guarded against oversized uploads (< 3.5 MB) to ensure smooth Vercel serverless operations.
+3. **Decomposed Room Dashboard**:
+   - Streamlined page controller with modular components (`<RoomCard />`, `<RoomFilters />`, `<RoomEmptyState />`).
+   - Localized dropdown action menus preventing whole-dashboard re-renders.
+4. **Room Sharing & Lifecycle**:
    - Share room code or direct invite link with 1-click copy and QR code.
    - Post-sale room closure: Archive (read-only) or Purge (permanent deletion).
-4. **Input Limits & Data Integrity**:
+5. **Input Limits & Data Integrity**:
    - Enforced client-side and server-side length limits (e.g. room title 80 chars, notes 500–800 chars, quantity 1–10).
-5. **Minimal Spotify Footer**:
+6. **Minimal Spotify Footer**:
    - Distraction-free, single-line footer with fast links to major ticketing platforms.
 
 ---
@@ -86,20 +91,28 @@ In accordance with [`DESIGN.md`](./DESIGN.md), all styling across the codebase m
 ## 🚀 Getting Started
 
 ### 1. Configure Environment Variables
-Ensure `.env` at the root has your PostgreSQL connection string and Cloudinary keys:
+Ensure `.env` at the root has your PostgreSQL connection strings and Cloudinary keys:
 ```env
 DATABASE_URL="postgresql://postgres:042545@localhost:5432/ticketwar_db"
 DIRECT_URL="postgresql://postgres:042545@localhost:5432/ticketwar_db"
 PORT=4000
 NEXT_PUBLIC_SOCKET_URL="http://localhost:4000"
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="your_preset"
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+CLOUDINARY_CLOUD_NAME="your_cloud_name"
 ```
+
+> **For Supabase Deployment:**
+> - Set `DATABASE_URL` to the **Transaction Pooler (Port 6543)**.
+> - Set `DIRECT_URL` to the **Direct Connection (Port 5432)**.
 
 ### 2. Database Commands (Run Once from Root)
 ```bash
 # Push schema to PostgreSQL database:
 npx prisma db push
+
+# Validate schema integrity:
+npx prisma validate
 
 # Open visual Prisma Studio (GUI):
 npx prisma studio
@@ -111,7 +124,7 @@ npx prisma studio
 # Terminal 1: Run Next.js Frontend (http://localhost:3000)
 npm run dev
 
-# Terminal 2: Run WebSocket Backend with Nodemon (http://localhost:4000)
+# Terminal 2: Run WebSocket Backend with Watch Mode (http://localhost:4000)
 npm run server
 ```
 
@@ -123,6 +136,6 @@ npm run server
 # Run ESLint (100% clean - 0 errors, 0 warnings)
 npm run lint
 
-# Build production bundle
+# Build production bundle (Turbopack)
 npm run build
 ```

@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatEventDate } from "@/lib/date";
+import { useClickOutside } from "@/lib/hooks";
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -71,17 +72,7 @@ export default function RoomDetailPage() {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   // Fetch Room, Tasks, and Messages from real DB with strict membership verification
   useEffect(() => {
@@ -1314,35 +1305,12 @@ export default function RoomDetailPage() {
         <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3.5 shrink-0">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
             <div className="flex items-center gap-2.5">
-              {/* <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[#539df5]">
-                <Map className="w-5 h-5" />
-              </div> */}
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-zinc-100 flex items-center gap-2">
                   <span>ผังที่นั่งคอนเสิร์ต</span>
-                  {/* <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Seating Plan
-                  </span> */}
                 </h2>
-                {/* <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-                  แผนผังโซนที่นั่งสำหรับวางแผนกดบัตรและประสานงานในทีม
-                </p> */}
               </div>
             </div>
-
-            {/* <button
-              type="button"
-              onClick={() => {
-                const planIdx = roomSlides.findIndex(
-                  (s) => s.type === "seating",
-                );
-                if (planIdx !== -1) setLightboxIndex(planIdx);
-              }}
-              className="px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm hover:text-white"
-            >
-              <Maximize2 className="w-3.5 h-3.5 text-[#539df5]" />
-              <span>ขยายผังเต็มจอ</span>
-            </button> */}
           </div>
 
           <div
@@ -1357,10 +1325,6 @@ export default function RoomDetailPage() {
               alt={`ผังที่นั่ง ${room.title}`}
               className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 group-hover/plan:scale-[1.01]"
             />
-            {/* <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/80 text-zinc-300 group-hover/plan:text-white text-xs backdrop-blur-md border border-white/10 flex items-center gap-1.5 opacity-90 group-hover/plan:opacity-100 transition shadow-lg">
-              <Maximize2 className="w-3.5 h-3.5 text-[#539df5]" />
-              <span>คลิกเพื่อดูผังที่นั่งขนาดเต็ม</span>
-            </div> */}
           </div>
         </div>
       )}
@@ -1430,15 +1394,6 @@ export default function RoomDetailPage() {
         isOwner={isOwner}
         onKickMember={handleKickMember}
       />
-
-      {room && (
-        <EditRoomModal
-          isOpen={isEditRoomOpen}
-          room={room}
-          onClose={() => setIsEditRoomOpen(false)}
-          onSave={handleSaveRoom}
-        />
-      )}
     </div>
   );
 }

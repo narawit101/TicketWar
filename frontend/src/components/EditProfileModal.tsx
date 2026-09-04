@@ -1,10 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { validatePassword } from "@/lib/validation";
 import { toast } from "react-hot-toast";
+import { Avatar } from "./Avatar";
 import {
   X,
   Camera,
@@ -205,19 +205,12 @@ const EditProfileDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               className="relative group cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={user.name}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-[#1ed760]/60 shadow-lg"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-[#1ed760] text-black font-extrabold text-2xl flex items-center justify-center shadow-lg">
-                  {name
-                    ? name.charAt(0).toUpperCase()
-                    : user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <Avatar
+                src={avatarUrl}
+                name={name || user.name}
+                size="xl"
+                className="border-2 border-[#1ed760]/60 shadow-lg"
+              />
 
               {/* Hover Overlay */}
               <div className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">

@@ -77,21 +77,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "กรุณาระบุชื่องานคอนเสิร์ต" }, { status: 400 });
     }
 
-    // ponytail: Fallback to existing user if createdById not provided
-    let ownerId = createdById;
+    const ownerId = createdById?.trim();
     if (!ownerId) {
-      const defaultUser = await prisma.user.findFirst();
-      if (defaultUser) {
-        ownerId = defaultUser.id;
-      } else {
-        const guestUser = await prisma.user.create({
-          data: {
-            email: `guest_${Date.now()}@ticketwar.app`,
-            name: "Organizer",
-          },
-        });
-        ownerId = guestUser.id;
-      }
+      return NextResponse.json(
+        { error: "กรุณาเข้าสู่ระบบก่อนสร้างห้อง" },
+        { status: 401 }
+      );
     }
 
     // Process Poster (Cloudinary upload if base64, else raw URL or null)

@@ -77,10 +77,8 @@ export default function LoginPage() {
         tab === "login" ? "เข้าสู่ระบบสำเร็จ!" : "สมัครสมาชิกสำเร็จ!",
       );
 
-      setTimeout(() => {
-        login(data.user);
-        router.push("/");
-      }, 600);
+      login(data.user);
+      router.push("/");
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error(err.message);
@@ -95,7 +93,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
       {/* Spotify Styled Auth Card */}
-      <div className="bg-[#181818] border border-[#252525] w-full max-w-[400px] rounded-2xl modal-shadow p-8 relative animate-in fade-in zoom-in-95 duration-200 text-center">
+      <div className="bg-[#181818] border border-[#252525] w-full max-w-100 rounded-2xl modal-shadow p-8 relative animate-in fade-in zoom-in-95 duration-200 text-center">
         {/* Brand Logo Header */}
         <div className="mb-6 flex items-center justify-center gap-2">
           <div className="w-9 h-9 rounded-full bg-[#1ed760] flex items-center justify-center font-bold text-black text-sm">

@@ -20,6 +20,8 @@ export const getSocket = (): Socket => {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      randomizationFactor: 0.5,
       transports: ["websocket", "polling"],
     });
 

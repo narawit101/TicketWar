@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { formatThaiDate } from "@/lib/date";
 import { ConfirmActionModal } from "./ConfirmActionModal";
+import { Avatar } from "./Avatar";
+import { ImageLightboxModal } from "./ImageLightboxModal";
 import { toast } from "react-hot-toast";
 
 const MAX_IMAGES = 10;
@@ -453,11 +455,19 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     }
   };
 
+  const MAX_FILE_SIZE_BYTES = 3.5 * 1024 * 1024; // 3.5 MB limit to protect Vercel 4.5 MB serverless limit
+
   // ponytail: unified file reader for pasted, picked, or dropped media (ceiling: local memory base64; upgrade: direct multipart stream)
   const readAndAddFiles = (files: File[]) => {
-    const validFiles = files.filter(
-      (file) => file.type.startsWith("image/") || isPdfFile(file),
-    );
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/") && !isPdfFile(file)) continue;
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error(`ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 3.5 MB)`);
+        continue;
+      }
+      validFiles.push(file);
+    }
     if (validFiles.length === 0) return;
 
     const readers = validFiles.map((file) => {
@@ -592,22 +602,18 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                     }`}
                   >
                     {/* User Avatar - Only show for other members, hide for own messages */}
-                    {!isMe &&
-                      (avatar ? (
-                        <img
-                          src={avatar}
-                          alt={msg.userName}
-                          className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0 mb-1"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#252525] border border-zinc-700 text-zinc-200 text-xs font-bold flex items-center justify-center shrink-0 mb-1">
-                          {msg.userName.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
+                    {!isMe && (
+                      <Avatar
+                        src={avatar}
+                        name={msg.userName}
+                        size="sm"
+                        className="mb-1"
+                      />
+                    )}
 
                     {/* Message Bubble + Action dots container */}
                     <div
-                      className={`flex items-center gap-1.5 min-w-0 max-w-[80%] ${
+                      className={`flex items-center gap-1.5 min-w-0 max-w-4/5 ${
                         isMe ? "flex-row-reverse" : "flex-row"
                       }`}
                     >
@@ -986,42 +992,13 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       )}
 
       {/* Image Lightbox Modal */}
-      {lightboxUrl && (
-        <div
-          onClick={() => setLightboxUrl(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200 cursor-zoom-out select-none"
-        >
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownloadFile(lightboxUrl, `image_${Date.now()}.png`);
-              }}
-              className="p-2.5 rounded-full bg-[#181818] hover:bg-[#282828] text-white border border-[#383838] transition cursor-pointer shadow-xl"
-            >
-              <Download className="w-5 h-5 stroke-[2.5]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setLightboxUrl(null)}
-              className="p-2.5 rounded-full bg-[#181818] hover:bg-[#282828] text-white border border-[#383838] transition cursor-pointer shadow-xl"
-            >
-              <X className="w-5 h-5 stroke-[2.5]" />
-            </button>
-          </div>
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-5xl max-h-[90vh] flex items-center justify-center cursor-default"
-          >
-            <img
-              src={lightboxUrl}
-              alt="ภาพขยาย"
-              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-150"
-            />
-          </div>
-        </div>
-      )}
+      <ImageLightboxModal
+        isOpen={!!lightboxUrl}
+        title="รูปภาพในแชท"
+        slides={lightboxUrl ? [{ url: lightboxUrl, type: "seating" }] : []}
+        initialIndex={0}
+        onClose={() => setLightboxUrl(null)}
+      />
 
       {/* Confirm Delete Message / Image Modal */}
       <ConfirmActionModal

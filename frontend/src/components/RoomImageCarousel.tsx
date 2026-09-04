@@ -6,8 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface CarouselSlide {
   url: string;
-  label: "โปสเตอร์" | "ผังที่นั่ง";
-  type: "banner" | "seating";
+  label?: string;
+  type?: "banner" | "seating" | "image";
 }
 
 interface RoomImageCarouselProps {

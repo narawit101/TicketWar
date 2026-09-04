@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState } from "react";
 import { RoomMemberItem } from "@/types";
 import { Users, X, Crown, UserX, Loader2, AlertTriangle } from "lucide-react";
+import { Avatar } from "./Avatar";
 
 interface MembersModalProps {
   isOpen: boolean;
@@ -118,17 +118,11 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Avatar */}
-                    {member.avatarUrl ? (
-                      <img
-                        src={member.avatarUrl}
-                        alt={member.name}
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border border-zinc-700 shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#252525] border border-zinc-700 text-zinc-100 text-sm font-bold flex items-center justify-center shrink-0">
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <Avatar
+                      src={member.avatarUrl}
+                      name={member.name}
+                      size="md"
+                    />
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">

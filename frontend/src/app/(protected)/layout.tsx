@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -8,6 +7,8 @@ import { LogOut, Loader2, UserCog } from "lucide-react";
 import Link from "next/link";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { Footer } from "@/components/Footer";
+import { Avatar } from "@/components/Avatar";
+import { useClickOutside } from "@/lib/hooks";
 
 export default function ProtectedLayout({
   children,
@@ -27,21 +28,7 @@ export default function ProtectedLayout({
     }
   }, [user, loading, router]);
 
-  // Click outside listener to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  useClickOutside(dropdownRef, () => setIsDropdownOpen(false));
 
   if (loading) {
     return (
@@ -85,17 +72,12 @@ export default function ProtectedLayout({
             aria-label="เมนูผู้ใช้งาน"
             aria-expanded={isDropdownOpen}
           >
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                className="w-9 h-9 rounded-full object-cover border-2 border-transparent hover:border-[#1ed760] transition-colors shadow-md"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-[#1ed760] text-black font-extrabold text-xs flex items-center justify-center border-2 border-transparent hover:border-white transition-colors shadow-md">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              src={user.avatarUrl}
+              name={user.name}
+              size="md"
+              className="border-2 border-transparent hover:border-[#1ed760] transition-colors shadow-md"
+            />
           </button>
 
           {/* Spotify-styled Profile Dropdown Menu */}
@@ -104,17 +86,11 @@ export default function ProtectedLayout({
               {/* User Info Header */}
               <div className="px-4 py-3 border-b border-[#252525]">
                 <div className="flex items-center gap-3">
-                  {user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.name}
-                      className="w-10 h-10 rounded-full object-cover shrink-0 border border-[#333333]"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#1ed760] text-black font-extrabold text-sm flex items-center justify-center shrink-0">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    src={user.avatarUrl}
+                    name={user.name}
+                    size="md"
+                  />
                   <div className="overflow-hidden">
                     <p className="text-xs font-bold text-white truncate">
                       {user.name}

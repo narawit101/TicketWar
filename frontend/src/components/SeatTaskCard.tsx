@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { SeatTask } from "@/types";
 import {
   Edit3,
@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { formatThaiDate } from "@/lib/date";
+import { useClickOutside } from "@/lib/hooks";
 
 interface SeatTaskCardProps {
   task: SeatTask;
@@ -36,15 +37,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   return (
     <div className="bg-[#181818] hover:bg-[#1e1e1e] border border-[#282828] rounded-2xl p-4 sm:p-4.5 transition-all shadow-md">

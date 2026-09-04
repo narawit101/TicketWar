@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
+import { isSystemShoutout } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -35,7 +36,8 @@ export async function GET(
               select: { id: true, name: true, avatarUrl: true },
             },
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
+          take: 100,
         },
       },
     });
@@ -78,7 +80,7 @@ export async function GET(
     }));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedMessages = room.messages.map((m: any) => ({
+    const formattedMessages = [...room.messages].reverse().map((m: any) => ({
       id: m.id,
       roomId: m.roomId,
       userId: m.userId,
@@ -86,20 +88,7 @@ export async function GET(
       userAvatar: m.user.avatarUrl || undefined,
       text: m.text || "",
       imageUrl: m.imageUrl || undefined,
-      isShoutout:
-        m.text?.includes("เข้ามาแล้ว") ||
-        m.text?.includes("ออกจากห้อง") ||
-        m.text?.includes("ออกจากแชท") ||
-        m.text?.includes("สร้างห้อง") ||
-        m.text?.includes("อัปเดตข้อมูลห้อง") ||
-        m.text?.includes("เพิ่มที่นั่ง") ||
-        m.text?.includes("แก้ไขที่นั่ง") ||
-        m.text?.includes("ลบที่นั่ง") ||
-        m.text?.includes("ได้ +1 ใบ") ||
-        m.text?.includes("ครบแล้ว!") ||
-        m.text?.includes("ยกเลิก ") ||
-        m.text?.includes("กดได้") ||
-        m.text?.includes("ลด/ยกเลิก"),
+      isShoutout: isSystemShoutout(m.text),
       createdAt: m.createdAt.toISOString(),
     }));
 

@@ -26,13 +26,15 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   initialIndex = 0,
   onClose,
 }) => {
+  const [prevProps, setPrevProps] = useState({ isOpen, initialIndex });
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  useEffect(() => {
+  if (isOpen !== prevProps.isOpen || initialIndex !== prevProps.initialIndex) {
+    setPrevProps({ isOpen, initialIndex });
     if (isOpen) {
       setCurrentIndex(initialIndex);
     }
-  }, [isOpen, initialIndex]);
+  }
 
   useEffect(() => {
     if (!isOpen) return;

@@ -25,3 +25,11 @@ export function validatePassword(password: string): { isValid: boolean; error?: 
   }
   return { isValid: true };
 }
+
+const SYSTEM_SHOUTOUT_REGEX =
+  /(?:เข้ามาแล้ว|ออกจากห้อง|ออกจากแชท|สร้างห้อง|อัปเดตข้อมูลห้อง|เพิ่มที่นั่ง|แก้ไขที่นั่ง|ลบที่นั่ง|ได้ \+1 ใบ|ครบแล้ว!|ยกเลิก|กดได้|ลด\/ยกเลิก)/;
+
+export function isSystemShoutout(text?: string | null): boolean {
+  if (!text) return false;
+  return SYSTEM_SHOUTOUT_REGEX.test(text);
+}

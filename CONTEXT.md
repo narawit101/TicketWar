@@ -25,30 +25,31 @@
      - Images auto-uploaded to Cloudinary folder `ticketwar/chat` with client compression.
      - PDF documents auto-uploaded to Cloudinary folder `ticketwar/files`.
      - Clean Spotify file cards displaying original file name, PDF badge, direct download via `...` action menu, and lightbox preview for images (no redundant text bubble).
+     - Guarded with client-side 3.5 MB file size limit to prevent Vercel 4.5 MB request body limit overflows.
 3. **Flexible Room Lifecycle**:
    - Room owners can share invite links and QR codes via unified Share Modal.
    - Post-sale closure options: **"Archive"** (read-only mode for reviewing tickets, prices, and receipts) or **"Purge/Delete"** (permanently wipe all room data for privacy).
 
 ---
 
-## 2. Architecture & Technology Stack (Save-Cost Philosophy)
+## 2. Architecture & Technology Stack (Save-Cost & Free-Tier Hardening)
 
-Engineered for ultra-low latency, zero or minimal operating cost, and maximum utilization of free-tier services:
+Engineered for ultra-low latency, zero operating cost, and hardened for free-tier services:
 
-| Layer | Technology | Role & Cost-Saving Justification |
+| Layer | Technology | Role & Free-Tier Optimization |
 | :--- | :--- | :--- |
-| **Frontend** | **Next.js 16 (App Router) + React 19** | Deployed on **Vercel** (Free Hobby Tier). Optimized with Turbopack for sub-second builds. |
+| **Frontend** | **Next.js 16 (App Router) + React 19** | Deployed on **Vercel** (Free Hobby Tier). Optimized with Turbopack for sub-second builds. Protected against 4.5 MB body limit with client-side file guards. |
 | **Styling** | **Tailwind CSS v4** | Implements the **Spotify Design System** ([`DESIGN.md`](./DESIGN.md)) strictly using canonical classes (`tailwindcss(suggestCanonicalClasses)`). |
-| **Backend & Realtime** | **Node.js + Socket.io** | Deployed on **Render / Railway** free/hobby tiers for persistent, bi-directional WebSocket channels (`/backend`). |
-| **Database** | **PostgreSQL (Supabase)** | Supabase Free Tier (500MB database, connection pooling) managed with **Prisma ORM** at project root (`/prisma`). |
+| **Backend & Realtime** | **Node.js + Socket.io** | Deployed on **Render** (Free Web Service) as a pure WebSocket relay server. Built with exponential backoff (`reconnectionDelayMax: 5000`) for Render 50–60s cold starts. |
+| **Database** | **PostgreSQL (Supabase)** | Supabase Free Tier (500MB database). Supports **Transaction Connection Pooler (Port 6543)** via `DATABASE_URL` and direct migrations (Port 5432) via `DIRECT_URL`. |
 | **Storage** | **Cloudinary** | Automatic client-side/server-side WebP compression and separated folders (`ticketwar/chat` for images, `ticketwar/files` for PDFs). |
 | **Audio** | **Web Audio API** | Synthesizes immediate alert chimes directly in-browser with zero external asset requests. |
 
 ---
 
-## 3. Design System & Aesthetics (Spotify-Inspired)
+## 3. Design System & Codebase Architecture (Deep Modules & Ponytail)
 
-Adopted directly from [`DESIGN.md`](./DESIGN.md):
+Adopted directly from [`DESIGN.md`](./DESIGN.md) and Codebase Design:
 - **Content-First Darkness**:
   - Deep Base Layer: `#121212`
   - Card Surfaces / Chat: `#181818` (Surface Level 1)
@@ -61,12 +62,14 @@ Adopted directly from [`DESIGN.md`](./DESIGN.md):
 - **Border Radius Specification ("มนน้อย vs มนมาก")**:
   - **มนน้อย (8px / `rounded-lg`)**: ALL form inputs, textareas, cards, containers, and dialog body. Textareas must never use pill radius.
   - **มนมาก (Pill 9999px / `rounded-full`)**: Action buttons (`btn-pill`), status chips, and circular controls (`btn-circle` 50%).
-- **Anti-Cutoff Modal Architecture**:
-  - Pinned header (`bg-[#1a1a1a] border-b border-[#252525]`), `max-h-[90vh] flex flex-col`, scrollable form body (`overflow-y-auto flex-1`), pinned footer (`border-t border-[#252525]`).
+- **Deep Reusable Components**:
+  - `<Avatar />`: Compact interface (`src`, `name`, `size`, `className`) with automatic fallback to user initials and Spotify dark styling.
+  - `<RoomCard />`: Encapsulates room information, carousel, lightbox trigger, and localized action menu. Eliminates whole-page re-renders.
+  - `<RoomFilters />`: Encapsulates ownership tabs, status pills, and custom date picker.
+  - `<RoomEmptyState />`: Contextual empty state banner with one-click filter reset.
+  - `useClickOutside`: Custom hook for dropdowns and popovers, eliminating memory leaks and repetitive event listeners.
 - **Tailwind CSS v4 Canonical Rules**:
   - Always write canonical classes (`bg-linear-to-*`, `wrap-break-word`, `aspect-video`, `h-px`, `stroke-3`, `scheme-dark`).
-- **Minimal Footer**:
-  - Single-line Spotify dark footer (`#121212`, `border-t border-[#252525]`, brand icon, fast ticket links, copyright).
 
 ---
 
@@ -81,19 +84,25 @@ task/
 ├── database.dbml             # Database Markup Language for https://dbdiagram.io
 ├── package.json              # Root runner scripts (concurrent frontend + backend + prisma)
 ├── prisma/
-│   └── schema.prisma         # Single Source of Truth (Database Schema & PostgreSQL Client)
+│   └── schema.prisma         # Single Source of Truth (Database Schema, Pooler & Direct URLs)
 ├── backend/
 │   ├── server.js             # Standalone WebSocket Server (Node.js + Socket.io)
-│   └── package.json
+│   └── package.json          # Production start script ("start": "node server.js")
 ├── frontend/                 # Next.js 16 (React 19 + Tailwind CSS v4 + Turbopack)
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── (protected)/  # Protected routes (Lobby, Rooms dashboard, Join room)
+│   │   │   ├── (protected)/
+│   │   │   │   ├── page.tsx  # Decomposed Lobby Dashboard Controller (~400 lines)
+│   │   │   │   └── rooms/[id]/ # Live War Room Dashboard
 │   │   │   ├── login/        # Spotify-styled Auth Page
-│   │   │   ├── api/          # 100% Real PostgreSQL API routes (auth, rooms, tasks, messages)
+│   │   │   ├── api/          # 100% Real PostgreSQL API routes (bounded queries with take: 100)
 │   │   │   ├── globals.css   # Spotify tokens & Tailwind CSS v4 configuration
 │   │   │   └── layout.tsx    # Next.js Root Layout with Toaster and AuthProvider
 │   │   ├── components/
+│   │   │   ├── Avatar.tsx          # Deep universal avatar with initials fallback
+│   │   │   ├── RoomCard.tsx        # Self-contained room card with localized action dropdown
+│   │   │   ├── RoomFilters.tsx     # Toolbar with ownership tabs, status and date filter
+│   │   │   ├── RoomEmptyState.tsx  # Contextual empty state banner
 │   │   │   ├── CreateRoomModal.tsx # New War Room creation modal (pinned header, max-h 90vh)
 │   │   │   ├── EditRoomModal.tsx   # Edit War Room details modal
 │   │   │   ├── EditTaskModal.tsx   # Add/Edit Seat Target modal
@@ -109,8 +118,9 @@ task/
 │   │   ├── lib/
 │   │   │   ├── audio.ts            # Zero-dependency Web Audio API sound alerts
 │   │   │   ├── cloudinary.ts       # Cloudinary upload helpers (chat vs files folders)
+│   │   │   ├── hooks.ts            # Shared hooks (useClickOutside)
 │   │   │   ├── prisma.ts           # Shared Prisma database instance
-│   │   │   └── socket.ts           # Socket.io client connector
+│   │   │   └── socket.ts           # Socket.io client with exponential backoff
 │   │   └── types/
 │   │       └── index.ts            # TypeScript interfaces (Room, SeatTask, Message, Member)
 │   └── package.json
@@ -119,14 +129,19 @@ task/
 
 ---
 
-## 5. Extensibility & Setup Checklist
+## 5. Free-Tier Production Deployment Checklist
 
-1. **Connecting Live Database**:
-   - Provide `DATABASE_URL` and `DIRECT_URL` in `.env`
-   - Run `npx prisma db push` to synchronize tables with PostgreSQL
-2. **Connecting Live WebSocket Client**:
-   - Point `NEXT_PUBLIC_SOCKET_URL` to your hosted Node.js instance on Render/Railway (default: `http://localhost:4000`)
-3. **Connecting Cloudinary**:
-   - Fill in `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`, and `CLOUDINARY_API_KEY` in `.env`
-   - Images automatically route to `ticketwar/chat` and PDFs to `ticketwar/files`
-
+1. **Supabase (Database)**:
+   - Provide `DATABASE_URL` with **Transaction Pooler (Port 6543)** in Vercel environment variables:
+     `postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true`
+   - Provide `DIRECT_URL` with **Direct Session Connection (Port 5432)** for schema migrations:
+     `postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres`
+2. **Render (WebSocket Relay)**:
+   - Build command: `npm install`
+   - Start command: `node server.js`
+   - Set environment variables: `PORT=4000`, `FRONTEND_URL=https://your-vercel-domain.vercel.app`
+3. **Vercel (Frontend Next.js)**:
+   - Root directory: `frontend`
+   - Environment variables: `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_SOCKET_URL=https://your-render-app.onrender.com`, Cloudinary credentials.
+4. **Cloudinary**:
+   - Provide `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
