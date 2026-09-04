@@ -12,10 +12,19 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  title: "TicketWar",
-  description: "TicketWar",
+  metadataBase: new URL(process.env.FRONTEND_URL || "https://ticket-war-ten.vercel.app"),
+  title: {
+    default: "TicketWar - รวมทีมกดบัตรคอนเสิร์ต",
+    template: "%s | TicketWar",
+  },
+  description: "ระบบแบ่งงานและร่วมทีมกดบัตรคอนเสิร์ตแบบเรียลไทม์",
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+  openGraph: {
+    siteName: "TicketWar",
+    locale: "th_TH",
+    type: "website",
   },
 };
 

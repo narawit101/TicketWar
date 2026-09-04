@@ -66,7 +66,13 @@ export default function JoinRoomByLinkPage() {
         if (!ignore) {
           if (res.ok && data.room) {
             setRoom(data.room);
-            setIsAlreadyMember(Boolean(data.isMember));
+            const isMember = Boolean(data.isMember);
+            setIsAlreadyMember(isMember);
+            if (isMember) {
+              // User is already in this room -> automatically redirect into the room
+              router.replace(`/rooms/${data.room.id}`);
+              return;
+            }
           } else {
             setErrorMsg(data.error || "ไม่พบห้องนี้ หรือรหัสห้องไม่ถูกต้อง");
           }
@@ -89,7 +95,7 @@ export default function JoinRoomByLinkPage() {
   const handleConfirmJoin = async (targetCode: string) => {
     if (!user) {
       toast.error("กรุณาเข้าสู่ระบบก่อนเข้าร่วมห้อง");
-      router.push("/login");
+      router.push(`/login?redirect=/join/${encodeURIComponent(targetCode)}`);
       return;
     }
 
@@ -141,6 +147,20 @@ export default function JoinRoomByLinkPage() {
           <Loader2 className="w-8 h-8 text-[#1ed760] animate-spin mx-auto" />
           <h2 className="text-sm font-bold text-white">
             กำลังตรวจสอบคำเชิญ...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  // If already a member, show redirecting state
+  if (isAlreadyMember && room) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-4 text-center">
+        <div className="bg-[#181818] border border-[#252525] rounded-2xl p-8 max-w-sm w-full space-y-3">
+          <Loader2 className="w-8 h-8 text-[#1ed760] animate-spin mx-auto" />
+          <h2 className="text-sm font-bold text-white">
+            คุณอยู่ในห้องนี้แล้ว กำลังพาเข้าห้อง...
           </h2>
         </div>
       </div>
@@ -238,8 +258,8 @@ export default function JoinRoomByLinkPage() {
             </span>
           </div>
 
-          <div>
-            <h1 className="text-xl font-extrabold text-white tracking-tight">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight break-all leading-snug">
               {room.title}
             </h1>
             <p className="text-xs text-[#888888] mt-1">
