@@ -2,26 +2,100 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
-import { parseDateInBangkok } from "@/lib/date";
+import { parseDateInBangkok, toInputDateTime } from "@/lib/date";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "6", 10));
+    const tab = searchParams.get("tab") || "ALL"; // ALL | MINE | JOINED
+    const status = searchParams.get("status") || "ALL"; // ALL | ACTIVE | ARCHIVED
+    const dateFilter = searchParams.get("dateFilter") || "UPCOMING"; // UPCOMING | ALL | CUSTOM
+    const customDate = searchParams.get("customDate") || "";
 
-    const whereCondition: Prisma.RoomWhereInput = {
-      status: { not: "DELETED" },
+    const statusCondition = status === "ARCHIVED" ? "ARCHIVED" : "ACTIVE";
+
+    // Base where condition for current filter
+    const baseWhere: Prisma.RoomWhereInput = {
+      status: statusCondition,
     };
 
     if (userId) {
-      whereCondition.OR = [
-        { createdById: userId },
-        { members: { some: { userId } } },
-      ];
+      if (tab === "MINE") {
+        baseWhere.createdById = userId;
+      } else if (tab === "JOINED") {
+        baseWhere.members = {
+          some: {
+            userId,
+            role: { not: "OWNER" },
+          },
+        };
+      } else {
+        baseWhere.OR = [
+          { createdById: userId },
+          { members: { some: { userId } } },
+        ];
+      }
     }
 
+    // Date filtering
+    if (dateFilter === "UPCOMING") {
+      const todayStr = toInputDateTime(new Date()).split("T")[0];
+      const startOfToday = parseDateInBangkok(`${todayStr}T00:00:00`) || new Date();
+      baseWhere.AND = [
+        {
+          OR: [
+            { eventDate: { gte: startOfToday } },
+            { eventDate: null },
+          ],
+        },
+      ];
+    } else if (dateFilter === "CUSTOM" && customDate) {
+      const startOfDay = parseDateInBangkok(`${customDate}T00:00:00`);
+      const endOfDay = parseDateInBangkok(`${customDate}T23:59:59.999`);
+      if (startOfDay && endOfDay) {
+        baseWhere.eventDate = {
+          gte: startOfDay,
+          lte: endOfDay,
+        };
+      }
+    }
+
+    // Counts for tabs & total
+    const [totalCount, allTabCount, mineTabCount, joinedTabCount] = await Promise.all([
+      prisma.room.count({ where: baseWhere }),
+      userId
+        ? prisma.room.count({
+            where: {
+              status: statusCondition,
+              OR: [{ createdById: userId }, { members: { some: { userId } } }],
+            },
+          })
+        : 0,
+      userId
+        ? prisma.room.count({
+            where: {
+              status: statusCondition,
+              createdById: userId,
+            },
+          })
+        : 0,
+      userId
+        ? prisma.room.count({
+            where: {
+              status: statusCondition,
+              members: { some: { userId, role: { not: "OWNER" } } },
+            },
+          })
+        : 0,
+    ]);
+
+    const skip = (page - 1) * limit;
+
     const rooms = await prisma.room.findMany({
-      where: whereCondition,
+      where: baseWhere,
       include: {
         _count: {
           select: { members: true, seatTasks: true },
@@ -33,7 +107,12 @@ export async function GET(req: Request) {
             }
           : false,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [
+        { eventDate: { sort: "asc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      skip,
+      take: limit,
     });
 
     const unreadCounts = await Promise.all(
@@ -76,7 +155,22 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ rooms: formattedRooms });
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+    return NextResponse.json({
+      rooms: formattedRooms,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages,
+      },
+      counts: {
+        all: allTabCount,
+        mine: mineTabCount,
+        joined: joinedTabCount,
+      },
+    });
   } catch (error) {
     console.error("[GET /api/rooms error]:", error);
     return NextResponse.json({ error: "ไม่สามารถดึงข้อมูลห้องได้" }, { status: 500 });

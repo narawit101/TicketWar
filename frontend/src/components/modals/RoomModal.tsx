@@ -19,7 +19,7 @@ import {
 import { toast } from "react-hot-toast";
 import { UserInviteInput } from "@/components/room";
 import { Room, SearchUserResult } from "@/types";
-import { toInputDateTime } from "@/lib/date";
+import { toInputDateTime, formatEventDate } from "@/lib/date";
 
 export interface RoomFormData {
   id?: string;
@@ -229,9 +229,14 @@ const RoomModalDialog: React.FC<{
         >
           {/* 1. Event Date & Time + Queue Settings */}
           <div className="space-y-2.5">
-            <label className="text-sm font-semibold text-zinc-200 flex items-center gap-1.5">
+            <label className="text-sm font-semibold text-zinc-200 flex items-center gap-1.5 flex-wrap">
               <Calendar className="w-4 h-4 text-[#1ed760]" />
               <span>วันเวลากดบัตร</span>
+              {eventDate && (
+                <span className="text-xs font-bold text-[#1ed760] ml-1">
+                  {formatEventDate(eventDate)}
+                </span>
+              )}
             </label>
             <input
               type="datetime-local"

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Crown, Users, Archive, X } from "lucide-react";
+import { formatThaiDate } from "@/lib/date";
 
 interface RoomFiltersProps {
   roomsCount: number;
@@ -170,17 +171,22 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
               title="เลือกวันที่ระบุ"
             />
             {customDate && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomDate("");
-                  setDateFilter("ALL");
-                }}
-                className="ml-1 p-1 rounded-md text-[#888888] hover:text-white hover:bg-[#282828] transition cursor-pointer shrink-0"
-                title="ล้างวันที่เลือก"
-              >
-                <X className="w-3 h-3" />
-              </button>
+              <>
+                <span className="text-[#1ed760] font-bold text-xs pl-1.5 whitespace-nowrap">
+                  {formatThaiDate(customDate)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomDate("");
+                    setDateFilter("ALL");
+                  }}
+                  className="ml-1 p-1 rounded-md text-[#888888] hover:text-white hover:bg-[#282828] transition cursor-pointer shrink-0"
+                  title="ล้างวันที่เลือก"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </>
             )}
           </div>
         </div>

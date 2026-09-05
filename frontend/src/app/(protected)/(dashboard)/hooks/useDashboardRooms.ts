@@ -7,9 +7,23 @@ import { CarouselSlide } from "@/components/room";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
-import { toInputDateTime } from "@/lib/date";
 
 import useSWR from "swr";
+
+interface RoomsApiResponse {
+  rooms: Room[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  counts: {
+    all: number;
+    mine: number;
+    joined: number;
+  };
+}
 
 const roomsFetcher = async (url: string) => {
   const res = await fetch(url);
@@ -20,8 +34,24 @@ const roomsFetcher = async (url: string) => {
 export function useDashboardRooms() {
   const { user } = useAuth();
 
-  const swrKey = user?.id ? `/api/rooms?userId=${user.id}` : null;
-  const { data, isLoading, mutate } = useSWR<{ rooms: Room[] }>(
+  // Filters
+  const [ownershipTab, setOwnershipTab] = useState<"ALL" | "MINE" | "JOINED">(
+    "ALL",
+  );
+  const [statusFilter, setStatusFilter] = useState<
+    "ALL" | "ACTIVE" | "ARCHIVED"
+  >("ALL");
+  const [dateFilter, setDateFilter] = useState<"ALL" | "UPCOMING" | "CUSTOM">(
+    "UPCOMING",
+  );
+  const [customDate, setCustomDate] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 6;
+
+  const swrKey = user?.id
+    ? `/api/rooms?userId=${user.id}&page=${currentPage}&limit=${PAGE_SIZE}&tab=${ownershipTab}&status=${statusFilter}&dateFilter=${dateFilter}&customDate=${encodeURIComponent(customDate)}`
+    : null;
+  const { data, isLoading, mutate } = useSWR<RoomsApiResponse>(
     swrKey,
     roomsFetcher,
     {
@@ -51,17 +81,39 @@ export function useDashboardRooms() {
     mutate();
   }, [mutate]);
 
-  // Filters
-  const [ownershipTab, setOwnershipTab] = useState<"ALL" | "MINE" | "JOINED">(
-    "ALL",
+  const setOwnershipTabWithReset = useCallback(
+    (tab: "ALL" | "MINE" | "JOINED") => {
+      setOwnershipTab(tab);
+      setCurrentPage(1);
+    },
+    [],
   );
-  const [statusFilter, setStatusFilter] = useState<
-    "ALL" | "ACTIVE" | "ARCHIVED"
-  >("ALL");
-  const [dateFilter, setDateFilter] = useState<"ALL" | "UPCOMING" | "CUSTOM">(
-    "UPCOMING",
+
+  const setStatusFilterWithReset = useCallback(
+    (status: "ALL" | "ACTIVE" | "ARCHIVED") => {
+      setStatusFilter(status);
+      setCurrentPage(1);
+    },
+    [],
   );
-  const [customDate, setCustomDate] = useState<string>("");
+
+  const setDateFilterWithReset = useCallback(
+    (filter: "ALL" | "UPCOMING" | "CUSTOM") => {
+      setDateFilter(filter);
+      setCurrentPage(1);
+    },
+    [],
+  );
+
+  const setCustomDateWithReset = useCallback((date: string) => {
+    setCustomDate(date);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -321,83 +373,19 @@ export function useDashboardRooms() {
     }
   };
 
-  // Filtered rooms calculation
-  const filteredRooms = useMemo(() => {
-    // ponytail: compare YYYY-MM-DD in Bangkok timezone so today's events stay visible all day
-    const todayStr = toInputDateTime(new Date()).split("T")[0];
+  // ponytail: Backend handles pagination, sorting (eventDate asc with nulls last), and filters
+  const filteredRooms = rooms;
 
-    const result = rooms.filter((r) => {
-      // 1. Ownership tab
-      if (ownershipTab === "MINE" && r.role !== "OWNER") return false;
-      if (ownershipTab === "JOINED" && r.role !== "MEMBER") return false;
-
-      // 2. Status filter: normal view hides archived rooms, archived view shows only archived
-      if (statusFilter !== "ARCHIVED" && r.status === "ARCHIVED") return false;
-      if (statusFilter === "ARCHIVED" && r.status !== "ARCHIVED") return false;
-
-      // 3. Date filter
-      if (dateFilter === "UPCOMING") {
-        if (r.eventDate) {
-          const roomDateStr = toInputDateTime(r.eventDate).split("T")[0];
-          // Hide past dates (before today)
-          if (roomDateStr && roomDateStr < todayStr) return false;
-        }
-      } else if (dateFilter === "CUSTOM" && customDate) {
-        if (!r.eventDate) return false;
-        const roomDateStr = toInputDateTime(r.eventDate).split("T")[0];
-        if (roomDateStr !== customDate) return false;
-      }
-
-      return true;
-    });
-
-    // ponytail: เรียงตามวันที่จัดงานจากน้อยไปมาก (Ascending: 1 -> 2 -> 3...) ทั้งหมด โดยห้องที่ไม่มีวันที่จัดงานนำไปไว้ท้ายสุด
-    return result.sort((a, b) => {
-      if (a.eventDate && b.eventDate) {
-        return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
-      }
-      if (a.eventDate && !b.eventDate) return -1;
-      if (!a.eventDate && b.eventDate) return 1;
-      return 0;
-    });
-  }, [rooms, ownershipTab, statusFilter, dateFilter, customDate]);
-
-  const activeRoomsCount = useMemo(
-    () =>
-      rooms.filter((r) =>
-        statusFilter === "ARCHIVED"
-          ? r.status === "ARCHIVED"
-          : r.status !== "ARCHIVED",
-      ).length,
-    [rooms, statusFilter],
-  );
-
-  const myRoomsCount = useMemo(
-    () =>
-      rooms.filter(
-        (r) =>
-          r.role === "OWNER" &&
-          (statusFilter === "ARCHIVED"
-            ? r.status === "ARCHIVED"
-            : r.status !== "ARCHIVED"),
-      ).length,
-    [rooms, statusFilter],
-  );
-  const joinedRoomsCount = useMemo(
-    () =>
-      rooms.filter(
-        (r) =>
-          r.role === "MEMBER" &&
-          (statusFilter === "ARCHIVED"
-            ? r.status === "ARCHIVED"
-            : r.status !== "ARCHIVED"),
-      ).length,
-    [rooms, statusFilter],
-  );
+  const totalPages = data?.pagination?.totalPages || 1;
+  const totalRooms = data?.pagination?.total || 0;
+  const activeRoomsCount = data?.counts?.all ?? 0;
+  const myRoomsCount = data?.counts?.mine ?? 0;
+  const joinedRoomsCount = data?.counts?.joined ?? 0;
 
   const handleResetFilters = () => {
     setStatusFilter("ALL");
     setCustomDate("");
+    setCurrentPage(1);
     if (dateFilter === "UPCOMING" && statusFilter === "ALL" && !customDate) {
       setDateFilter("ALL");
     } else {
@@ -505,13 +493,17 @@ export function useDashboardRooms() {
     loading,
     actionLoadingId,
     ownershipTab,
-    setOwnershipTab,
+    setOwnershipTab: setOwnershipTabWithReset,
     statusFilter,
-    setStatusFilter,
+    setStatusFilter: setStatusFilterWithReset,
     dateFilter,
-    setDateFilter,
+    setDateFilter: setDateFilterWithReset,
     customDate,
-    setCustomDate,
+    setCustomDate: setCustomDateWithReset,
+    currentPage,
+    totalPages,
+    totalRooms,
+    handlePageChange,
     isCreateOpen,
     setIsCreateOpen,
     isJoinOpen,
