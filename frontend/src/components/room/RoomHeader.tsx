@@ -15,6 +15,7 @@ import {
   ArchiveRestore,
   Trash2,
   LogOut,
+  CheckCircle2,
 } from "lucide-react";
 
 interface RoomHeaderProps {
@@ -24,7 +25,9 @@ interface RoomHeaderProps {
   onOpenMembers: () => void;
   onOpenEditRoom: () => void;
   onOpenShare: () => void;
-  onConfirmStatusChange: (type: "ARCHIVE" | "RESTORE" | "DELETE" | "LEAVE") => void;
+  onConfirmStatusChange: (
+    type: "ARCHIVE" | "RESTORE" | "DELETE" | "LEAVE",
+  ) => void;
 }
 
 export const RoomHeader: React.FC<RoomHeaderProps> = ({
@@ -71,7 +74,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1 sm:p-1.5 rounded-full bg-[#1f1f1f] hover:bg-[#282828] text-[#1ed760] hover:text-[#1cd05a] border border-[#2e2e2e] hover:border-[#1ed760]/40 transition-all inline-flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
+                className="p-1 sm:p-1.5 rounded-full bg-[#1f1f1f] hover:bg-[#282828] text-[#1ed760] hover:text-[#1cd05a] transition-all inline-flex items-center justify-center shrink-0 cursor-pointer shadow-sm"
                 title="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
                 aria-label="เปิดเว็บไซต์กดบัตร / เว็บหลัก"
               >
@@ -83,17 +86,17 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
           {/* Sub-info: Status & Date */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-zinc-300">
             <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-[#b3b3b3] shrink-0">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  room.status === "ACTIVE" ? "bg-[#1ed760]" : "bg-zinc-500"
-                }`}
-              />
+              {room.status === "ACTIVE" ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+              ) : (
+                <Archive className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              )}
               <span
                 className={
                   room.status === "ACTIVE" ? "text-zinc-200" : "text-zinc-400"
                 }
               >
-                {room.status === "ACTIVE" ? "ใช้งานอยู่" : "จัดเก็บ"}
+                {room.status === "ACTIVE" ? "ใช้งาน" : "จัดเก็บ"}
               </span>
             </span>
 
@@ -167,7 +170,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     onClick={() => {
                       setIsMenuOpen(false);
                       onConfirmStatusChange(
-                        room.status === "ACTIVE" ? "ARCHIVE" : "RESTORE"
+                        room.status === "ACTIVE" ? "ARCHIVE" : "RESTORE",
                       );
                     }}
                     className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"

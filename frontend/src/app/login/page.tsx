@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { validatePassword } from "@/lib/validation";
 import { toast } from "react-hot-toast";
-import { TicketWarLogo } from "@/components/TicketWarLogo";
+import { TicketWarLogo } from "@/components/common";
 
 export default function LoginPage() {
   const [tab, setTab] = useState<"login" | "signup">("login");

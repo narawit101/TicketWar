@@ -4,7 +4,7 @@ import React, { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { validatePassword } from "@/lib/validation";
 import { toast } from "react-hot-toast";
-import { Avatar } from "./Avatar";
+import { Avatar } from "@/components/common";
 import {
   X,
   Camera,

@@ -73,10 +73,26 @@ io.on("connection", (socket) => {
   socket.on("task_deleted", ({ roomId, taskId }) => socket.to(roomId).emit("task_deleted", taskId));
 
   // Chat & shoutouts
-  socket.on("send_message", ({ roomId, message }) => socket.to(roomId).emit("new_message", message));
+  socket.on("send_message", ({ roomId, message }) => {
+    socket.to(roomId).emit("new_message", message);
+    io.to("lobby").emit("lobby_room_message", { roomId, senderId: message?.userId });
+  });
   socket.on("delete_message", ({ roomId, messageId }) => socket.to(roomId).emit("message_deleted", { messageId }));
   socket.on("edit_message", ({ roomId, message }) => socket.to(roomId).emit("message_updated", message));
-  socket.on("send_shoutout", ({ roomId, shoutout }) => socket.to(roomId).emit("shoutout_alert", shoutout));
+  socket.on("send_shoutout", ({ roomId, shoutout }) => {
+    socket.to(roomId).emit("shoutout_alert", shoutout);
+    io.to("lobby").emit("lobby_room_message", { roomId, senderId: shoutout?.userId });
+  });
+  socket.on("update_reaction", ({ roomId, messageId, reactions }) => socket.to(roomId).emit("message_reaction_updated", { messageId, reactions }));
+  socket.on("update_pin_message", ({ roomId, pinnedMessage }) => io.to(roomId).emit("room_pinned_message_updated", { pinnedMessage }));
+  socket.on("typing_start", ({ roomId, user }) => socket.to(roomId).emit("user_typing", { user, isTyping: true }));
+  socket.on("typing_stop", ({ roomId, userId }) => socket.to(roomId).emit("user_typing", { userId, isTyping: false }));
+  socket.on("mark_read", ({ roomId, userId, messageId, user }) => {
+    socket.to(roomId).emit("user_read", { userId, messageId, user });
+    if (userId) {
+      io.to(`user:${userId}`).emit("lobby_room_read", { roomId });
+    }
+  });
 
   // Room status & updates
   socket.on("room_status_changed", ({ roomId, status }) => {
@@ -95,6 +111,7 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("member_joined", { user, memberCount, message });
     if (message) {
       io.to(roomId).emit("new_message", message);
+      io.to("lobby").emit("lobby_room_message", { roomId, senderId: message?.userId });
     }
     io.to("lobby").emit("lobby_room_updated", { roomId, memberCount });
   });
@@ -102,6 +119,7 @@ io.on("connection", (socket) => {
   socket.on("send_room_invitation_chat", ({ roomId, message }) => {
     if (roomId && message) {
       io.to(roomId).emit("new_message", message);
+      io.to("lobby").emit("lobby_room_message", { roomId, senderId: message?.userId });
     }
   });
 

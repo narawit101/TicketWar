@@ -1,31 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Room } from "@/types";
-import { Plus, KeyRound, Loader2 } from "lucide-react";
-import { CreateRoomModal } from "@/components/CreateRoomModal";
-import { EditRoomModal } from "@/components/EditRoomModal";
-import { JoinRoomModal } from "@/components/JoinRoomModal";
-import { CarouselSlide } from "@/components/RoomImageCarousel";
-import { ImageLightboxModal } from "@/components/ImageLightboxModal";
-import { ShareRoomModal } from "@/components/ShareRoomModal";
-import {
-  ConfirmActionModal,
-  ConfirmType,
-} from "@/components/ConfirmActionModal";
-import { RoomCard } from "@/components/RoomCard";
-import { RoomFilters } from "@/components/RoomFilters";
-import { RoomEmptyState } from "@/components/RoomEmptyState";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Room, RoomMemberItem } from "@/types";
+import { ConfirmType } from "@/components/modals";
+import { CarouselSlide } from "@/components/room";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
-import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 
-export default function RoomsPage() {
+export function useDashboardRooms() {
+  const { user } = useAuth();
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Filter Tabs
+  // Filters
   const [ownershipTab, setOwnershipTab] = useState<"ALL" | "MINE" | "JOINED">(
     "ALL",
   );
@@ -37,7 +28,7 @@ export default function RoomsPage() {
   );
   const [customDate, setCustomDate] = useState<string>("");
 
-  // Modals
+  // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -54,13 +45,11 @@ export default function RoomsPage() {
     roomId: string;
     roomTitle: string;
   } | null>(null);
+  const [membersModalRoom, setMembersModalRoom] = useState<Room | null>(null);
+  const [roomMembers, setRoomMembers] = useState<RoomMemberItem[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const { user } = useAuth();
-  const router = useRouter();
-
+  // Fetch rooms
   useEffect(() => {
     let ignore = false;
     async function load() {
@@ -88,32 +77,71 @@ export default function RoomsPage() {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  // Realtime Socket Lobby listener for dashboard rooms
+  // Realtime Socket Lobby listener
   useEffect(() => {
     const socket = getSocket();
-    socket.emit("join_lobby");
+
+    const joinLobbyRooms = () => {
+      socket.emit("join_lobby");
+      if (user?.id) {
+        socket.emit("join_user", { userId: user.id });
+      }
+    };
+
+    joinLobbyRooms();
+    socket.on("connect", joinLobbyRooms);
 
     const handleLobbyUpdate = () => {
       refreshRooms();
     };
 
+    const handleRoomMessage = ({
+      roomId,
+      senderId,
+    }: {
+      roomId: string;
+      senderId?: string;
+    }) => {
+      // Don't count own messages as unread
+      if (senderId && user?.id && senderId === user.id) return;
+
+      setRooms((prev) =>
+        prev.map((r) =>
+          r.id === roomId
+            ? { ...r, unreadCount: (r.unreadCount || 0) + 1 }
+            : r,
+        ),
+      );
+    };
+
+    const handleRoomRead = ({ roomId }: { roomId: string }) => {
+      setRooms((prev) =>
+        prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r)),
+      );
+    };
+
     socket.on("lobby_room_created", handleLobbyUpdate);
     socket.on("lobby_room_updated", handleLobbyUpdate);
+    socket.on("lobby_room_message", handleRoomMessage);
+    socket.on("lobby_room_read", handleRoomRead);
 
     return () => {
+      socket.off("connect", joinLobbyRooms);
       socket.off("lobby_room_created", handleLobbyUpdate);
       socket.off("lobby_room_updated", handleLobbyUpdate);
+      socket.off("lobby_room_message", handleRoomMessage);
+      socket.off("lobby_room_read", handleRoomRead);
     };
-  }, [refreshRooms]);
+  }, [user?.id, refreshRooms]);
 
   // Create room
   const handleCreateRoom = async (data: {
     title: string;
     eventDate: string;
-    ticketUrl?: string;
-    description?: string;
-    bannerUrl?: string;
-    seatingPlanUrl?: string;
+    ticketUrl?: string | null;
+    description?: string | null;
+    bannerUrl?: string | null;
+    seatingPlanUrl?: string | null;
     invitedUserIds?: string[];
   }) => {
     try {
@@ -138,7 +166,6 @@ export default function RoomsPage() {
         const socket = getSocket();
         socket.emit("room_created", { room: result.room });
 
-        // Broadcast real-time invitations to invited users
         if (Array.isArray(result.invitations)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           result.invitations.forEach((inv: any) => {
@@ -161,7 +188,7 @@ export default function RoomsPage() {
 
   // Edit room
   const handleSaveRoom = async (data: {
-    id: string;
+    id?: string;
     title: string;
     eventDate: string;
     ticketUrl?: string | null;
@@ -169,6 +196,7 @@ export default function RoomsPage() {
     bannerUrl?: string | null;
     seatingPlanUrl?: string | null;
   }) => {
+    if (!data.id) return;
     try {
       const res = await fetch(`/api/rooms/${data.id}`, {
         method: "PATCH",
@@ -209,7 +237,6 @@ export default function RoomsPage() {
 
     setActionLoadingId(roomId);
 
-    // Handle Leave Room (for non-owner members)
     if (type === "LEAVE") {
       try {
         const res = await fetch(
@@ -280,40 +307,48 @@ export default function RoomsPage() {
     }
   };
 
-  // Filtered rooms
-  const filteredRooms = rooms.filter((r) => {
-    // 1. Ownership tab
-    if (ownershipTab === "MINE" && r.role !== "OWNER") return false;
-    if (ownershipTab === "JOINED" && r.role !== "MEMBER") return false;
+  // Filtered rooms calculation
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      // 1. Ownership tab
+      if (ownershipTab === "MINE" && r.role !== "OWNER") return false;
+      if (ownershipTab === "JOINED" && r.role !== "MEMBER") return false;
 
-    // 2. Status filter
-    if (statusFilter === "ACTIVE" && r.status !== "ACTIVE") return false;
-    if (statusFilter === "ARCHIVED" && r.status !== "ARCHIVED") return false;
+      // 2. Status filter
+      if (statusFilter === "ACTIVE" && r.status !== "ACTIVE") return false;
+      if (statusFilter === "ARCHIVED" && r.status !== "ARCHIVED") return false;
 
-    // 3. Date filter
-    if (dateFilter === "UPCOMING") {
-      if (!r.eventDate) return false;
-      const d = new Date(r.eventDate);
-      if (isNaN(d.getTime())) return false;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (d < today) return false;
-    } else if (dateFilter === "CUSTOM" && customDate) {
-      if (!r.eventDate) return false;
-      const d = new Date(r.eventDate);
-      if (isNaN(d.getTime())) return false;
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const roomDateStr = `${year}-${month}-${day}`;
-      if (roomDateStr !== customDate) return false;
-    }
+      // 3. Date filter
+      if (dateFilter === "UPCOMING") {
+        if (!r.eventDate) return false;
+        const d = new Date(r.eventDate);
+        if (isNaN(d.getTime())) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (d < today) return false;
+      } else if (dateFilter === "CUSTOM" && customDate) {
+        if (!r.eventDate) return false;
+        const d = new Date(r.eventDate);
+        if (isNaN(d.getTime())) return false;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const roomDateStr = `${year}-${month}-${day}`;
+        if (roomDateStr !== customDate) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [rooms, ownershipTab, statusFilter, dateFilter, customDate]);
 
-  const myRoomsCount = rooms.filter((r) => r.role === "OWNER").length;
-  const joinedRoomsCount = rooms.filter((r) => r.role === "MEMBER").length;
+  const myRoomsCount = useMemo(
+    () => rooms.filter((r) => r.role === "OWNER").length,
+    [rooms],
+  );
+  const joinedRoomsCount = useMemo(
+    () => rooms.filter((r) => r.role === "MEMBER").length,
+    [rooms],
+  );
 
   const handleResetFilters = () => {
     setStatusFilter("ALL");
@@ -321,151 +356,107 @@ export default function RoomsPage() {
     setCustomDate("");
   };
 
-  return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
-      {/* Top Header & Main CTA */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-[#252525]">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            ห้องแชท
-          </h1>
-        </div>
+  const markRoomAsRead = useCallback((roomId: string) => {
+    setRooms((prev) =>
+      prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r)),
+    );
+  }, []);
 
-        {/* Action Buttons: Join with Code & Create Room */}
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={() => setIsJoinOpen(true)}
-            className="flex-1 md:flex-none px-4 py-2 rounded-full text-xs font-bold text-white bg-[#222222] hover:bg-[#2e2e2e] border border-[#333333] hover:border-[#555555] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            <div className="flex items-center justify-center gap-2.5">
-              <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span>เข้าร่วมด้วยรหัส</span>
-            </div>
-          </button>
+  const handleOpenMembers = useCallback(async (room: Room) => {
+    setMembersModalRoom(room);
+    setLoadingMembers(true);
+    try {
+      const res = await fetch(`/api/rooms/${room.id}/members`);
+      const data = await res.json();
+      if (res.ok && data.members) {
+        setRoomMembers(data.members);
+      }
+    } catch (err) {
+      console.error("Failed to load room members:", err);
+      toast.error("ไม่สามารถโหลดรายชื่อสมาชิกได้");
+    } finally {
+      setLoadingMembers(false);
+    }
+  }, []);
 
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="flex-1 md:flex-none btn-pill btn-pill-green text-xs px-4 py-2 gap-1.5 cursor-pointer font-bold shadow-lg flex items-center justify-center"
-          >
-            <div className="flex items-center justify-center gap-2.5">
-              <Plus className="w-4 h-4 text-black stroke-3" />
-              <span>สร้างห้องใหม่</span>
-            </div>
-          </button>
-        </div>
-      </div>
+  const handleKickMember = useCallback(
+    async (targetUserId: string, memberName: string) => {
+      if (!membersModalRoom || !user) return;
+      try {
+        const res = await fetch(
+          `/api/rooms/${membersModalRoom.id}/members?userId=${targetUserId}&requesterId=${user.id}`,
+          { method: "DELETE" },
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "ไม่สามารถนำสมาชิกออกจากห้องได้");
+        }
 
-      {/* Navigation Filter Controls */}
-      <RoomFilters
-        roomsCount={rooms.length}
-        myRoomsCount={myRoomsCount}
-        joinedRoomsCount={joinedRoomsCount}
-        ownershipTab={ownershipTab}
-        setOwnershipTab={setOwnershipTab}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        dateFilter={dateFilter}
-        setDateFilter={setDateFilter}
-        customDate={customDate}
-        setCustomDate={setCustomDate}
-      />
+        setRoomMembers((prev) => prev.filter((m) => m.userId !== targetUserId));
+        setRooms((prev) =>
+          prev.map((r) =>
+            r.id === membersModalRoom.id
+              ? { ...r, memberCount: Math.max(1, r.memberCount - 1) }
+              : r,
+          ),
+        );
 
-      {/* Loading State */}
-      {loading && (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 text-center">
-          <Loader2 className="w-8 h-8 text-[#1ed760] animate-spin" />
-          <p className="text-xs text-[#888888]">กำลังโหลดห้องกดบัตรของคุณ...</p>
-        </div>
-      )}
+        getSocket().emit("member_kicked", {
+          roomId: membersModalRoom.id,
+          targetUserId,
+          memberName,
+          kickedBy: user.name || "เจ้าของห้อง",
+          isSelfLeave: false,
+          message: data.chatMessage,
+        });
 
-      {/* Empty State */}
-      {!loading && filteredRooms.length === 0 && (
-        <RoomEmptyState
-          statusFilter={statusFilter}
-          dateFilter={dateFilter}
-          customDate={customDate}
-          ownershipTab={ownershipTab}
-          onResetFilters={handleResetFilters}
-          onOpenJoin={() => setIsJoinOpen(true)}
-          onOpenCreate={() => setIsCreateOpen(true)}
-        />
-      )}
-
-      {/* Room Cards Grid */}
-      {!loading && filteredRooms.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              room={room}
-              isBusy={actionLoadingId === room.id}
-              onEnterRoom={(id) => router.push(`/rooms/${id}`)}
-              onEdit={(targetRoom) => setEditingRoom(targetRoom)}
-              onShare={(targetRoom) => setShareRoom(targetRoom)}
-              onConfirmAction={(action) => setConfirmModal(action)}
-              onOpenLightbox={(slides, initialIndex) =>
-                setLightbox({
-                  isOpen: true,
-                  title: room.title,
-                  slides,
-                  initialIndex,
-                })
-              }
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Modals */}
-      <EditRoomModal
-        isOpen={!!editingRoom}
-        room={editingRoom}
-        onClose={() => setEditingRoom(null)}
-        onSave={handleSaveRoom}
-      />
-
-      <CreateRoomModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreate={handleCreateRoom}
-      />
-
-      <JoinRoomModal
-        isOpen={isJoinOpen}
-        onClose={() => setIsJoinOpen(false)}
-        onSuccess={(roomId) => {
-          router.push(`/rooms/${roomId}`);
-        }}
-      />
-
-      {confirmModal && (
-        <ConfirmActionModal
-          isOpen={confirmModal.isOpen}
-          type={confirmModal.type}
-          roomTitle={confirmModal.roomTitle}
-          onConfirm={executeConfirmedStatusChange}
-          onClose={() => setConfirmModal(null)}
-          loading={actionLoadingId === confirmModal.roomId}
-        />
-      )}
-
-      {/* Unified Share Room Modal */}
-      <ShareRoomModal
-        isOpen={!!shareRoom}
-        room={shareRoom}
-        onClose={() => setShareRoom(null)}
-      />
-
-      {/* Image Lightbox Modal */}
-      <ImageLightboxModal
-        isOpen={!!lightbox?.isOpen}
-        title={lightbox?.title || ""}
-        slides={lightbox?.slides || []}
-        initialIndex={lightbox?.initialIndex || 0}
-        onClose={() => setLightbox(null)}
-      />
-    </div>
+        toast.success(`นำคุณ ${memberName} ออกจากห้องเรียบร้อยแล้ว`);
+      } catch (err: unknown) {
+        toast.error(
+          err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการนำสมาชิกออก",
+        );
+      }
+    },
+    [membersModalRoom, user],
   );
+
+  return {
+    rooms,
+    loading,
+    actionLoadingId,
+    ownershipTab,
+    setOwnershipTab,
+    statusFilter,
+    setStatusFilter,
+    dateFilter,
+    setDateFilter,
+    customDate,
+    setCustomDate,
+    isCreateOpen,
+    setIsCreateOpen,
+    isJoinOpen,
+    setIsJoinOpen,
+    editingRoom,
+    setEditingRoom,
+    shareRoom,
+    setShareRoom,
+    lightbox,
+    setLightbox,
+    confirmModal,
+    setConfirmModal,
+    membersModalRoom,
+    setMembersModalRoom,
+    roomMembers,
+    loadingMembers,
+    handleOpenMembers,
+    handleKickMember,
+    handleCreateRoom,
+    handleSaveRoom,
+    executeConfirmedStatusChange,
+    handleResetFilters,
+    markRoomAsRead,
+    filteredRooms,
+    myRoomsCount,
+    joinedRoomsCount,
+  };
 }

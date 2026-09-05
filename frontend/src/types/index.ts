@@ -48,6 +48,13 @@ export interface SeatTask {
   lastUpdatedAt: string;  // เช่น "15s ago" หรือ ISO String
 }
 
+export interface ReplyToMessage {
+  id: string;
+  userName: string;
+  text?: string;
+  imageUrl?: string;
+}
+
 export interface Message {
   id: string;
   roomId: string;
@@ -58,6 +65,8 @@ export interface Message {
   imageUrl?: string;
   isShoutout?: boolean;
   shoutoutType?: "GOT_IT" | "DROPPED" | "NEED_HELP";
+  replyTo?: ReplyToMessage | null;
+  reactions?: Record<string, string[]>; // emoji -> array of userIds
   createdAt: string;
   isSending?: boolean;
   error?: boolean;
@@ -73,6 +82,18 @@ export interface RoomMemberItem {
   joinedAt: string;
 }
 
+export interface TypingUser {
+  userId: string;
+  name: string;
+  avatarUrl?: string | null;
+}
+
+export interface ReadReceiptUser {
+  userId: string;
+  name: string;
+  avatarUrl?: string | null;
+}
+
 export interface Room {
   id: string;
   title: string;
@@ -84,9 +105,12 @@ export interface Room {
   inviteCode: string;
   status: RoomStatus;
   createdById: string;
+  pinnedMessageId?: string | null;
+  pinnedMessage?: Message | null;
   role?: "OWNER" | "MEMBER";
   memberCount: number;
   taskCount?: number;
+  unreadCount?: number;
   createdAt?: string;
   members?: RoomMemberItem[];
 }

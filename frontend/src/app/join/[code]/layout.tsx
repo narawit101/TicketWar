@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { formatEventDate } from "@/lib/date";
 import Link from "next/link";
-import { TicketWarLogo } from "@/components/TicketWarLogo";
+import { TicketWarLogo } from "@/components/common/TicketWarLogo";
 
 export async function generateMetadata({
   params,

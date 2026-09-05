@@ -30,15 +30,30 @@ export async function GET(req: Request) {
         members: userId
           ? {
               where: { userId },
-              select: { role: true },
+              select: { role: true, lastReadAt: true },
             }
           : false,
       },
       orderBy: { createdAt: "desc" },
     });
 
+    // Calculate unread message counts for current user
+    const unreadCounts = await Promise.all(
+      rooms.map((r) => {
+        if (!userId) return Promise.resolve(0);
+        const lastRead = r.members?.[0]?.lastReadAt || r.createdAt;
+        return prisma.message.count({
+          where: {
+            roomId: r.id,
+            createdAt: { gt: lastRead },
+            userId: { not: userId },
+          },
+        });
+      })
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedRooms = rooms.map((r: any) => {
+    const formattedRooms = rooms.map((r: any, idx: number) => {
       const isOwner =
         r.createdById === userId || r.members?.[0]?.role === "OWNER";
       return {
@@ -54,6 +69,7 @@ export async function GET(req: Request) {
         description: r.description || null,
         memberCount: Math.max(1, r._count.members),
         taskCount: r._count.seatTasks,
+        unreadCount: unreadCounts[idx] || 0,
         createdAt: r.createdAt.toISOString(),
         eventDate: r.eventDate
           ? r.eventDate.toISOString()

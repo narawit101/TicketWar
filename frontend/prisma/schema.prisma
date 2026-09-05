@@ -71,6 +71,7 @@ model Room {
   description    String?     @map("description")      // หมายเหตุของงาน / รายละเอียดเพิ่มเติม (ไม่บังคับ)
   eventDate      DateTime?   @map("event_date")        // วันแสดง / วันเวลากดบัตร
   status         RoomStatus  @default(ACTIVE)
+  pinnedMessageId String?    @map("pinned_message_id")
   createdById    String      @map("created_by_id")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
@@ -88,11 +89,12 @@ model Room {
 }
 
 model RoomMember {
-  id        String     @id @default(uuid())
-  roomId    String     @map("room_id")
-  userId    String     @map("user_id")
-  role      MemberRole @default(MEMBER)
-  joinedAt  DateTime   @default(now()) @map("joined_at")
+  id         String     @id @default(uuid())
+  roomId     String     @map("room_id")
+  userId     String     @map("user_id")
+  role       MemberRole @default(MEMBER)
+  joinedAt   DateTime   @default(now()) @map("joined_at")
+  lastReadAt DateTime   @default(now()) @map("last_read_at")
 
   // Relations
   room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -140,7 +142,9 @@ model Message {
   userId    String   @map("user_id")
   text      String?  @db.Text
   imageUrl  String?  @map("image_url") // รูปภาพที่บีบอัดและอัปโหลดไป Cloudinary
-  createdAt DateTime @default(now()) @map("created_at")
+  replyTo   Json?    @map("reply_to")  // อ้างอิงข้อความที่ตอบกลับ: { id, userName, text, imageUrl }
+  reactions Json?    @default("{}")    // อิโมจิแสดงความรู้สึก: { "❤️": ["userId1", "userId2"], ... }
+  createdAt DateTime @default(now())   @map("created_at")
 
   // Relations
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)

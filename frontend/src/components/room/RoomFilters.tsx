@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Crown, Users, Archive, X } from "lucide-react";
+import { Crown, Users, Archive, X, CheckCircle2 } from "lucide-react";
 
 interface RoomFiltersProps {
   roomsCount: number;
@@ -106,8 +106,8 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
                 : "text-[#888888] hover:text-white"
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] shrink-0" />
-            <span className="whitespace-nowrap">ใช้งานอยู่</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+            <span className="whitespace-nowrap">ใช้งาน</span>
           </button>
           <button
             type="button"

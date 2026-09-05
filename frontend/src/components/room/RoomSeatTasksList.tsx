@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { SeatTask, RoomMemberItem, TaskAssignee } from "@/types";
-import { SeatTaskCard } from "@/components/SeatTaskCard";
+import { SeatTaskCard } from "./SeatTaskCard";
 import { Plus, Target } from "lucide-react";
 
 interface RoomSeatTasksListProps {

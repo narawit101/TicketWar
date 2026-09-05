@@ -13,12 +13,11 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
+  MessageSquare,
+  CheckCircle2,
 } from "lucide-react";
-import {
-  RoomImageCarousel,
-  CarouselSlide,
-} from "@/components/RoomImageCarousel";
-import { ConfirmType } from "@/components/ConfirmActionModal";
+import { RoomImageCarousel, CarouselSlide } from "./RoomImageCarousel";
+import { ConfirmType } from "@/components/modals";
 import { useClickOutside } from "@/lib/hooks";
 
 interface RoomCardProps {
@@ -34,6 +33,7 @@ interface RoomCardProps {
     roomTitle: string;
   }) => void;
   onOpenLightbox?: (slides: CarouselSlide[], initialIndex: number) => void;
+  onOpenMembers?: (room: Room) => void;
 }
 
 export const RoomCard: React.FC<RoomCardProps> = ({
@@ -44,6 +44,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
   onShare,
   onConfirmAction,
   onOpenLightbox,
+  onOpenMembers,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -88,17 +89,39 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               </span>
             )}
 
+            {/* Member Count Tag (clickable to view members) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenMembers?.(room);
+              }}
+              className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] hover:bg-[#282828] text-zinc-300 hover:text-white border border-zinc-700/50 hover:border-zinc-500 flex items-center gap-1.5 shadow-sm transition cursor-pointer group/members"
+              title="คลิกเพื่อดูสมาชิกในห้อง"
+            >
+              <Users className="w-3 h-3 text-[#1ed760] transition-colors" />
+              <span className="text-xs">{room.memberCount} คน</span>
+            </button>
+
             {/* Status Tag */}
             <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isLive ? "bg-[#1ed760]" : "bg-zinc-500"
-                }`}
-              />
+              {isLive ? (
+                <CheckCircle2 className="w-3 h-3 text-[#1ed760]" />
+              ) : (
+                <Archive className="w-3 h-3 text-zinc-400" />
+              )}
               <span className={isLive ? "text-zinc-200" : "text-zinc-400"}>
-                {isLive ? "ใช้งานอยู่" : "จัดเก็บ"}
+                {isLive ? "ใช้งาน" : "จัดเก็บ"}
               </span>
             </span>
+
+            {/* Unread Message Pill Tag */}
+            {typeof room.unreadCount === "number" && room.unreadCount > 0 && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-[#1ed760] border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
+                <MessageSquare className="w-3 h-3 text-[#1ed760]" />
+                <span>{room.unreadCount} ข้อความใหม่</span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -136,12 +159,6 @@ export const RoomCard: React.FC<RoomCardProps> = ({
             <Calendar className="w-3.5 h-3.5 text-[#888888]" />
             <span>{formatEventDate(room.eventDate)}</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-[#777777]">
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {room.memberCount} คน
-            </span>
-          </div>
         </div>
       </div>
 
@@ -154,10 +171,14 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               e.stopPropagation();
               onEnterRoom(room.id);
             }}
-            className="flex-1 py-2.5 px-4 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md  active:scale-[0.98] cursor-pointer"
+            className="flex-1 py-2.5 px-4 rounded-full bg-[#1ed760] hover:bg-[#1cd05a] text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer"
           >
             <span>เข้าห้อง</span>
-            {/* <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" /> */}
+            {/* {typeof room.unreadCount === "number" && room.unreadCount > 0 && (
+              <span className="px-1.5 py-0.5 min-w-5 text-center bg-black/85 text-[#1ed760] text-[10px] font-black rounded-full border border-black/20 leading-none">
+                {room.unreadCount > 99 ? "99+" : room.unreadCount}
+              </span>
+            )} */}
           </button>
 
           {/* Consolidated Action Dropdown */}

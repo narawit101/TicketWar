@@ -63,6 +63,12 @@ export async function GET(
           { status: 403 }
         );
       }
+
+      // Automatically update last read timestamp for the member
+      await prisma.roomMember.updateMany({
+        where: { roomId: id, userId },
+        data: { lastReadAt: new Date() },
+      });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,9 +119,34 @@ export async function GET(
       userAvatar: m.user.avatarUrl || undefined,
       text: m.text || "",
       imageUrl: m.imageUrl || undefined,
+      replyTo: (m.replyTo as Record<string, unknown>) || undefined,
+      reactions: (m.reactions as Record<string, string[]>) || {},
       isShoutout: isSystemShoutout(m.text),
       createdAt: m.createdAt.toISOString(),
     }));
+
+    // Fetch pinned message if exists
+    let pinnedMessage = null;
+    if (room.pinnedMessageId) {
+      const pm = await prisma.message.findUnique({
+        where: { id: room.pinnedMessageId },
+        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+      });
+      if (pm) {
+        pinnedMessage = {
+          id: pm.id,
+          roomId: pm.roomId,
+          userId: pm.userId,
+          userName: pm.user.name,
+          userAvatar: pm.user.avatarUrl || undefined,
+          text: pm.text || "",
+          imageUrl: pm.imageUrl || undefined,
+          replyTo: (pm.replyTo as Record<string, unknown>) || undefined,
+          reactions: (pm.reactions as Record<string, string[]>) || {},
+          createdAt: pm.createdAt.toISOString(),
+        };
+      }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedMembers = room.members.map((m: any) => ({
@@ -135,6 +166,8 @@ export async function GET(
         inviteCode: room.inviteCode,
         status: room.status,
         createdById: room.createdById,
+        pinnedMessageId: room.pinnedMessageId || null,
+        pinnedMessage,
         bannerUrl: room.bannerUrl || null,
         seatingPlanUrl: room.seatingPlanUrl || null,
         ticketUrl: room.ticketUrl || null,

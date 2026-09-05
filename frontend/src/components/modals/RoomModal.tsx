@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { UserInviteInput } from "./UserInviteInput";
+import { UserInviteInput } from "@/components/room";
 import { Room, SearchUserResult } from "@/types";
 import { toInputDateTime } from "@/lib/date";
 

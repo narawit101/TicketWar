@@ -89,7 +89,7 @@ export default function JoinRoomByLinkPage() {
     return () => {
       ignore = true;
     };
-  }, [code, user, authLoading]);
+  }, [code, user, authLoading, router]);
 
   // Handle Confirmed Join
   const handleConfirmJoin = async (targetCode: string) => {

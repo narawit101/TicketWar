@@ -4,11 +4,15 @@ import React from "react";
 export interface AvatarProps {
   src?: string | null;
   name: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xxs" | "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 }
 
-const sizeClasses: Record<NonNullable<AvatarProps["size"]>, { box: string; text: string }> = {
+const sizeClasses: Record<
+  NonNullable<AvatarProps["size"]>,
+  { box: string; text: string }
+> = {
+  xxs: { box: "w-4 h-4", text: "text-[8px]" },
   xs: { box: "w-6 h-6", text: "text-[10px]" },
   sm: { box: "w-8 h-8", text: "text-xs" },
   md: { box: "w-9 h-9", text: "text-sm" },

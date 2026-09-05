@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { RoomInvitationItem } from "@/types";
-import { Avatar } from "./Avatar";
+import { Avatar } from "@/components/common";
 import { Trash2, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";

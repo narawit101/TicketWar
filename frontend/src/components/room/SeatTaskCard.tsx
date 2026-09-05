@@ -298,7 +298,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
             <Calendar className="w-3.5 h-3.5 text-[#888888]" />
             <span>{formatThaiDate(task.targetDate)}</span>
             <span className="text-[#666666]">•</span>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-[#1ed760]">
               {task.quantityNeeded} ใบ
             </span>
           </span>
@@ -771,7 +771,12 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                             <div className="flex items-center gap-2 shrink-0">
                               <div className="flex items-center gap-1 text-zinc-400 font-mono text-[11px]">
                                 <Ticket className="w-3 h-3 text-zinc-500 shrink-0" />
-                                <span>{(task.backupPrice || task.price).toLocaleString()} THB</span>
+                                <span>
+                                  {(
+                                    task.backupPrice || task.price
+                                  ).toLocaleString()}{" "}
+                                  THB
+                                </span>
                               </div>
                               {slot.status === "PENDING_PAYMENT" &&
                               slot.zoneType === "BACKUP" ? (
@@ -836,7 +841,12 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                             <div className="flex items-center gap-2 shrink-0">
                               <div className="flex items-center gap-1 text-zinc-400 font-mono text-[11px]">
                                 <Ticket className="w-3 h-3 text-zinc-500 shrink-0" />
-                                <span>{(task.backupPrice || task.price).toLocaleString()} THB</span>
+                                <span>
+                                  {(
+                                    task.backupPrice || task.price
+                                  ).toLocaleString()}{" "}
+                                  THB
+                                </span>
                               </div>
                               {slot.status === "COMPLETED" &&
                               slot.zoneType === "BACKUP" ? (

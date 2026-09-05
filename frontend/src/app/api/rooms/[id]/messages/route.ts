@@ -9,6 +9,8 @@ type MessageWithUser = {
   userId: string;
   text: string | null;
   imageUrl: string | null;
+  replyTo?: unknown;
+  reactions?: unknown;
   createdAt: Date;
   user: {
     id: string;
@@ -62,6 +64,8 @@ export async function GET(
       userAvatar: m.user.avatarUrl || undefined,
       text: m.text || "",
       imageUrl: m.imageUrl || undefined,
+      replyTo: (m.replyTo as Record<string, unknown>) || undefined,
+      reactions: (m.reactions as Record<string, string[]>) || {},
       isShoutout: isSystemShoutout(m.text),
       createdAt: m.createdAt.toISOString(),
     }));
@@ -83,7 +87,7 @@ export async function POST(
   try {
     const { id: roomId } = await context.params;
     const body = await req.json();
-    const { userId, text, imageUrl, isShoutout } = body;
+    const { userId, text, imageUrl, isShoutout, replyTo } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "User ID required" }, { status: 401 });
@@ -109,6 +113,8 @@ export async function POST(
         userId,
         text: text?.trim() || null,
         imageUrl: finalImageUrl,
+        replyTo: replyTo || undefined,
+        reactions: {},
       },
       include: {
         user: { select: { id: true, name: true, avatarUrl: true } },
@@ -123,6 +129,8 @@ export async function POST(
       userAvatar: savedMessage.user.avatarUrl || undefined,
       text: savedMessage.text || "",
       imageUrl: savedMessage.imageUrl || undefined,
+      replyTo: (savedMessage.replyTo as Record<string, unknown>) || undefined,
+      reactions: (savedMessage.reactions as Record<string, string[]>) || {},
       isShoutout: !!isShoutout,
       createdAt: savedMessage.createdAt.toISOString(),
     };

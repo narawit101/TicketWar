@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SearchUserResult } from "@/types";
 import { X, Loader2, UserPlus, AtSign } from "lucide-react";
-import { Avatar } from "./Avatar";
+import { Avatar } from "@/components/common";
 import { useClickOutside } from "@/lib/hooks";
 
 interface UserInviteInputProps {
