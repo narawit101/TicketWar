@@ -157,13 +157,6 @@ export const NotificationDropdown: React.FC = () => {
           message: data.chatMessage,
         });
 
-        if (data.chatMessage) {
-          socket.emit("send_message", {
-            roomId: invitation.roomId,
-            message: data.chatMessage,
-          });
-        }
-
         socket.emit("room_invitation_responded", {
           inviterId: invitation.inviterId,
           roomId: invitation.roomId,

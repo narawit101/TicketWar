@@ -150,7 +150,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // ponytail: persist entered announcement without emojis
       joinedMessage = await prisma.message.create({
         data: {
           roomId: room.id,

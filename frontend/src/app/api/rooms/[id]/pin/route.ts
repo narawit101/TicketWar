@@ -15,7 +15,6 @@ export async function PATCH(
     }
 
     if (messageId === null || messageId === undefined || messageId === "") {
-      // Unpin message
       await prisma.room.update({
         where: { id: roomId },
         data: { pinnedMessageId: null },
@@ -28,7 +27,6 @@ export async function PATCH(
       });
     }
 
-    // Pin message: check message exists
     const message = await prisma.message.findUnique({
       where: { id: messageId },
       include: {

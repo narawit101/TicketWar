@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/rooms/[id]/invitations - ดึงรายการผู้ที่ถูกเชิญในห้องนี้ทั้งหมด
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -22,8 +21,7 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formatted = invitations.map((inv: any) => ({
+    const formatted = invitations.map((inv) => ({
       id: inv.id,
       roomId: inv.roomId,
       inviterId: inv.inviterId,
@@ -39,12 +37,9 @@ export async function GET(
 
     const counts = {
       total: formatted.length,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      pending: formatted.filter((i: any) => i.status === "PENDING").length,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      accepted: formatted.filter((i: any) => i.status === "ACCEPTED").length,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      declined: formatted.filter((i: any) => i.status === "DECLINED").length,
+      pending: formatted.filter((i) => i.status === "PENDING").length,
+      accepted: formatted.filter((i) => i.status === "ACCEPTED").length,
+      declined: formatted.filter((i) => i.status === "DECLINED").length,
     };
 
     return NextResponse.json({
@@ -60,7 +55,6 @@ export async function GET(
   }
 }
 
-// DELETE /api/rooms/[id]/invitations?invitationId=...&requesterId=... - ยกเลิกคำเชิญ
 export async function DELETE(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -98,7 +92,6 @@ export async function DELETE(
       );
     }
 
-    // Only room owner or original inviter can cancel invitation
     if (room.createdById !== requesterId && invitation.inviterId !== requesterId) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์ในการยกเลิกคำเชิญนี้" },

@@ -14,7 +14,6 @@ interface RoomInviteSectionProps {
   label?: string;
 }
 
-// ponytail: unified reusable component for searching, inviting, sending live socket alerts, and tracking pending invites
 export const RoomInviteSection: React.FC<RoomInviteSectionProps> = ({
   roomId,
   currentUserId,
@@ -45,8 +44,7 @@ export const RoomInviteSection: React.FC<RoomInviteSectionProps> = ({
         toast.success(`ส่งคำเชิญเรียบร้อยแล้ว (${invitedUsers.length} คน)`);
         const socket = getSocket();
         if (Array.isArray(data.invitations)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.invitations.forEach((inv: any) => {
+          data.invitations.forEach((inv: { inviteeId: string }) => {
             socket.emit("send_room_invitation", {
               inviteeId: inv.inviteeId,
               invitation: inv,

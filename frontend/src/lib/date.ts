@@ -1,7 +1,5 @@
 /**
- * Thai Date Utilities (Zero-dependency, Ponytail senior implementation)
- * Formats dates to Thai Buddhist Era (พ.ศ.) and provides clean date picker parsing.
- * Guaranteed consistent timezone (Asia/Bangkok) across SSR, deployed servers (UTC), and client browsers.
+ * Thai Date Utilities - formats dates to Thai Buddhist Era (พ.ศ.) in Asia/Bangkok timezone
  */
 
 export const THAI_MONTHS_SHORT = [

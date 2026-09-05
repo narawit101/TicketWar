@@ -167,8 +167,7 @@ export function useDashboardRooms() {
         socket.emit("room_created", { room: result.room });
 
         if (Array.isArray(result.invitations)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          result.invitations.forEach((inv: any) => {
+          result.invitations.forEach((inv: { inviteeId: string }) => {
             socket.emit("send_room_invitation", {
               inviteeId: inv.inviteeId,
               invitation: inv,

@@ -81,7 +81,6 @@ io.on("connection", (socket) => {
   socket.on("edit_message", ({ roomId, message }) => socket.to(roomId).emit("message_updated", message));
   socket.on("send_shoutout", ({ roomId, shoutout }) => {
     socket.to(roomId).emit("shoutout_alert", shoutout);
-    io.to("lobby").emit("lobby_room_message", { roomId, senderId: shoutout?.userId });
   });
   socket.on("update_reaction", ({ roomId, messageId, reactions }) => socket.to(roomId).emit("message_reaction_updated", { messageId, reactions }));
   socket.on("update_pin_message", ({ roomId, pinnedMessage }) => io.to(roomId).emit("room_pinned_message_updated", { pinnedMessage }));

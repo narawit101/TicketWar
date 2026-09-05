@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { parseDateInBangkok } from "@/lib/date";
 
-// GET /api/rooms - ดึงข้อมูลห้องจากฐานข้อมูล PostgreSQL (รองรับกรองตาม userId)
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereCondition: any = {
+    const whereCondition: Prisma.RoomWhereInput = {
       status: { not: "DELETED" },
     };
 
@@ -37,7 +36,6 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Calculate unread message counts for current user
     const unreadCounts = await Promise.all(
       rooms.map((r) => {
         if (!userId) return Promise.resolve(0);
@@ -52,8 +50,7 @@ export async function GET(req: Request) {
       })
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedRooms = rooms.map((r: any, idx: number) => {
+    const formattedRooms = rooms.map((r, idx: number) => {
       const isOwner =
         r.createdById === userId || r.members?.[0]?.role === "OWNER";
       return {
@@ -169,8 +166,7 @@ export async function POST(req: Request) {
         where: { id: { in: validInviteeIds } },
         select: { name: true },
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inviteeNames = invitedUsers.map((u: any) => u.name).filter(Boolean);
+      const inviteeNames = invitedUsers.map((u) => u.name).filter(Boolean);
       if (inviteeNames.length > 0) {
         initialMessages.push({
           userId: ownerId,
@@ -220,8 +216,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedInvitations = newRoom.invitations.map((inv: any) => ({
+    const formattedInvitations = newRoom.invitations.map((inv) => ({
       id: inv.id,
       roomId: newRoom.id,
       roomTitle: newRoom.title,

@@ -143,12 +143,6 @@ const JoinRoomDialog: React.FC<{
         memberCount: (previewRoom.memberCount || 1) + 1,
         message: data.chatMessage,
       });
-      if (data.chatMessage) {
-        getSocket().emit("send_message", {
-          roomId: data.roomId,
-          message: data.chatMessage,
-        });
-      }
       onClose();
       onSuccess(data.roomId);
     } catch (err: unknown) {

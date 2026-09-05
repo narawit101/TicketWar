@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/invitations?userId=... - ดึงรายการคำเชิญสถานะ PENDING ของผู้ใช้
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -43,8 +42,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formatted = invitations.map((inv: any) => ({
+    const formatted = invitations.map((inv) => ({
       id: inv.id,
       roomId: inv.roomId,
       roomTitle: inv.room.title,
@@ -173,7 +171,6 @@ export async function POST(req: Request) {
       const inviteeNames = results.map((r) => r.inviteeName).filter(Boolean);
       const text = `${inviter.name} ได้เชิญ ${inviteeNames.join(", ")} เข้าร่วมห้อง`;
 
-      // ponytail: persist invitation announcement in room chat
       const savedMsg = await prisma.message.create({
         data: {
           roomId,

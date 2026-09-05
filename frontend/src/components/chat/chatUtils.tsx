@@ -3,10 +3,9 @@ import { Message } from "@/types";
 import { formatThaiDate } from "@/lib/date";
 
 export const MAX_IMAGES = 10;
-export const QUICK_REACTIONS = ["❤️", "😆", "😮", "😢", "😡", "👍"];
+export const QUICK_REACTIONS = ["❤️", "😆", "😮", "😢", "😡", "👍", "👌"];
 export const MAX_FILE_SIZE_BYTES = 3.5 * 1024 * 1024; // 3.5 MB limit
 
-// ponytail: strip emojis from chat messages without external libs
 export const stripEmojis = (str: string) =>
   str.replace(
     /[\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu,
@@ -47,7 +46,6 @@ export const formatChatTime = (timeStr?: string) => {
   return timeStr;
 };
 
-// ponytail: detect pdf via mime or file extension
 export const isPdfFile = (file: File) =>
   file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
@@ -56,7 +54,6 @@ export const isPdfUrl = (url?: string) =>
   (url.startsWith("data:application/pdf") ||
     url.toLowerCase().includes(".pdf"));
 
-// ponytail: extract original filename or clean fallback
 export const getPdfFileName = (msg: Message) => {
   if (msg.text && msg.text.trim()) {
     return msg.text.trim();
@@ -236,7 +233,7 @@ export const getYouTubeVideoId = (url: string): string | null => {
     }
   } catch {
     const match = url.match(
-      /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+      /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/,
     );
     return match ? match[1] : null;
   }

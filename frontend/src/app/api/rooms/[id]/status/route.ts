@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteCloudinaryImage } from "@/lib/cloudinary";
 
-// PATCH /api/rooms/[id]/status - เปลี่ยนสถานะห้อง (ACTIVE, ARCHIVED, DELETED)
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -24,7 +23,6 @@ export async function PATCH(
       return NextResponse.json({ error: "ไม่พบข้อมูลผู้ใช้" }, { status: 401 });
     }
 
-    // ค้นหาห้อง
     const room = await prisma.room.findUnique({
       where: { id: roomId },
       select: {
@@ -40,7 +38,6 @@ export async function PATCH(
       return NextResponse.json({ error: "ไม่พบห้องนี้ในระบบ" }, { status: 404 });
     }
 
-    // ตรวจสอบสิทธิ์: เฉพาะเจ้าของห้องเท่านั้นที่มีสิทธิ์เปลี่ยนสถานะหรือลบห้อง
     if (room.createdById !== userId) {
       return NextResponse.json(
         { error: "คุณไม่มีสิทธิ์ในการจัดการสถานะห้องนี้ (เฉพาะเจ้าของห้องเท่านั้น)" },
@@ -48,7 +45,6 @@ export async function PATCH(
       );
     }
 
-    // ถ้าลบห้องถาวร ให้ลบรูปโปสเตอร์และผังที่นั่งออกจาก Cloudinary
     if (status === "DELETED") {
       if (room.bannerUrl) await deleteCloudinaryImage(room.bannerUrl);
       if (room.seatingPlanUrl) await deleteCloudinaryImage(room.seatingPlanUrl);

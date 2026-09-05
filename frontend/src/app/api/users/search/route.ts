@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/users/search?query=...&roomId=...&currentUserId=...
-// Lightweight bounded user search with membershipStatus enrichment
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,9 +12,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ users: [] });
     }
 
-    // Clean query (strip leading @ if present)
     const cleanQuery = query.startsWith("@") ? query.slice(1) : query;
-
     const memberUserIds = new Set<string>();
     const pendingInviteeIds = new Set<string>();
 
@@ -39,10 +35,8 @@ export async function GET(req: Request) {
       if (room) {
         memberUserIds.add(room.createdById);
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      members.forEach((m: any) => memberUserIds.add(m.userId));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      pendingInvites.forEach((i: any) => pendingInviteeIds.add(i.inviteeId));
+      members.forEach((m) => memberUserIds.add(m.userId));
+      pendingInvites.forEach((i) => pendingInviteeIds.add(i.inviteeId));
     }
 
     const users = await prisma.user.findMany({
@@ -66,8 +60,7 @@ export async function GET(req: Request) {
       take: 8,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const enrichedUsers = users.map((u: any) => {
+    const enrichedUsers = users.map((u) => {
       let membershipStatus: "MEMBER" | "INVITED" | null = null;
       if (memberUserIds.has(u.id)) {
         membershipStatus = "MEMBER";

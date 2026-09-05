@@ -101,7 +101,6 @@ export async function POST(
         },
       });
 
-      // ponytail: persist joined system message
       joinedMessage = await prisma.message.create({
         data: {
           roomId: invitation.roomId,

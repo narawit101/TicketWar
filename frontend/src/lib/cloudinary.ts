@@ -72,7 +72,6 @@ export async function uploadRoomSeatingPlan(base64Data: string, roomIdPrefix?: s
   return result.secure_url;
 }
 
-// ponytail: separate folder for chat images (ticketwar/chat) vs files (ticketwar/files)
 export async function uploadChatMessageImage(base64Data: string, roomId: string): Promise<string> {
   const isPdf = base64Data.startsWith("data:application/pdf");
   const result = await cloudinary.uploader.upload(base64Data, {

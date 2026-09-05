@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { isSystemShoutout } from "@/lib/validation";
 import { parseDateInBangkok } from "@/lib/date";
@@ -25,9 +26,7 @@ export async function GET(
         },
         seatTasks: {
           include: {
-            lastUpdatedBy: {
-              select: { name: true },
-            },
+            lastUpdatedBy: { select: { name: true } },
           },
           orderBy: { lastUpdatedAt: "desc" },
         },
@@ -47,12 +46,10 @@ export async function GET(
       return NextResponse.json({ error: "ไม่พบห้องนี้ในระบบ" }, { status: 404 });
     }
 
-    // Access control: verify user is owner or active member
     if (userId) {
       const isMember =
         room.createdById === userId ||
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        room.members.some((m: any) => m.userId === userId);
+        room.members.some((m) => m.userId === userId);
 
       if (!isMember) {
         return NextResponse.json(
@@ -71,10 +68,13 @@ export async function GET(
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedTasks = room.seatTasks.map((t: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const securedList = (t.securedBy as any[]) || [];
+    const formattedTasks = room.seatTasks.map((t) => {
+      const securedList =
+        (t.securedBy as Array<{
+          userId: string;
+          name: string;
+          isAssignee?: boolean;
+        }>) || [];
       const assigneeRecords = securedList.filter((s) => s.isAssignee);
       const regularSecured = securedList.filter((s) => !s.isAssignee);
       const assignees = assigneeRecords.map((s) => ({
@@ -110,8 +110,7 @@ export async function GET(
       };
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedMessages = [...room.messages].reverse().map((m: any) => ({
+    const formattedMessages = [...room.messages].reverse().map((m) => ({
       id: m.id,
       roomId: m.roomId,
       userId: m.userId,
@@ -125,7 +124,6 @@ export async function GET(
       createdAt: m.createdAt.toISOString(),
     }));
 
-    // Fetch pinned message if exists
     let pinnedMessage = null;
     if (room.pinnedMessageId) {
       const pm = await prisma.message.findUnique({
@@ -148,8 +146,7 @@ export async function GET(
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedMembers = room.members.map((m: any) => ({
+    const formattedMembers = room.members.map((m) => ({
       id: m.id,
       userId: m.userId,
       name: m.user.name,
@@ -198,8 +195,7 @@ export async function PATCH(
     const body = await req.json();
     const { status, title, eventDate, bannerUrl, seatingPlanUrl, ticketUrl, description } = body;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: any = {};
+    const updateData: Prisma.RoomUpdateInput = {};
 
     if (status !== undefined) {
       updateData.status = status;

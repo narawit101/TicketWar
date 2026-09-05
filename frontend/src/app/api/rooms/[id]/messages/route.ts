@@ -43,7 +43,6 @@ export async function GET(
       }
     }
 
-    // ponytail: fetch recent messages in desc order then reverse for chronological display
     const messages = await prisma.message.findMany({
       where: {
         roomId,
@@ -97,7 +96,6 @@ export async function POST(
       return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
     }
 
-    // Process image or PDF if base64 DataURL (ponytail: single upload handler for both media types)
     let finalImageUrl: string | null = null;
     if (imageUrl && typeof imageUrl === "string") {
       if (imageUrl.startsWith("data:image/") || imageUrl.startsWith("data:application/pdf")) {
@@ -162,12 +160,10 @@ export async function PATCH(
       return NextResponse.json({ error: "ไม่พบข้อความนี้" }, { status: 404 });
     }
 
-    // Only message owner can edit
     if (msg.userId !== userId) {
       return NextResponse.json({ error: "ไม่มีสิทธิ์แก้ไขข้อความของผู้อื่น" }, { status: 403 });
     }
 
-    // Images cannot be edited, only text
     const updated = await prisma.message.update({
       where: { id: messageId },
       data: { text: text.trim() },
@@ -216,12 +212,10 @@ export async function DELETE(
       return NextResponse.json({ error: "ไม่พบข้อความนี้" }, { status: 404 });
     }
 
-    // Only message owner can delete
     if (msg.userId !== userId) {
       return NextResponse.json({ error: "ไม่มีสิทธิ์ลบข้อความของผู้อื่น" }, { status: 403 });
     }
 
-    // ลบรูปออกจาก Cloudinary ด้วย ถ้ามีรูป
     if (msg.imageUrl) {
       await deleteCloudinaryImage(msg.imageUrl);
     }

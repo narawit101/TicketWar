@@ -32,7 +32,6 @@ export async function POST(
     const updatedReactions: Record<string, string[]> = {};
     let hadThisEmoji = false;
 
-    // Remove user from all existing emoji reactions on this message
     for (const [e, users] of Object.entries(currentReactions)) {
       if (!Array.isArray(users)) continue;
       if (e === emoji && users.includes(userId)) {
@@ -44,7 +43,6 @@ export async function POST(
       }
     }
 
-    // If user didn't have this exact emoji, add them to it (toggle on / switch emoji)
     if (!hadThisEmoji) {
       updatedReactions[emoji] = [...(updatedReactions[emoji] || []), userId];
     }

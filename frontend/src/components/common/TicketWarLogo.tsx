@@ -7,7 +7,6 @@ interface TicketWarLogoProps {
   textSize?: string;
 }
 
-// ponytail: unified crisp SVG vector logo - no raster / no AI slop
 export const TicketWarLogo: React.FC<TicketWarLogoProps> = ({
   size = 32,
   className = "",

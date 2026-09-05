@@ -71,7 +71,6 @@ export async function DELETE(
       return NextResponse.json({ error: "ไม่พบห้องนี้ในระบบ" }, { status: 404 });
     }
 
-    // Can kick if requester is owner, OR can leave if requesterId === targetUserId
     const isOwner = room.createdById === requesterId;
     const isSelfLeaving = requesterId === targetUserId;
 
@@ -82,7 +81,6 @@ export async function DELETE(
       );
     }
 
-    // Owner cannot leave unless deleting room
     if (targetUserId === room.createdById && isSelfLeaving) {
       return NextResponse.json(
         { error: "หัวห้องไม่สามารถออกจากห้องได้ (กรุณาใช้เมนูลบห้องหากต้องการยกเลิก)" },
@@ -107,7 +105,6 @@ export async function DELETE(
       ? `${targetUserName} ออกจากห้องแล้ว`
       : `${targetUserName} ถูกเตะออกจากห้อง`;
 
-    // ponytail: persist kicked or self-leave system notification in chat
     const chatMessage = await prisma.message.create({
       data: {
         roomId,

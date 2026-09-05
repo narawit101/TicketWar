@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { SeatTask, RoomMemberItem, TaskAssignee } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 import {
   MoreHorizontal,
   Edit3,
@@ -75,6 +76,10 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
   isReadOnly = false,
   onViewSeatingPlan,
 }) => {
+  const { user } = useAuth();
+  const effectiveUserId = currentUserId || user?.id;
+  const effectiveUserName = currentUserName || user?.name;
+
   const pendingList = task.pendingPayments || [];
   const securedList = task.securedBy || [];
 
@@ -304,7 +309,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
           </span>
 
           {isMyTask && (
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-transparent text-[#1ed760] border border-[#1ed760]/40 flex items-center gap-1 shrink-0">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-transparent border border-[#1ed760]/40 flex items-center gap-1 shrink-0">
               <User className="w-3 h-3" />
               <span>งานของฉัน</span>
             </span>
@@ -339,15 +344,24 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                 {currentAssignees.length === 0 ? (
                   <>
                     <UserPlus className="w-3 h-3" />
-                    <span>มอบหมาย</span>
+                    <span className="text-xs">มอบหมาย</span>
                   </>
                 ) : currentAssignees.length === 1 ? (
                   <>
                     <div className="w-4 h-4 rounded-full bg-[#1ed760] text-black font-bold text-[9px] flex items-center justify-center shrink-0">
                       {currentAssignees[0].name.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="font-medium max-w-24 truncate">
+                    <span className="font-medium max-w-28 truncate">
                       {currentAssignees[0].name}
+                      {((!!effectiveUserId &&
+                        currentAssignees[0].userId === effectiveUserId) ||
+                        (!!effectiveUserName &&
+                          currentAssignees[0].name.trim().toLowerCase() ===
+                            effectiveUserName.trim().toLowerCase())) && (
+                        <span className="text-[#1ed760] text-[10px] ml-1 font-normal">
+                          (ฉัน)
+                        </span>
+                      )}
                     </span>
                   </>
                 ) : (
@@ -389,10 +403,11 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                       <div className="space-y-1 max-h-28 overflow-y-auto pr-0.5">
                         {currentAssignees.map((assignee) => {
                           const isMe =
-                            (currentUserId &&
-                              assignee.userId === currentUserId) ||
-                            (currentUserName &&
-                              assignee.name === currentUserName);
+                            (!!effectiveUserId &&
+                              assignee.userId === effectiveUserId) ||
+                            (!!effectiveUserName &&
+                              assignee.name.trim().toLowerCase() ===
+                                effectiveUserName.trim().toLowerCase());
 
                           return (
                             <div
@@ -419,7 +434,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                                 <span className="text-white font-medium truncate text-xs">
                                   {assignee.name}{" "}
                                   {isMe && (
-                                    <span className="text-[#888888] text-[10px]">
+                                    <span className="text-[#1ed760] text-[10px] ml-1 font-normal">
                                       (ฉัน)
                                     </span>
                                   )}
@@ -467,6 +482,11 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                         const isAssigned = currentAssignees.some(
                           (a) => a.userId === m.userId || a.name === m.name,
                         );
+                        const isMe =
+                          (!!effectiveUserId && m.userId === effectiveUserId) ||
+                          (!!effectiveUserName &&
+                            m.name.trim().toLowerCase() ===
+                              effectiveUserName.trim().toLowerCase());
 
                         return (
                           <button
@@ -491,6 +511,11 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                               </div>
                               <span className="font-medium truncate text-xs">
                                 {m.name}
+                                {isMe && (
+                                  <span className="text-[#1ed760] text-[10px] ml-1.5 font-normal">
+                                    (ฉัน)
+                                  </span>
+                                )}
                               </span>
                             </div>
                             {isAssigned && (
@@ -886,6 +911,15 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                     <User className="w-3 h-3 text-[#888888]" />
                     <span className="truncate max-w-20 sm:max-w-28">
                       {slot.assigneeName}
+                      {((!!effectiveUserId &&
+                        slot.assigneeId === effectiveUserId) ||
+                        (!!effectiveUserName &&
+                          slot.assigneeName.trim().toLowerCase() ===
+                            effectiveUserName.trim().toLowerCase())) && (
+                        <span className="text-[#1ed760] text-[10px] ml-1 font-normal">
+                          (ฉัน)
+                        </span>
+                      )}
                     </span>
                   </div>
                 )}
