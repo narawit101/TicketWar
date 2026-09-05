@@ -151,6 +151,17 @@ export default function RoomDetailPage() {
     const handleNewMessage = (incomingMsg: Message) => {
       setMessages((prev) => {
         if (prev.some((m) => m.id === incomingMsg.id)) return prev;
+        const pendingIdx = prev.findIndex(
+          (m) =>
+            m.isSending &&
+            m.userId === incomingMsg.userId &&
+            m.text === incomingMsg.text,
+        );
+        if (pendingIdx !== -1) {
+          const next = [...prev];
+          next[pendingIdx] = incomingMsg;
+          return next;
+        }
         return [...prev, incomingMsg];
       });
       if (incomingMsg.isShoutout) {
@@ -1312,6 +1323,24 @@ export default function RoomDetailPage() {
     isShoutout?: boolean,
   ) => {
     if (!user) return;
+
+    // Optimistic UI: display immediately in the chat before server/Cloudinary finish
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      roomId,
+      userId: user.id,
+      userName: currentUserName,
+      userAvatar: user.avatarUrl || undefined,
+      text,
+      imageUrl,
+      isShoutout,
+      createdAt: new Date().toISOString(),
+      isSending: true,
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     try {
       const res = await fetch(`/api/rooms/${roomId}/messages`, {
         method: "POST",
@@ -1326,7 +1355,9 @@ export default function RoomDetailPage() {
 
       const data = await res.json();
       if (res.ok && data.message) {
-        setMessages((prev) => [...prev, data.message]);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? data.message : m)),
+        );
         getSocket().emit("send_message", { roomId, message: data.message });
         if (isShoutout) {
           getSocket().emit("send_shoutout", {
@@ -1334,9 +1365,21 @@ export default function RoomDetailPage() {
             shoutout: { tag: "ALERT" },
           });
         }
+      } else {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId ? { ...m, isSending: false, error: true } : m,
+          ),
+        );
+        toast.error(data.error || "ไม่สามารถส่งข้อความได้");
       }
     } catch (err) {
       console.error("Failed to save and send chat message:", err);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, isSending: false, error: true } : m,
+        ),
+      );
       toast.error("ไม่สามารถส่งข้อความได้");
     }
   };

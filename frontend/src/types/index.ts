@@ -59,6 +59,8 @@ export interface Message {
   isShoutout?: boolean;
   shoutoutType?: "GOT_IT" | "DROPPED" | "NEED_HELP";
   createdAt: string;
+  isSending?: boolean;
+  error?: boolean;
 }
 
 export interface RoomMemberItem {

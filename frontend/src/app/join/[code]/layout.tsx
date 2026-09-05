@@ -4,11 +4,6 @@ import { formatEventDate } from "@/lib/date";
 import Link from "next/link";
 import { TicketWarLogo } from "@/components/TicketWarLogo";
 
-interface LayoutProps {
-  children: React.ReactNode;
-  params: Promise<{ code: string }>;
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -41,7 +36,9 @@ export async function generateMetadata({
       };
     }
 
-    const dateStr = room.eventDate ? ` วันเวลากดบัตร: ${formatEventDate(room.eventDate)}` : "";
+    const dateStr = room.eventDate
+      ? ` วันเวลากดบัตร: ${formatEventDate(room.eventDate)}`
+      : "";
     const ownerStr = room.owner?.name ? ` โดย ${room.owner.name}` : "";
     const title = `${room.title} - ชวนร่วมทีมกดบัตร`;
     const description =
@@ -83,7 +80,11 @@ export async function generateMetadata({
   }
 }
 
-export default function JoinRoomLayout({ children }: { children: React.ReactNode }) {
+export default function JoinRoomLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-screen bg-[#121212] text-white flex flex-col font-sans">
       {/* Topbar Navigation */}

@@ -291,7 +291,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   } | null>(null);
 
   const chatBodyRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isAtBottomRef = useRef(true);
   const prevMessagesLengthRef = useRef(messages.length);
@@ -304,6 +304,14 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   useEffect(() => {
     inputRef.current?.focus({ preventScroll: true });
   }, []);
+
+  // Auto-resize textarea height as user types
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 128)}px`;
+    }
+  }, [inputText]);
 
   // Close active dropdown menu when clicking outside
   useEffect(() => {
@@ -503,21 +511,24 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     const filesToSend = [...pendingFiles];
     const textToSend = cleanText;
 
-    // Clear input immediately for smooth UX
+    // Clear input and reset height immediately for smooth UX
     setInputText("");
     setPendingFiles([]);
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
     isAtBottomRef.current = true;
     scrollToBottom();
 
     // 1. Send text as separate message if user typed anything
     if (textToSend) {
-      await onSendMessage(textToSend, undefined, false);
+      onSendMessage(textToSend, undefined, false);
     }
 
-    // 2. Send each file: for PDF, pass original file.name so it displays the filename
+    // 2. Send each file concurrently: for PDF, pass original file.name so it displays the filename
     for (const file of filesToSend) {
       const isPdf = isPdfUrl(file.dataUrl);
-      await onSendMessage(isPdf ? file.name : "", file.dataUrl, false);
+      onSendMessage(isPdf ? file.name : "", file.dataUrl, false);
     }
   };
 
@@ -722,7 +733,18 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                             {isMe ? "คุณ" : msg.userName}
                           </span>
                           <span className="text-[10px] text-zinc-500">
-                            {formatChatTime(msg.createdAt)}
+                            {msg.isSending ? (
+                              <span className="inline-flex items-center gap-1 text-[#1ed760] font-medium">
+                                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                <span>กำลังส่ง...</span>
+                              </span>
+                            ) : msg.error ? (
+                              <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
+                                <span>ส่งไม่สำเร็จ</span>
+                              </span>
+                            ) : (
+                              formatChatTime(msg.createdAt)
+                            )}
                           </span>
                         </div>
 
@@ -733,20 +755,21 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                               <span className="font-semibold text-white">
                                 แก้ไขข้อความ
                               </span>
-                              {/* <span className="text-[10px] text-[#727272]">
-                                Esc ยกเลิก
-                              </span> */}
                             </div>
-                            <input
-                              type="text"
+                            <textarea
                               autoFocus
+                              rows={2}
                               value={editText}
                               onChange={(e) => setEditText(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSaveEdit(msg.id);
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  if (e.nativeEvent.isComposing) return;
+                                  e.preventDefault();
+                                  handleSaveEdit(msg.id);
+                                }
                                 if (e.key === "Escape") handleCancelEdit();
                               }}
-                              className=" w-full bg-[#242424] text-white placeholder:text-[#6a6a6a] border border-[#383838] focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760] focus:outline-none rounded-lg px-3 py-2 text-xs sm:text-sm transition-colors"
+                              className="w-full bg-[#242424] text-white placeholder:text-[#6a6a6a] border border-[#383838] focus:border-[#1ed760] focus:ring-1 focus:ring-[#1ed760] focus:outline-none rounded-xl px-3 py-2 text-xs sm:text-sm transition-colors resize-none max-h-32 leading-relaxed"
                               placeholder="พิมพ์ข้อความใหม่..."
                             />
                             <div className="flex items-center justify-end gap-1.5 pt-0.5 mt-2">
@@ -777,9 +800,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                                   isMe
                                     ? "bg-[#1ed760] text-black font-medium shadow-sm"
                                     : "bg-[#242424] text-zinc-100 border border-[#333333]"
-                                }`}
+                                } ${msg.isSending ? "opacity-75" : ""}`}
                               >
-                                <p className="wrap-break-word">
+                                <p className="whitespace-pre-wrap wrap-break-word">
                                   {renderMessageContent(msg.text, isMe)}
                                 </p>
                               </div>
@@ -787,10 +810,14 @@ export const LiveChat: React.FC<LiveChatProps> = ({
 
                             {isPdfUrl(msg.imageUrl) ? (
                               <a
-                                href={msg.imageUrl}
+                                href={msg.isSending ? undefined : msg.imageUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-3 p-3 rounded-2xl bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#4d4d4d] transition-all group text-left min-w-55 max-w-sm shadow-md"
+                                className={`flex items-center gap-3 p-3 rounded-2xl bg-[#1f1f1f] border border-[#333333] hover:border-[#4d4d4d] transition-all group text-left min-w-55 max-w-sm shadow-md ${
+                                  msg.isSending
+                                    ? "opacity-75 pointer-events-none"
+                                    : "hover:bg-[#282828]"
+                                }`}
                               >
                                 <div className="w-10 h-10 rounded-xl bg-[#282828] border border-[#383838] flex items-center justify-center shrink-0 group-hover:border-[#4d4d4d] transition-colors">
                                   <FileText className="w-5 h-5 text-zinc-200 group-hover:text-white transition-colors" />
@@ -809,10 +836,16 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                               </a>
                             ) : (
                               <div
-                                onClick={() =>
-                                  setLightboxUrl(msg.imageUrl || null)
-                                }
-                                className="rounded-2xl overflow-hidden border border-zinc-800 shadow-md cursor-pointer group/img relative inline-block max-w-full"
+                                onClick={() => {
+                                  if (!msg.isSending && msg.imageUrl) {
+                                    setLightboxUrl(msg.imageUrl);
+                                  }
+                                }}
+                                className={`rounded-2xl overflow-hidden border border-zinc-800 shadow-md relative inline-block max-w-full ${
+                                  msg.isSending
+                                    ? "cursor-default opacity-75"
+                                    : "cursor-pointer group/img"
+                                }`}
                               >
                                 <img
                                   src={msg.imageUrl}
@@ -830,9 +863,9 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                               isMe
                                 ? "bg-[#1ed760] text-black font-medium shadow-sm"
                                 : "bg-[#242424] text-zinc-100 border border-[#333333]"
-                            }`}
+                            } ${msg.isSending ? "opacity-75" : ""}`}
                           >
-                            <p className="wrap-break-word">
+                            <p className="whitespace-pre-wrap wrap-break-word">
                               {renderMessageContent(msg.text || "", isMe)}
                             </p>
                           </div>
@@ -840,8 +873,15 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                       </div>
 
                       {/* Three Dots Button (Hover action) - Own messages or messages with attachment */}
-                      {((isMe && !isReadOnly && !isEditing) ||
-                        (!isReadOnly && !!msg.imageUrl)) && (
+                      {((isMe &&
+                        !isReadOnly &&
+                        !isEditing &&
+                        !msg.isSending &&
+                        !msg.error) ||
+                        (!isReadOnly &&
+                          !!msg.imageUrl &&
+                          !msg.isSending &&
+                          !msg.error)) && (
                         <div
                           data-chat-menu
                           className="relative self-center shrink-0"
@@ -1060,14 +1100,21 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             )}
           </button>
 
-          {/* Text input */}
-          <input
+          {/* Text input (auto-expanding textarea with Shift+Enter support) */}
+          <textarea
             ref={inputRef}
-            type="text"
+            rows={1}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="พิมพ์ข้อความ หรือวางรูปภาพ / PDF"
-            className="bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 border border-zinc-800 focus:border-zinc-600 focus:outline-none rounded-lg px-3.5 py-2 text-xs sm:text-sm flex-1 transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                if (e.nativeEvent.isComposing) return;
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="พิมพ์ข้อความ หรือวางรูป / PDF"
+            className="bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 border border-zinc-800 focus:border-zinc-600 focus:outline-none rounded-xl px-3.5 py-2 text-xs sm:text-sm flex-1 transition-all resize-none max-h-32 min-h-9.5 overflow-y-auto leading-relaxed"
           />
 
           {/* Send button */}
