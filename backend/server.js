@@ -34,9 +34,13 @@ io.on("connection", (socket) => {
   });
 
   // Invitation events
-  socket.on("send_room_invitation", ({ inviteeId, invitation }) => {
+  socket.on("send_room_invitation", ({ inviteeId, invitation, roomId }) => {
     if (inviteeId) {
       io.to(`user:${inviteeId}`).emit("room_invitation_received", invitation);
+    }
+    const rId = roomId || invitation?.roomId;
+    if (rId) {
+      io.to(rId).emit("room_invitation_update", { roomId: rId });
     }
   });
 
@@ -44,11 +48,17 @@ io.on("connection", (socket) => {
     if (inviteeId) {
       io.to(`user:${inviteeId}`).emit("room_invitation_canceled", { roomId, invitationId });
     }
+    if (roomId) {
+      io.to(roomId).emit("room_invitation_update", { roomId });
+    }
   });
 
   socket.on("room_invitation_responded", ({ inviterId, roomId, member, status }) => {
     if (inviterId) {
       io.to(`user:${inviterId}`).emit("room_invitation_update", { roomId, member, status });
+    }
+    if (roomId) {
+      io.to(roomId).emit("room_invitation_update", { roomId, member, status });
     }
   });
 

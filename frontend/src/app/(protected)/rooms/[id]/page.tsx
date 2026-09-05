@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import {
@@ -17,6 +16,13 @@ import { LiveChat } from "@/components/chat";
 import { ConfirmType } from "@/components/modals";
 import { Room, SeatTask, RoomMemberItem } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import {
+  RoomHeaderSkeleton,
+  RoomHeroSkeleton,
+  RoomSeatTasksSkeleton,
+  RoomChatSkeleton,
+  RoomSeatingPlanSkeleton,
+} from "@/components/common";
 
 import { useRoomChat } from "./hooks/useRoomChat";
 import { useRoomTasks } from "./hooks/useRoomTasks";
@@ -183,16 +189,7 @@ export default function RoomDetailPage() {
     });
   }
 
-  if (loading) {
-    return (
-      <div className="py-24 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-6 h-6 text-zinc-400 animate-spin" />
-        <p className="text-xs text-zinc-400">กำลังโหลดข้อมูลห้อง...</p>
-      </div>
-    );
-  }
-
-  if (!room) {
+  if (!loading && !room) {
     return (
       <div className="py-20 text-center space-y-4">
         <h2 className="text-lg font-semibold text-zinc-100">
@@ -211,92 +208,110 @@ export default function RoomDetailPage() {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col gap-5 overflow-y-auto">
       {/* Top Bar: Back, Title, Status, Date & Right Tools */}
-      <RoomHeader
-        room={room}
-        isOwner={isOwner}
-        memberCount={members.length || room.memberCount}
-        onOpenMembers={() => setIsMembersModalOpen(true)}
-        onOpenEditRoom={() => setIsEditRoomOpen(true)}
-        onOpenShare={() => setIsShareModalOpen(true)}
-        onConfirmStatusChange={(type) =>
-          setConfirmModal({ isOpen: true, type })
-        }
-      />
+      {!room ? (
+        <RoomHeaderSkeleton />
+      ) : (
+        <RoomHeader
+          room={room}
+          isOwner={isOwner}
+          memberCount={members.length || room.memberCount}
+          onOpenMembers={() => setIsMembersModalOpen(true)}
+          onOpenEditRoom={() => setIsEditRoomOpen(true)}
+          onOpenShare={() => setIsShareModalOpen(true)}
+          onConfirmStatusChange={(type) =>
+            setConfirmModal({ isOpen: true, type })
+          }
+        />
+      )}
 
       {/* Hero: Poster Banner, Description, and Summary Bar */}
-      <RoomHero
-        room={room}
-        tasks={taskDomain.tasks}
-        onOpenBanner={() => {
-          const bannerIdx = roomSlides.findIndex((s) => s.type === "banner");
-          if (bannerIdx !== -1) setLightboxIndex(bannerIdx);
-        }}
-      />
+      {!room ? (
+        <RoomHeroSkeleton />
+      ) : (
+        <RoomHero
+          room={room}
+          tasks={taskDomain.tasks}
+          onOpenBanner={() => {
+            const bannerIdx = roomSlides.findIndex((s) => s.type === "banner");
+            if (bannerIdx !== -1) setLightboxIndex(bannerIdx);
+          }}
+        />
+      )}
 
       {/* Main 2-Column Split (Left: Seat Tasks 40%, Right: Live Chat 60%) */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-stretch lg:h-195">
         {/* Left Column: Seat Tasks (4 cols = 40%) */}
-        <RoomSeatTasksList
-          tasks={taskDomain.tasks}
-          members={members}
-          currentUserId={user?.id}
-          currentUserName={currentUserName}
-          isReadOnly={isReadOnly}
-          onAddTask={() => {
-            setEditingTask(null);
-            setIsEditModalOpen(true);
-          }}
-          onAssignTask={taskDomain.handleAssignTask}
-          onStartPendingPayment={taskDomain.handleStartPendingPayment}
-          onConfirmPayment={taskDomain.handleConfirmPayment}
-          onDirectSecured={taskDomain.handleDirectSecured}
-          onCancelPendingPayment={taskDomain.handleCancelPendingPayment}
-          onDecrement={taskDomain.handleDecrement}
-          onEditTask={(t) => {
-            setEditingTask(t);
-            setIsEditModalOpen(true);
-          }}
-          onDeleteTask={taskDomain.requestDeleteTask}
-          onViewSeatingPlan={() => {
-            const planIdx = roomSlides.findIndex((s) => s.type === "seating");
-            if (planIdx !== -1) {
-              setLightboxIndex(planIdx);
-            } else {
-              toast("ห้องนี้ไม่มีรูปผังที่นั่ง", { icon: "ℹ️" });
-            }
-          }}
-        />
+        {loading && taskDomain.tasks.length === 0 ? (
+          <RoomSeatTasksSkeleton />
+        ) : (
+          <RoomSeatTasksList
+            tasks={taskDomain.tasks}
+            members={members}
+            currentUserId={user?.id}
+            currentUserName={currentUserName}
+            isReadOnly={isReadOnly}
+            onAddTask={() => {
+              setEditingTask(null);
+              setIsEditModalOpen(true);
+            }}
+            onAssignTask={taskDomain.handleAssignTask}
+            onStartPendingPayment={taskDomain.handleStartPendingPayment}
+            onConfirmPayment={taskDomain.handleConfirmPayment}
+            onDirectSecured={taskDomain.handleDirectSecured}
+            onCancelPendingPayment={taskDomain.handleCancelPendingPayment}
+            onDecrement={taskDomain.handleDecrement}
+            onEditTask={(t) => {
+              setEditingTask(t);
+              setIsEditModalOpen(true);
+            }}
+            onDeleteTask={taskDomain.requestDeleteTask}
+            onViewSeatingPlan={() => {
+              const planIdx = roomSlides.findIndex((s) => s.type === "seating");
+              if (planIdx !== -1) {
+                setLightboxIndex(planIdx);
+              } else {
+                toast("ห้องนี้ไม่มีรูปผังที่นั่ง", { icon: "ℹ️" });
+              }
+            }}
+          />
+        )}
 
         {/* Right Column: Full-Height Live Chat (6 cols = 60%) */}
-        <div className="lg:col-span-6 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
-          <LiveChat
-            roomId={roomId}
-            messages={chat.messages}
-            currentUserName={currentUserName}
-            currentUserAvatar={user?.avatarUrl}
-            currentUserId={user?.id}
-            pinnedMessage={chat.pinnedMessage}
-            onPinMessage={chat.handlePinMessage}
-            onToggleReaction={chat.handleToggleReaction}
-            onSendMessage={chat.handleAddChatMessage}
-            onEditMessage={chat.handleEditChatMessage}
-            onDeleteMessage={chat.handleDeleteChatMessage}
-            isReadOnly={isReadOnly}
-            hasMoreMessages={chat.hasMoreMessages}
-            onLoadMoreMessages={chat.handleLoadMoreMessages}
-            isLoadingMore={chat.isLoadingMoreMessages}
-            roomMembers={members}
-            typingUsers={chat.typingUsers}
-            readReceipts={chat.readReceipts}
-            onTypingStart={chat.handleTypingStart}
-            onTypingStop={chat.handleTypingStop}
-            onMarkRead={chat.handleMarkRead}
-          />
-        </div>
+        {loading && chat.messages.length === 0 ? (
+          <RoomChatSkeleton />
+        ) : (
+          <div className="lg:col-span-6 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
+            <LiveChat
+              roomId={roomId}
+              messages={chat.messages}
+              currentUserName={currentUserName}
+              currentUserAvatar={user?.avatarUrl}
+              currentUserId={user?.id}
+              pinnedMessage={chat.pinnedMessage}
+              onPinMessage={chat.handlePinMessage}
+              onToggleReaction={chat.handleToggleReaction}
+              onSendMessage={chat.handleAddChatMessage}
+              onEditMessage={chat.handleEditChatMessage}
+              onDeleteMessage={chat.handleDeleteChatMessage}
+              isReadOnly={isReadOnly}
+              hasMoreMessages={chat.hasMoreMessages}
+              onLoadMoreMessages={chat.handleLoadMoreMessages}
+              isLoadingMore={chat.isLoadingMoreMessages}
+              roomMembers={members}
+              typingUsers={chat.typingUsers}
+              readReceipts={chat.readReceipts}
+              onTypingStart={chat.handleTypingStart}
+              onTypingStop={chat.handleTypingStop}
+              onMarkRead={chat.handleMarkRead}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bottom Large Seating Plan */}
-      {room.seatingPlanUrl && (
+      {loading && !room ? (
+        <RoomSeatingPlanSkeleton />
+      ) : room?.seatingPlanUrl ? (
         <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3.5 shrink-0">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
             <div className="flex items-center gap-2.5">
@@ -318,11 +333,11 @@ export default function RoomDetailPage() {
             <img
               src={room.seatingPlanUrl}
               alt={`ผังที่นั่ง ${room.title}`}
-              className="max-h-162.5 w-auto max-w-full object-contain rounded-lg transition-transform duration-200 group-hover/plan:scale-[1.01]"
+              className="max-h-130 w-auto object-contain rounded-lg transition-transform duration-300 group-hover/plan:scale-[1.01]"
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Modals Orchestration Component */}
       <RoomModals

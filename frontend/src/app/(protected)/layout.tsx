@@ -42,7 +42,7 @@ export default function ProtectedLayout({
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-[#1ed760] animate-spin" />
+          <Loader2 className="w-8 h-8 text-zinc-400 animate-spin" />
           <p className="text-xs text-[#b3b3b3]">กำลังตรวจสอบ</p>
         </div>
       </div>

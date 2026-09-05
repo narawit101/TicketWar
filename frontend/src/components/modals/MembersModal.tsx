@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { RoomMemberItem } from "@/types";
 import { X, Crown, UserX, Loader2, AlertTriangle, Users } from "lucide-react";
 import { Avatar, MemberRowSkeleton } from "@/components/common";
-import { RoomInviteSection } from "@/components/room";
+import { RoomInviteSection, RoomInvitedList } from "@/components/room";
 
 interface MembersModalProps {
   isOpen: boolean;
@@ -29,6 +29,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
 }) => {
   const [memberToKick, setMemberToKick] = useState<RoomMemberItem | null>(null);
   const [isKicking, setIsKicking] = useState(false);
+  const [inviteRefreshTrigger, setInviteRefreshTrigger] = useState(0);
 
   if (!isOpen) return null;
 
@@ -195,13 +196,26 @@ export const MembersModal: React.FC<MembersModalProps> = ({
               )}
             </div>
 
-            {/* 3. เชิญเพื่อนเข้าร่วมห้อง */}
+            {/* 3. รอตอบรับคำเชิญ */}
+            {roomId && (
+              <div className="pt-3 border-t border-[#252525]">
+                <RoomInvitedList
+                  roomId={roomId}
+                  isOwner={isOwner}
+                  currentUserId={currentUserId}
+                  refreshTrigger={inviteRefreshTrigger}
+                />
+              </div>
+            )}
+
+            {/* 4. เชิญเพื่อนเข้าร่วมห้อง */}
             {showInviteSection && roomId && (
               <div className="pt-3 border-t border-[#252525]">
                 <RoomInviteSection
                   roomId={roomId}
                   currentUserId={currentUserId}
                   isOwner={isOwner}
+                  onInviteSent={() => setInviteRefreshTrigger((prev) => prev + 1)}
                 />
               </div>
             )}

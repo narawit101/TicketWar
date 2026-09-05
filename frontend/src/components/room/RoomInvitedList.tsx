@@ -117,11 +117,6 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
     (inv) => inv.status === "PENDING",
   );
 
-  // If there are no pending invitations, don't clutter the layout with an empty container
-  if (!loading && pendingInvitations.length === 0) {
-    return null;
-  }
-
   return (
     <div className={`space-y-2 pt-1 ${className}`}>
       {/* Header */}
@@ -131,14 +126,13 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
         </span>
         <button
           type="button"
+          disabled={loading}
           onClick={fetchInvitations}
-          className="p-1.5 rounded-lg text-[#888888] hover:text-white hover:bg-[#282828] transition cursor-pointer"
+          className="p-1.5 rounded-lg text-[#888888] hover:text-white hover:bg-[#282828] transition cursor-pointer disabled:opacity-40"
           title="รีเฟรชคำเชิญ"
           aria-label="รีเฟรชคำเชิญ"
         >
-          <RefreshCw
-            className={`w-4 h-4 ${loading ? "animate-spin text-[#1ed760]" : ""}`}
-          />
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
@@ -149,6 +143,10 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
             <MemberRowSkeleton />
             <MemberRowSkeleton />
           </>
+        ) : pendingInvitations.length === 0 ? (
+          <div className="text-xs text-zinc-500 py-3 text-center bg-[#121212] rounded-xl border border-[#222222]">
+            ไม่มีคำเชิญที่กำลังรอตอบรับ
+          </div>
         ) : (
           pendingInvitations.map((inv) => (
           <div
@@ -189,7 +187,7 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
                   aria-label="ยกเลิกคำเชิญ"
                 >
                   {cancelingId === inv.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-[#1ed760]" />
+                    <Loader2 className="w-4 h-4 animate-spin text-zinc-400" />
                   ) : (
                     <Trash2 className="w-4 h-4" />
                   )}

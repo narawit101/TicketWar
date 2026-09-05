@@ -398,7 +398,7 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
                       className="px-5 py-2.5 rounded-xl bg-[#242424] hover:bg-[#2d2d2d] text-zinc-300 hover:text-white border border-[#333333] transition text-xs font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {loadingMore ? (
-                        <div className="w-4 h-4 border-2 border-[#1ed760] border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : null}
                       <span>โหลดรูปภาพเพิ่มเติม</span>
                     </button>
@@ -508,7 +508,7 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
                     className="px-5 py-2.5 rounded-xl bg-[#242424] hover:bg-[#2d2d2d] text-zinc-300 hover:text-white border border-[#333333] transition text-xs font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {loadingMore ? (
-                      <div className="w-4 h-4 border-2 border-[#1ed760] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : null}
                     <span>โหลดไฟล์เพิ่มเติม</span>
                   </button>

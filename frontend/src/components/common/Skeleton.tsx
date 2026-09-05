@@ -99,3 +99,159 @@ export const FileRowSkeleton: React.FC = () => {
     </div>
   );
 };
+
+export const RoomHeaderSkeleton: React.FC = () => {
+  return (
+    <div className="shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 pb-3.5 border-b border-zinc-800/80 animate-pulse">
+      <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+        <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-6 sm:h-7 w-48 sm:w-64 rounded-lg" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-32 rounded-full" />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 pt-0.5">
+        <Skeleton className="h-8 w-24 rounded-xl" />
+        <Skeleton className="h-8 w-8 rounded-xl" />
+      </div>
+    </div>
+  );
+};
+
+export const RoomHeroSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-4 shrink-0 animate-pulse">
+      {/* Top Banner Box */}
+      <Skeleton className="w-full h-44 sm:h-56 md:h-72 rounded-2xl" />
+
+      {/* Description / Note */}
+      <div className="bg-[#181818] border border-[#282828] rounded-2xl p-4 space-y-2">
+        <Skeleton className="h-5 w-24 rounded" />
+        <Skeleton className="h-3.5 w-full rounded" />
+        <Skeleton className="h-3.5 w-3/4 rounded" />
+      </div>
+
+      {/* 3-Col Summary Bar */}
+      <div className="grid grid-cols-3 bg-[#181818] border border-[#282828] rounded-2xl py-3 px-2 sm:px-4 text-center">
+        <div className="py-1 flex flex-col items-center gap-1.5">
+          <Skeleton className="h-3 w-16 rounded" />
+          <Skeleton className="h-6 w-12 rounded" />
+        </div>
+        <div className="border-x border-[#282828] py-1 flex flex-col items-center gap-1.5">
+          <Skeleton className="h-3 w-16 rounded" />
+          <Skeleton className="h-6 w-12 rounded" />
+        </div>
+        <div className="py-1 flex flex-col items-center gap-1.5">
+          <Skeleton className="h-3 w-16 rounded" />
+          <Skeleton className="h-6 w-12 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const RoomSeatTasksSkeleton: React.FC = () => {
+  return (
+    <div className="lg:col-span-4 h-120 sm:h-135 lg:h-full flex flex-col min-h-0 overflow-hidden animate-pulse">
+      {/* List Header */}
+      <div className="shrink-0 flex items-center justify-between gap-2 px-0.5 mb-2.5">
+        <div className="flex items-center gap-1 bg-[#161616] p-0.5 rounded-full border border-[#2a2a2a]">
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-8 w-24 rounded-full" />
+      </div>
+
+      {/* Cards List */}
+      <div className="flex-1 overflow-hidden space-y-2.5 min-h-0">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="p-3.5 sm:p-4 rounded-xl bg-[#181818] border border-[#262626] space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-28 rounded-md" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3.5 w-3/4 rounded" />
+              <Skeleton className="h-3.5 w-1/2 rounded" />
+            </div>
+            <div className="pt-2 border-t border-[#222222] flex items-center justify-between">
+              <Skeleton className="h-4 w-20 rounded" />
+              <div className="flex gap-1.5">
+                <Skeleton className="h-7 w-16 rounded-lg" />
+                <Skeleton className="h-7 w-7 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const RoomChatSkeleton: React.FC = () => {
+  return (
+    <div className="lg:col-span-6 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
+      <div className="relative bg-zinc-900/70 border border-zinc-800/80 rounded-xl flex flex-col h-full min-h-0 overflow-hidden shadow-sm animate-pulse">
+        {/* Chat Header */}
+        <div className="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/90 shrink-0">
+          <Skeleton className="h-5 w-28 rounded-md" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-16 rounded-lg" />
+            <Skeleton className="h-7 w-7 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Messages Stream */}
+        <div className="flex-1 p-4 space-y-4 overflow-hidden">
+          {/* Incoming message */}
+          <div className="flex items-start gap-2.5 max-w-[75%]">
+            <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-3 w-20 rounded" />
+              <Skeleton className="h-10 w-48 rounded-2xl rounded-tl-sm bg-[#222222]" />
+            </div>
+          </div>
+
+          {/* Outgoing message */}
+          <div className="flex items-end justify-end gap-2.5">
+            <Skeleton className="h-12 w-52 rounded-2xl rounded-tr-sm bg-[#282828]" />
+          </div>
+
+          {/* Incoming message */}
+          <div className="flex items-start gap-2.5 max-w-[75%]">
+            <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-3 w-16 rounded" />
+              <Skeleton className="h-8 w-40 rounded-2xl rounded-tl-sm bg-[#222222]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Input Bar */}
+        <div className="p-3 border-t border-zinc-800/80 bg-zinc-900/90 shrink-0">
+          <Skeleton className="h-11 w-full rounded-xl bg-[#1e1e1e]" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const RoomSeatingPlanSkeleton: React.FC = () => {
+  return (
+    <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3.5 shrink-0 animate-pulse">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+        <Skeleton className="h-5 w-36 rounded-md" />
+      </div>
+
+      {/* Plan Container */}
+      <Skeleton className="w-full h-72 sm:h-96 rounded-xl bg-zinc-950/90" />
+    </div>
+  );
+};

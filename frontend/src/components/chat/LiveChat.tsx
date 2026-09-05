@@ -499,7 +499,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         {isLoadingMore ? (
           <div className="flex items-center justify-center py-2 select-none">
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1e1e]/90 border border-zinc-700/50 text-[11px] font-medium text-zinc-400 shadow-sm">
-              <Loader2 className="w-3 h-3 animate-spin text-[#1ed760]" />
+              <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
               <span>กำลังโหลดข้อความก่อนหน้า...</span>
             </div>
           </div>
