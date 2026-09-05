@@ -80,12 +80,12 @@ export const RoomCard: React.FC<RoomCardProps> = ({
             {isOwner ? (
               <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
                 <Crown className="w-3 h-3 text-[#1ed760]" />
-                <span>เจ้าของห้อง</span>
+                {/* <span>เจ้าของห้อง</span> */}
               </span>
             ) : (
               <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-400 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-                <Users className="w-3 h-3 text-zinc-400" />
-                <span>สมาชิก</span>
+                <Users className="w-3 h-3 text-[#539df5]" />
+                {/* <span>สมาชิก</span> */}
               </span>
             )}
 
