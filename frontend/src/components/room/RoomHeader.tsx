@@ -83,14 +83,17 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
           </div>
 
           {/* Sub-info: Status & Date */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-zinc-300">
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-300 font-medium whitespace-nowrap">
+          <div className="flex items-center gap-x-2 gap-y-1 flex-wrap text-xs sm:text-sm text-zinc-300 font-medium">
+            <div className="inline-flex items-center gap-1.5 shrink-0">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
               <span>วันกดบัตร:</span>
               <span className="text-zinc-100 font-semibold">
                 {formatEventDate(room.eventDate)}
               </span>
-              <span className="text-zinc-500 mx-0.5">•</span>
+            </div>
+
+            <div className="inline-flex items-center gap-1 shrink-0">
+              <span className="text-zinc-500">•</span>
               <span
                 className={
                   room.hasQueue
@@ -100,13 +103,14 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
               >
                 {getQueueText(room.hasQueue, room.queueTime)}
               </span>
-              {room.status !== "ACTIVE" && (
-                <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-zinc-400 shrink-0 ml-1">
-                  <Archive className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>จัดเก็บ</span>
-                </span>
-              )}
             </div>
+
+            {room.status !== "ACTIVE" && (
+              <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-zinc-400 shrink-0">
+                <Archive className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span>จัดเก็บ</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

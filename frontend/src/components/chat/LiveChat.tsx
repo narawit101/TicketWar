@@ -402,7 +402,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         <div className="flex items-center gap-2">
           {/* <span className="w-2.5 h-2.5 rounded-full bg-[#1ed760]" /> */}
           <h3 className="font-bold text-zinc-100 text-sm sm:text-base">
-            ข้อความในห้อง
+            ข้อความ
           </h3>
         </div>
 

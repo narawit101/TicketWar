@@ -1,5 +1,7 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element */
-import React from "react";
+import React, { useState } from "react";
 
 export interface AvatarProps {
   src?: string | null;
@@ -26,14 +28,18 @@ export const Avatar: React.FC<AvatarProps> = ({
   size = "sm",
   className = "",
 }) => {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const { box, text } = sizeClasses[size];
   const initial = (name || "U").trim().charAt(0).toUpperCase();
 
-  if (src) {
+  const isError = Boolean(src && failedSrc === src);
+
+  if (src && !isError) {
     return (
       <img
         src={src}
         alt={name}
+        onError={() => setFailedSrc(src)}
         className={`${box} rounded-full object-cover border border-zinc-700 shrink-0 select-none ${className}`}
       />
     );

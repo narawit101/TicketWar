@@ -4,6 +4,45 @@ import { validatePassword } from "@/lib/validation";
 import { uploadUserProfileImage, deleteCloudinaryImage } from "@/lib/cloudinary";
 import bcrypt from "bcryptjs";
 
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "ไม่พบรหัสผู้ใช้งาน (User ID)" },
+        { status: 400 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "ไม่พบข้อมูลผู้ใช้งานในระบบ" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    console.error("[Profile Fetch Error]:", error);
+    return NextResponse.json(
+      { error: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
