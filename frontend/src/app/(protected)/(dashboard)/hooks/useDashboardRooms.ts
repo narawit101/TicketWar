@@ -7,6 +7,7 @@ import { CarouselSlide } from "@/components/room";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
+import { toInputDateTime } from "@/lib/date";
 
 import useSWR from "swr";
 
@@ -58,7 +59,7 @@ export function useDashboardRooms() {
     "ALL" | "ACTIVE" | "ARCHIVED"
   >("ALL");
   const [dateFilter, setDateFilter] = useState<"ALL" | "UPCOMING" | "CUSTOM">(
-    "ALL",
+    "UPCOMING",
   );
   const [customDate, setCustomDate] = useState<string>("");
 
@@ -322,7 +323,10 @@ export function useDashboardRooms() {
 
   // Filtered rooms calculation
   const filteredRooms = useMemo(() => {
-    return rooms.filter((r) => {
+    // ponytail: compare YYYY-MM-DD in Bangkok timezone so today's events stay visible all day
+    const todayStr = toInputDateTime(new Date()).split("T")[0];
+
+    const result = rooms.filter((r) => {
       // 1. Ownership tab
       if (ownershipTab === "MINE" && r.role !== "OWNER") return false;
       if (ownershipTab === "JOINED" && r.role !== "MEMBER") return false;
@@ -333,24 +337,28 @@ export function useDashboardRooms() {
 
       // 3. Date filter
       if (dateFilter === "UPCOMING") {
-        if (!r.eventDate) return false;
-        const d = new Date(r.eventDate);
-        if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (d < today) return false;
+        if (r.eventDate) {
+          const roomDateStr = toInputDateTime(r.eventDate).split("T")[0];
+          // Hide past dates (before today)
+          if (roomDateStr && roomDateStr < todayStr) return false;
+        }
       } else if (dateFilter === "CUSTOM" && customDate) {
         if (!r.eventDate) return false;
-        const d = new Date(r.eventDate);
-        if (isNaN(d.getTime())) return false;
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const roomDateStr = `${year}-${month}-${day}`;
+        const roomDateStr = toInputDateTime(r.eventDate).split("T")[0];
         if (roomDateStr !== customDate) return false;
       }
 
       return true;
+    });
+
+    // ponytail: เรียงตามวันที่จัดงานจากน้อยไปมาก (Ascending: 1 -> 2 -> 3...) ทั้งหมด โดยห้องที่ไม่มีวันที่จัดงานนำไปไว้ท้ายสุด
+    return result.sort((a, b) => {
+      if (a.eventDate && b.eventDate) {
+        return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+      }
+      if (a.eventDate && !b.eventDate) return -1;
+      if (!a.eventDate && b.eventDate) return 1;
+      return 0;
     });
   }, [rooms, ownershipTab, statusFilter, dateFilter, customDate]);
 
@@ -389,8 +397,12 @@ export function useDashboardRooms() {
 
   const handleResetFilters = () => {
     setStatusFilter("ALL");
-    setDateFilter("ALL");
     setCustomDate("");
+    if (dateFilter === "UPCOMING" && statusFilter === "ALL" && !customDate) {
+      setDateFilter("ALL");
+    } else {
+      setDateFilter("UPCOMING");
+    }
   };
 
   const markRoomAsRead = useCallback(

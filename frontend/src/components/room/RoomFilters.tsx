@@ -118,20 +118,6 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
 
         {/* Date Filter Pills & Picker */}
         <div className="flex items-center gap-1 bg-[#181818] p-1 rounded-xl border border-[#252525] shrink-0 overflow-x-auto no-scrollbar max-w-full">
-          <button
-            type="button"
-            onClick={() => {
-              setDateFilter("ALL");
-              setCustomDate("");
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
-              dateFilter === "ALL" && !customDate
-                ? "bg-[#282828] text-white shadow-sm"
-                : "text-[#888888] hover:text-white"
-            }`}
-          >
-            วันทั้งหมด
-          </button>
           {statusFilter !== "ARCHIVED" && (
             <button
               type="button"
@@ -148,6 +134,20 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
               เร็วๆ นี้
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              setDateFilter("ALL");
+              setCustomDate("");
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
+              dateFilter === "ALL" && !customDate
+                ? "bg-[#282828] text-white shadow-sm"
+                : "text-[#888888] hover:text-white"
+            }`}
+          >
+            วันทั้งหมด
+          </button>
 
           {/* Custom Date Input Picker */}
           <div className="relative flex items-center pl-0.5 shrink-0">
