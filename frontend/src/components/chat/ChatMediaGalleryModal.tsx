@@ -236,9 +236,6 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
               <h3 className="text-base sm:text-lg font-bold text-white leading-tight">
                 ไฟล์และสื่อในห้อง
               </h3>
-              <p className="text-xs text-zinc-400">
-                แยกตามวัน เดือน ที่อัปโหลดในห้องแชท
-              </p>
             </div>
           </div>
           <button
@@ -338,7 +335,7 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
                             src={getOptimizedCloudinaryThumbnail(item.imageUrl)}
                             alt="รูปในห้อง"
                             loading="lazy"
-                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            className="w-full h-full object-contain transition-transform duration-200"
                           />
                           <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
                             <div className="flex justify-end gap-1.5">

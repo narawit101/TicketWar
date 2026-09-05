@@ -70,14 +70,34 @@ export function useRoomSocket({
       }
     };
 
+    const fetchFreshMembers = async () => {
+      try {
+        const mRes = await fetch(`/api/rooms/${roomId}/members?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          if (mData.members) setMembers(mData.members);
+        }
+      } catch (err) {
+        console.error("Failed to refresh members:", err);
+      }
+    };
+
     const handleMemberJoined = async (data: {
-      user?: { id: string; name: string };
-      memberCount: number;
+      roomId?: string;
+      user?: { id: string; name: string; email?: string; avatarUrl?: string | null };
+      memberCount?: number;
       message?: Message;
     }) => {
-      setRoom((prev) =>
-        prev ? { ...prev, memberCount: data.memberCount } : null,
-      );
+      if (data.roomId && data.roomId !== roomId) return;
+
+      if (data.memberCount) {
+        setRoom((prev) =>
+          prev ? { ...prev, memberCount: data.memberCount! } : null,
+        );
+      }
 
       if (data.message) {
         setMessages((prev) => {
@@ -86,31 +106,84 @@ export function useRoomSocket({
         });
       }
 
-      try {
-        const [mRes, msgRes] = await Promise.all([
-          fetch(`/api/rooms/${roomId}/members`),
-          !data.message
-            ? fetch(`/api/rooms/${roomId}/messages`)
-            : Promise.resolve(null),
-        ]);
-        if (mRes.ok) {
-          const mData = await mRes.json();
-          if (mData.members) setMembers(mData.members);
-        }
-        if (msgRes && msgRes.ok) {
-          const msgData = await msgRes.json();
-          if (msgData.messages) setMessages(msgData.messages);
-        }
-      } catch (err) {
-        console.error("Failed to refresh members on join:", err);
+      // Optimistic instant append for 0ms latency in UI
+      if (data.user?.id) {
+        setMembers((prev) => {
+          if (prev.some((m) => m.userId === data.user!.id)) return prev;
+          const newMember: RoomMemberItem = {
+            id: `temp-${data.user!.id}-${Date.now()}`,
+            userId: data.user!.id,
+            name: data.user!.name || "สมาชิกใหม่",
+            email: data.user!.email || "",
+            avatarUrl: data.user!.avatarUrl || undefined,
+            role: "MEMBER",
+            joinedAt: new Date().toISOString(),
+          };
+          return [...prev, newMember];
+        });
       }
+
+      // Sync fresh list from DB
+      await fetchFreshMembers();
+
+      if (!data.message) {
+        try {
+          const msgRes = await fetch(`/api/rooms/${roomId}/messages?t=${Date.now()}`, {
+            cache: "no-store",
+          });
+          if (msgRes.ok) {
+            const msgData = await msgRes.json();
+            if (msgData.messages) setMessages(msgData.messages);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       if (data.user?.name && data.user.id !== userId) {
         toast(`${data.user.name} เข้าร่วมห้องแล้ว!`);
       }
     };
 
-    const handleUserJoined = () => {
-      // Intentionally silent on re-connect / page refresh
+    const handleRoomInvitationUpdate = (data?: {
+      roomId?: string;
+      member?: { id: string; name: string; email?: string; avatarUrl?: string | null };
+      status?: string;
+    }) => {
+      if (data?.roomId && data.roomId !== roomId) return;
+      if (data?.status === "ACCEPTED") {
+        if (data.member?.id) {
+          setMembers((prev) => {
+            if (prev.some((m) => m.userId === data.member!.id)) return prev;
+            return [
+              ...prev,
+              {
+                id: `invite-${data.member!.id}-${Date.now()}`,
+                userId: data.member!.id,
+                name: data.member!.name || "สมาชิกใหม่",
+                email: data.member!.email || "",
+                avatarUrl: data.member!.avatarUrl || undefined,
+                role: "MEMBER",
+                joinedAt: new Date().toISOString(),
+              },
+            ];
+          });
+        }
+        fetchFreshMembers();
+      }
+    };
+
+    const handleUserJoined = (data?: {
+      user?: { id: string; name: string; email?: string; avatarUrl?: string | null };
+    }) => {
+      if (data?.user?.id && data.user.id !== userId) {
+        setMembers((prev) => {
+          if (!prev.some((m) => m.userId === data.user!.id)) {
+            fetchFreshMembers();
+          }
+          return prev;
+        });
+      }
     };
 
     const handleMemberKicked = (data: {
@@ -151,6 +224,7 @@ export function useRoomSocket({
     socket.on("member_joined", handleMemberJoined);
     socket.on("user_joined", handleUserJoined);
     socket.on("member_kicked", handleMemberKicked);
+    socket.on("room_invitation_update", handleRoomInvitationUpdate);
 
     return () => {
       socket.emit("leave_room", { roomId });
@@ -159,6 +233,7 @@ export function useRoomSocket({
       socket.off("member_joined", handleMemberJoined);
       socket.off("user_joined", handleUserJoined);
       socket.off("member_kicked", handleMemberKicked);
+      socket.off("room_invitation_update", handleRoomInvitationUpdate);
     };
   }, [roomId, userId, currentUserName, router, setRoom, setMembers, setMessages]);
 

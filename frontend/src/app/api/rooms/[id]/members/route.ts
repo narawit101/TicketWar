@@ -14,6 +14,8 @@ type MemberWithUser = {
   };
 };
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -38,7 +40,14 @@ export async function GET(
       joinedAt: m.joinedAt.toISOString(),
     }));
 
-    return NextResponse.json({ members: formatted });
+    return NextResponse.json(
+      { members: formatted },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error("[GET /api/rooms/[id]/members error]:", error);
     return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });

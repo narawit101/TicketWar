@@ -374,7 +374,10 @@ export function useDashboardRooms() {
     setMembersModalRoom(room);
     setLoadingMembers(true);
     try {
-      const res = await fetch(`/api/rooms/${room.id}/members`);
+      const res = await fetch(`/api/rooms/${room.id}/members?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
       if (res.ok && data.members) {
         setRoomMembers(data.members);
@@ -386,6 +389,31 @@ export function useDashboardRooms() {
       setLoadingMembers(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!membersModalRoom?.id) return;
+    const socket = getSocket();
+    const handleRefresh = (data?: { roomId?: string }) => {
+      if (!data?.roomId || data.roomId === membersModalRoom.id) {
+        fetch(`/api/rooms/${membersModalRoom.id}/members?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        })
+          .then((res) => res.json())
+          .then((mData) => {
+            if (mData.members) setRoomMembers(mData.members);
+          })
+          .catch(() => {});
+      }
+    };
+
+    socket.on("member_joined", handleRefresh);
+    socket.on("room_invitation_update", handleRefresh);
+    return () => {
+      socket.off("member_joined", handleRefresh);
+      socket.off("room_invitation_update", handleRefresh);
+    };
+  }, [membersModalRoom?.id]);
 
   const handleKickMember = useCallback(
     async (targetUserId: string, memberName: string) => {

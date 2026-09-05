@@ -65,8 +65,8 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
   // Listen for socket events to update invitations in real time
   useEffect(() => {
     const socket = getSocket();
-    const handleUpdate = (data: { roomId: string }) => {
-      if (data?.roomId === roomId) {
+    const handleUpdate = (data?: { roomId?: string }) => {
+      if (!data?.roomId || data.roomId === roomId) {
         fetchInvitations();
       }
     };

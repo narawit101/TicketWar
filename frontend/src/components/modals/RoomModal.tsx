@@ -181,7 +181,8 @@ const RoomModalDialog: React.FC<{
       await onSubmit({
         id: room?.id,
         title: cleanTitle,
-        eventDate: eventDate.trim() || (isCreate ? new Date().toISOString() : ""),
+        eventDate:
+          eventDate.trim() || (isCreate ? new Date().toISOString() : ""),
         ticketUrl: ticketUrl.trim() || undefined,
         description: description.trim() || undefined,
         bannerUrl: finalPoster || undefined,
@@ -223,7 +224,7 @@ const RoomModalDialog: React.FC<{
           <div>
             <label className="text-sm font-semibold text-zinc-200 mb-1.5 flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-[#1ed760]" />
-              <span>วันเวลากดบัตร / รอบการแสดง</span>
+              <span>วันเวลากดบัตร</span>
             </label>
             <input
               type="datetime-local"
@@ -525,7 +526,9 @@ const RoomModalDialog: React.FC<{
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isCreate ? "กำลังสร้างห้อง..." : "กำลังบันทึก..."}</span>
+                  <span>
+                    {isCreate ? "กำลังสร้างห้อง..." : "กำลังบันทึก..."}
+                  </span>
                 </>
               ) : (
                 <span>{isCreate ? "สร้างห้อง" : "บันทึกการแก้ไข"}</span>

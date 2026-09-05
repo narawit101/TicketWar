@@ -316,7 +316,7 @@ export default function RoomDetailPage() {
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
             <div className="flex items-center gap-2.5">
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-zinc-100 flex items-center gap-2">
+                <h2 className="text-sm sm:text-xl font-bold text-zinc-100 flex items-center gap-2">
                   <span>ผังที่นั่งคอนเสิร์ต</span>
                 </h2>
               </div>

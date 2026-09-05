@@ -118,45 +118,8 @@ export const MembersModal: React.FC<MembersModalProps> = ({
           </button>
         </div>
 
-        {/* Kick Confirmation Overlay if a member is selected */}
-        {memberToKick ? (
-          <div className="space-y-4 py-3">
-            <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-1.5">
-              <h3 className="text-base sm:text-lg font-bold text-white">
-                ยืนยันการนำสมาชิกออกจากแชท
-              </h3>
-              <p className="text-sm text-zinc-300 leading-relaxed max-w-sm mx-auto">
-                คุณแน่ใจหรือไม่ว่าต้องการให้{" "}
-                <strong className="text-white font-semibold">
-                  {memberToKick.name}
-                </strong>{" "}
-                ออกจากแชทนี้?
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isKicking}
-                onClick={() => setMemberToKick(null)}
-                className="py-2.5 text-sm rounded-xl font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition cursor-pointer border border-zinc-700/60"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                disabled={isKicking}
-                onClick={handleConfirmKick}
-                className="py-2.5 text-sm rounded-xl font-bold bg-rose-600 hover:bg-rose-500 text-white transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-              >
-                {isKicking && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>ให้ออกจากแชท</span>
-              </button>
-            </div>
-          </div>
-        ) : isLoading ? (
+        {/* Members List */}
+        {isLoading ? (
           <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar pb-6 pt-1">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -219,6 +182,48 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* Kick Confirmation Overlay Centered in Modal */}
+        {memberToKick && (
+          <div className="absolute inset-0 z-30 bg-[#181818]/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="max-w-sm w-full space-y-4">
+              <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto shadow-inner">
+                <AlertTriangle className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold text-white">
+                  ยืนยันการนำสมาชิกออกจากแชท
+                </h3>
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  คุณแน่ใจหรือไม่ว่าต้องการให้{" "}
+                  <strong className="text-white font-semibold">
+                    {memberToKick.name}
+                  </strong>{" "}
+                  ออกจากแชทนี้?
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isKicking}
+                  onClick={() => setMemberToKick(null)}
+                  className="py-2.5 text-sm rounded-xl font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition cursor-pointer border border-zinc-700/60"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  disabled={isKicking}
+                  onClick={handleConfirmKick}
+                  className="py-2.5 text-sm rounded-xl font-bold bg-rose-600 hover:bg-rose-500 text-white transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  {isKicking && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>ให้ออกจากแชท</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

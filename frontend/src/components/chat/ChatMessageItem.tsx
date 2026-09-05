@@ -180,9 +180,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       const rect = target.getBoundingClientRect();
       setOpenUpwards(rect.top > 160);
       setOpenToLeft(
-        isMe ||
-          rect.right >
-            (typeof window !== "undefined" ? window.innerWidth - 230 : 300),
+        rect.left < 170
+          ? false
+          : rect.right > (typeof window !== "undefined" ? window.innerWidth - 170 : 300)
+          ? true
+          : isMe,
       );
       setActiveReactionPickerId(msg.id);
       setActiveMenuId(null);
@@ -271,7 +273,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onTouchCancel={handleTouchEnd}
-              className={`flex flex-col min-w-0 select-text ${
+              className={`flex flex-col min-w-0 select-text relative ${
                 isMe ? "items-end" : "items-start"
               }`}
             >
@@ -650,6 +652,30 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
                   return null;
                 })()}
+
+              {/* Quick Reaction Picker Popover (Anchored to Message Bubble) */}
+              {activeReactionPickerId === msg.id && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className={`absolute z-50 flex items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5 bg-[#181818] border border-[#383838] rounded-full shadow-2xl animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-32px)] select-none pointer-events-auto ${
+                    openUpwards ? "bottom-full mb-2" : "top-full mt-2"
+                  } ${isMe ? "right-0" : "left-0"}`}
+                >
+                  {QUICK_REACTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => {
+                        onToggleReaction?.(msg.id, emoji);
+                        setActiveReactionPickerId(null);
+                      }}
+                      className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-base sm:text-lg hover:scale-125 transition-transform cursor-pointer rounded-full hover:bg-[#282828] shrink-0"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons (Hover action pill) */}
@@ -672,11 +698,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                       const rect = e.currentTarget.getBoundingClientRect();
                       setOpenUpwards(rect.top > 160);
                       setOpenToLeft(
-                        isMe ||
-                          rect.right >
-                            (typeof window !== "undefined"
-                              ? window.innerWidth - 230
-                              : 300),
+                        rect.left < 170
+                          ? false
+                          : rect.right >
+                              (typeof window !== "undefined"
+                                ? window.innerWidth - 170
+                                : 300)
+                          ? true
+                          : isMe,
                       );
                       setActiveReactionPickerId((prev) =>
                         prev === msg.id ? null : msg.id,
@@ -721,11 +750,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                       const rect = e.currentTarget.getBoundingClientRect();
                       setOpenUpwards(rect.top > 230);
                       setOpenToLeft(
-                        isMe ||
-                          rect.right >
-                            (typeof window !== "undefined"
-                              ? window.innerWidth - 200
-                              : 300),
+                        rect.left < 170
+                          ? false
+                          : rect.right >
+                              (typeof window !== "undefined"
+                                ? window.innerWidth - 170
+                                : 300)
+                          ? true
+                          : isMe,
                       );
                       setActiveMenuId((prev) =>
                         prev === msg.id ? null : msg.id,
@@ -742,30 +774,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                     <MoreVertical className="w-3.5 h-3.5" />
                   </button>
                 </div>
-
-                {/* Quick Reaction Picker Popover */}
-                {activeReactionPickerId === msg.id && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className={`absolute z-50 flex items-center gap-1 p-1.5 bg-[#181818] border border-[#383838] rounded-full shadow-2xl animate-in fade-in zoom-in-95 duration-100 ${
-                      openUpwards ? "bottom-full mb-1.5" : "top-full mt-1.5"
-                    } ${openToLeft ? "right-0" : "left-0"}`}
-                  >
-                    {QUICK_REACTIONS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => {
-                          onToggleReaction?.(msg.id, emoji);
-                          setActiveReactionPickerId(null);
-                        }}
-                        className="w-8 h-8 flex items-center justify-center text-lg hover:scale-125 transition-transform cursor-pointer rounded-full hover:bg-[#282828]"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
 
                 {/* Dropdown Menu (Instagram Direct Style) */}
                 {activeMenuId === msg.id && (

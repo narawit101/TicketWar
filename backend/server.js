@@ -117,7 +117,7 @@ io.on("connection", (socket) => {
   socket.on("room_created", ({ room }) => io.to("lobby").emit("lobby_room_created", room));
 
   socket.on("member_joined", ({ roomId, user, memberCount, message }) => {
-    io.to(roomId).emit("member_joined", { user, memberCount, message });
+    io.to(roomId).emit("member_joined", { roomId, user, memberCount, message });
     if (message) {
       io.to(roomId).emit("new_message", message);
       io.to("lobby").emit("lobby_room_message", { roomId, senderId: message?.userId });
