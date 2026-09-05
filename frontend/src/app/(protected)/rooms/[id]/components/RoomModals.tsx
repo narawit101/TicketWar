@@ -48,6 +48,8 @@ interface RoomModalsProps {
     id: string;
     title: string;
     eventDate: string;
+    hasQueue?: boolean;
+    queueTime?: string | null;
     ticketUrl?: string | null;
     description?: string | null;
     bannerUrl?: string | null;

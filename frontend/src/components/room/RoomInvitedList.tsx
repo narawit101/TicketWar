@@ -11,6 +11,9 @@ interface RoomInvitedListProps {
   currentUserId?: string;
   refreshTrigger?: number;
   className?: string;
+  invitations?: RoomInvitationItem[];
+  loading?: boolean;
+  onRefresh?: () => void;
 }
 
 export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
@@ -19,28 +22,42 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
   currentUserId,
   refreshTrigger = 0,
   className = "",
+  invitations: controlledInvitations,
+  loading: controlledLoading,
+  onRefresh,
 }) => {
-  const [invitations, setInvitations] = useState<RoomInvitationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [internalInvitations, setInternalInvitations] = useState<
+    RoomInvitationItem[]
+  >([]);
+  const [internalLoading, setInternalLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
+  const isControlled = controlledInvitations !== undefined;
+  const invitations = isControlled ? controlledInvitations : internalInvitations;
+  const loading = controlledLoading !== undefined ? controlledLoading : internalLoading;
+
   const fetchInvitations = useCallback(async () => {
+    if (onRefresh) {
+      onRefresh();
+      return;
+    }
     if (!roomId) return;
     try {
-      setLoading(true);
+      setInternalLoading(true);
       const res = await fetch(`/api/rooms/${roomId}/invitations`);
       if (res.ok) {
         const data = await res.json();
-        setInvitations(data.invitations || []);
+        setInternalInvitations(data.invitations || []);
       }
     } catch (err) {
       console.error("Failed to load invitations:", err);
     } finally {
-      setLoading(false);
+      setInternalLoading(false);
     }
-  }, [roomId]);
+  }, [roomId, onRefresh]);
 
   useEffect(() => {
+    if (isControlled) return;
     let ignore = false;
     async function load() {
       if (!roomId) return;
@@ -48,19 +65,19 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
         const res = await fetch(`/api/rooms/${roomId}/invitations`);
         if (res.ok && !ignore) {
           const data = await res.json();
-          setInvitations(data.invitations || []);
+          setInternalInvitations(data.invitations || []);
         }
       } catch (err) {
         console.error("Failed to load invitations:", err);
       } finally {
-        if (!ignore) setLoading(false);
+        if (!ignore) setInternalLoading(false);
       }
     }
     load();
     return () => {
       ignore = true;
     };
-  }, [roomId, refreshTrigger]);
+  }, [roomId, refreshTrigger, isControlled]);
 
   // Listen for socket events to update invitations in real time
   useEffect(() => {

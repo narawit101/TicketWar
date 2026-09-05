@@ -242,6 +242,8 @@ export function useRoomSocket({
       id: string;
       title: string;
       eventDate: string;
+      hasQueue?: boolean;
+      queueTime?: string | null;
       ticketUrl?: string | null;
       description?: string | null;
       bannerUrl?: string | null;
@@ -254,6 +256,8 @@ export function useRoomSocket({
           body: JSON.stringify({
             title: data.title,
             eventDate: data.eventDate,
+            hasQueue: data.hasQueue,
+            queueTime: data.queueTime,
             ticketUrl: data.ticketUrl,
             description: data.description,
             bannerUrl: data.bannerUrl,

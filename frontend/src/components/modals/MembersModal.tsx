@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { RoomMemberItem } from "@/types";
+import React, { useState, useEffect, useCallback } from "react";
+import { RoomMemberItem, RoomInvitationItem } from "@/types";
 import { X, Crown, UserX, Loader2, AlertTriangle, Users } from "lucide-react";
 import { Avatar, MemberRowSkeleton } from "@/components/common";
 import { RoomInviteSection, RoomInvitedList } from "@/components/room";
+import { getSocket } from "@/lib/socket";
 
 interface MembersModalProps {
   isOpen: boolean;
@@ -30,6 +31,69 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   const [memberToKick, setMemberToKick] = useState<RoomMemberItem | null>(null);
   const [isKicking, setIsKicking] = useState(false);
   const [inviteRefreshTrigger, setInviteRefreshTrigger] = useState(0);
+  const [invitations, setInvitations] = useState<RoomInvitationItem[]>([]);
+  const [loadedRoomId, setLoadedRoomId] = useState<string | null>(null);
+
+  const fetchInvitations = useCallback(async () => {
+    if (!roomId) return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/invitations?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInvitations(data.invitations || []);
+      }
+    } catch (err) {
+      console.error("Failed to load invitations:", err);
+    } finally {
+      setLoadedRoomId(roomId);
+    }
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!isOpen || !roomId) return;
+    let ignore = false;
+    fetch(`/api/rooms/${roomId}/invitations?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    })
+      .then((res) => (res.ok ? res.json() : { invitations: [] }))
+      .then((data) => {
+        if (!ignore) {
+          setInvitations(data.invitations || []);
+          setLoadedRoomId(roomId);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load invitations:", err);
+        if (!ignore) setLoadedRoomId(roomId);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [isOpen, roomId, inviteRefreshTrigger]);
+
+  useEffect(() => {
+    if (!isOpen || !roomId) return;
+    const socket = getSocket();
+    const handleUpdate = (data?: { roomId?: string }) => {
+      if (!data?.roomId || data.roomId === roomId) {
+        fetchInvitations();
+      }
+    };
+    socket.on("room_invitation_update", handleUpdate);
+    socket.on("member_joined", handleUpdate);
+    return () => {
+      socket.off("room_invitation_update", handleUpdate);
+      socket.off("member_joined", handleUpdate);
+    };
+  }, [isOpen, roomId, fetchInvitations]);
+
+  const loadingInvitations = Boolean(isOpen && roomId && loadedRoomId !== roomId);
+  const isModalLoading = isLoading || loadingInvitations;
 
   if (!isOpen) return null;
 
@@ -106,7 +170,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-[#252525] mb-3">
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-            {isLoading ? "สมาชิกในห้อง" : `สมาชิกในห้อง (${members.length})`}
+            {isModalLoading ? "สมาชิกในห้อง" : `สมาชิกในห้อง (${members.length})`}
           </h2>
           <button
             type="button"
@@ -119,21 +183,26 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         </div>
 
         {/* Members List */}
-        {isLoading ? (
+        {isModalLoading ? (
           <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar pb-6 pt-1">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Crown className="w-3.5 h-3.5 text-[#1ed760]/50" />
-                {/* <span className="text-xs text-zinc-500 font-semibold">กำลังโหลดสมาชิก...</span> */}
               </div>
               <MemberRowSkeleton />
               <MemberRowSkeleton />
               <MemberRowSkeleton />
-              <MemberRowSkeleton />
-              <MemberRowSkeleton />
-              <MemberRowSkeleton />
-              <MemberRowSkeleton />
             </div>
+
+            {roomId && (
+              <div className="pt-3 border-t border-[#252525] space-y-2">
+                <div className="text-xs font-semibold text-[#888888]/60 uppercase tracking-wider">
+                  รอตอบรับคำเชิญ
+                </div>
+                <MemberRowSkeleton />
+                <MemberRowSkeleton />
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar pb-6">
@@ -170,6 +239,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   roomId={roomId}
                   isOwner={isOwner}
                   currentUserId={currentUserId}
+                  invitations={invitations}
+                  loading={false}
+                  onRefresh={fetchInvitations}
                   refreshTrigger={inviteRefreshTrigger}
                 />
               </div>

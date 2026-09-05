@@ -206,7 +206,7 @@ export default function RoomDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col gap-5 overflow-y-auto">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 pb-4 md:pb-6 min-h-[calc(100vh-64px)] flex flex-col gap-5">
       {/* Top Bar: Back, Title, Status, Date & Right Tools */}
       {!room ? (
         <RoomHeaderSkeleton />

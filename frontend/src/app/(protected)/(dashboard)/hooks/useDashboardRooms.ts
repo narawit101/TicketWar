@@ -144,6 +144,8 @@ export function useDashboardRooms() {
   const handleCreateRoom = async (data: {
     title: string;
     eventDate: string;
+    hasQueue?: boolean;
+    queueTime?: string | null;
     ticketUrl?: string | null;
     description?: string | null;
     bannerUrl?: string | null;
@@ -157,6 +159,8 @@ export function useDashboardRooms() {
         body: JSON.stringify({
           title: data.title,
           eventDate: data.eventDate,
+          hasQueue: data.hasQueue,
+          queueTime: data.queueTime,
           ticketUrl: data.ticketUrl,
           description: data.description,
           bannerUrl: data.bannerUrl,
@@ -196,6 +200,8 @@ export function useDashboardRooms() {
     id?: string;
     title: string;
     eventDate: string;
+    hasQueue?: boolean;
+    queueTime?: string | null;
     ticketUrl?: string | null;
     description?: string | null;
     bannerUrl?: string | null;
@@ -209,6 +215,8 @@ export function useDashboardRooms() {
         body: JSON.stringify({
           title: data.title,
           eventDate: data.eventDate,
+          hasQueue: data.hasQueue,
+          queueTime: data.queueTime,
           ticketUrl: data.ticketUrl,
           description: data.description,
           bannerUrl: data.bannerUrl,
@@ -319,8 +327,8 @@ export function useDashboardRooms() {
       if (ownershipTab === "MINE" && r.role !== "OWNER") return false;
       if (ownershipTab === "JOINED" && r.role !== "MEMBER") return false;
 
-      // 2. Status filter
-      if (statusFilter === "ACTIVE" && r.status !== "ACTIVE") return false;
+      // 2. Status filter: normal view hides archived rooms, archived view shows only archived
+      if (statusFilter !== "ARCHIVED" && r.status === "ARCHIVED") return false;
       if (statusFilter === "ARCHIVED" && r.status !== "ARCHIVED") return false;
 
       // 3. Date filter
@@ -346,13 +354,37 @@ export function useDashboardRooms() {
     });
   }, [rooms, ownershipTab, statusFilter, dateFilter, customDate]);
 
+  const activeRoomsCount = useMemo(
+    () =>
+      rooms.filter((r) =>
+        statusFilter === "ARCHIVED"
+          ? r.status === "ARCHIVED"
+          : r.status !== "ARCHIVED",
+      ).length,
+    [rooms, statusFilter],
+  );
+
   const myRoomsCount = useMemo(
-    () => rooms.filter((r) => r.role === "OWNER").length,
-    [rooms],
+    () =>
+      rooms.filter(
+        (r) =>
+          r.role === "OWNER" &&
+          (statusFilter === "ARCHIVED"
+            ? r.status === "ARCHIVED"
+            : r.status !== "ARCHIVED"),
+      ).length,
+    [rooms, statusFilter],
   );
   const joinedRoomsCount = useMemo(
-    () => rooms.filter((r) => r.role === "MEMBER").length,
-    [rooms],
+    () =>
+      rooms.filter(
+        (r) =>
+          r.role === "MEMBER" &&
+          (statusFilter === "ARCHIVED"
+            ? r.status === "ARCHIVED"
+            : r.status !== "ARCHIVED"),
+      ).length,
+    [rooms, statusFilter],
   );
 
   const handleResetFilters = () => {
@@ -492,6 +524,7 @@ export function useDashboardRooms() {
     handleResetFilters,
     markRoomAsRead,
     filteredRooms,
+    activeRoomsCount,
     myRoomsCount,
     joinedRoomsCount,
   };

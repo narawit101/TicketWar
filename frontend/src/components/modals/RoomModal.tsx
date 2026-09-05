@@ -5,6 +5,7 @@ import React, { useState, useRef } from "react";
 import {
   X,
   Calendar,
+  Clock,
   Image as ImageIcon,
   Map as MapIcon,
   UploadCloud,
@@ -24,6 +25,8 @@ export interface RoomFormData {
   id?: string;
   title: string;
   eventDate: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   ticketUrl?: string | null;
   description?: string | null;
   bannerUrl?: string | null;
@@ -71,6 +74,8 @@ const RoomModalDialog: React.FC<{
   const [eventDate, setEventDate] = useState(
     room?.eventDate ? toInputDateTime(room.eventDate) : "",
   );
+  const [hasQueue, setHasQueue] = useState(room?.hasQueue ?? false);
+  const [queueTime, setQueueTime] = useState(room?.queueTime || "09:00");
   const [ticketUrl, setTicketUrl] = useState(room?.ticketUrl || "");
   const [description, setDescription] = useState(room?.description || "");
   const [invitedUsers, setInvitedUsers] = useState<SearchUserResult[]>([]);
@@ -183,6 +188,8 @@ const RoomModalDialog: React.FC<{
         title: cleanTitle,
         eventDate:
           eventDate.trim() || (isCreate ? new Date().toISOString() : ""),
+        hasQueue,
+        queueTime: hasQueue ? queueTime.trim() || null : null,
         ticketUrl: ticketUrl.trim() || undefined,
         description: description.trim() || undefined,
         bannerUrl: finalPoster || undefined,
@@ -199,7 +206,7 @@ const RoomModalDialog: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col text-left">
+      <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 max-h-[97vh] flex flex-col text-left">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#252525] bg-[#1a1a1a]">
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
@@ -220,9 +227,9 @@ const RoomModalDialog: React.FC<{
           noValidate
           className="p-6 space-y-4 overflow-y-auto text-sm flex-1"
         >
-          {/* 1. Event Date & Time (Calendar Picker) */}
-          <div>
-            <label className="text-sm font-semibold text-zinc-200 mb-1.5 flex items-center gap-1.5">
+          {/* 1. Event Date & Time + Queue Settings */}
+          <div className="space-y-2.5">
+            <label className="text-sm font-semibold text-zinc-200 flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-[#1ed760]" />
               <span>วันเวลากดบัตร</span>
             </label>
@@ -232,6 +239,55 @@ const RoomModalDialog: React.FC<{
               onChange={(e) => setEventDate(e.target.value)}
               className="input-spotify w-full text-sm py-2.5 px-3.5 rounded-lg bg-[#1f1f1f] text-white"
             />
+
+            {/* Queue Settings (รันคิว) */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[#b3b3b3] flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#1ed760]" />
+                  <span>การรันคิว</span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 p-1 bg-[#1f1f1f] rounded-lg border border-[#282828]">
+                <button
+                  type="button"
+                  onClick={() => setHasQueue(false)}
+                  className={`py-1.5 px-3 rounded-md text-xs font-bold transition cursor-pointer text-center ${
+                    !hasQueue
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
+                  }`}
+                >
+                  ไม่มีรันคิว
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHasQueue(true)}
+                  className={`py-1.5 px-3 rounded-md text-xs font-bold transition cursor-pointer text-center ${
+                    hasQueue
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
+                  }`}
+                >
+                  มีรันคิว
+                </button>
+              </div>
+
+              {hasQueue && (
+                <div className="pt-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <label className="text-xs font-medium text-[#b3b3b3] mb-1.5 block">
+                    เวลารันคิว
+                  </label>
+                  <input
+                    type="time"
+                    value={queueTime}
+                    onChange={(e) => setQueueTime(e.target.value)}
+                    className="input-spotify w-full text-sm py-2 px-3.5 rounded-lg bg-[#1f1f1f] text-white border border-[#282828] focus:border-[#1ed760]"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 2. Title */}
@@ -544,6 +600,8 @@ const RoomModalDialog: React.FC<{
 export interface CreateRoomData {
   title: string;
   eventDate: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   ticketUrl?: string;
   description?: string;
   bannerUrl?: string;
@@ -555,6 +613,8 @@ export interface EditRoomData {
   id: string;
   title: string;
   eventDate: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   ticketUrl?: string | null;
   description?: string | null;
   bannerUrl?: string | null;
@@ -575,6 +635,8 @@ export const CreateRoomModal: React.FC<{
       onCreate({
         title: data.title,
         eventDate: data.eventDate,
+        hasQueue: data.hasQueue,
+        queueTime: data.queueTime,
         ticketUrl: data.ticketUrl || undefined,
         description: data.description || undefined,
         bannerUrl: data.bannerUrl || undefined,
@@ -601,6 +663,8 @@ export const EditRoomModal: React.FC<{
         id: data.id || room?.id || "",
         title: data.title,
         eventDate: data.eventDate,
+        hasQueue: data.hasQueue,
+        queueTime: data.queueTime,
         ticketUrl: data.ticketUrl,
         description: data.description,
         bannerUrl: data.bannerUrl,

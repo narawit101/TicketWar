@@ -14,7 +14,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
-import { formatEventDate } from "@/lib/date";
+import { formatEventDate, getQueueText } from "@/lib/date";
 
 interface JoinRoomModalProps {
   isOpen: boolean;
@@ -28,6 +28,8 @@ interface RoomPreview {
   bannerUrl?: string;
   seatingPlanUrl?: string;
   eventDate?: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   status: string;
   inviteCode: string;
   ownerName: string;
@@ -264,8 +266,20 @@ const JoinRoomDialog: React.FC<{
               {/* Room details */}
               <div className="p-3.5 rounded-xl bg-[#141414] border border-[#262626] space-y-2 text-sm text-[#b3b3b3]">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#1ed760]" />
-                  <span>{formatEventDate(previewRoom.eventDate)}</span>
+                  <Calendar className="w-4 h-4 text-[#1ed760] shrink-0" />
+                  <span>
+                    <span>{formatEventDate(previewRoom.eventDate)}</span>
+                    <span className="text-[#666666] mx-1.5">•</span>
+                    <span
+                      className={
+                        previewRoom.hasQueue
+                          ? "text-[#1ed760] font-bold"
+                          : "text-[#888888]"
+                      }
+                    >
+                      {getQueueText(previewRoom.hasQueue, previewRoom.queueTime)}
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-[#888888]">
                   <Users className="w-4 h-4 text-[#539df5]" />

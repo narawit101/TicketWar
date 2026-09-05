@@ -71,6 +71,8 @@ export async function GET(req: Request) {
         eventDate: r.eventDate
           ? r.eventDate.toISOString()
           : "วันแสดงที่กำหนด",
+        hasQueue: Boolean(r.hasQueue),
+        queueTime: r.queueTime || null,
       };
     });
 
@@ -88,6 +90,8 @@ export async function POST(req: Request) {
     const {
       title,
       eventDate,
+      hasQueue,
+      queueTime,
       bannerUrl,
       seatingPlanUrl,
       ticketUrl,
@@ -184,6 +188,8 @@ export async function POST(req: Request) {
         ticketUrl: finalTicketUrl,
         description: finalDescription,
         eventDate: parsedEventDate,
+        hasQueue: Boolean(hasQueue),
+        queueTime: hasQueue && queueTime && typeof queueTime === "string" && queueTime.trim() ? queueTime.trim() : null,
         members: {
           create: {
             userId: ownerId,
@@ -248,6 +254,8 @@ export async function POST(req: Request) {
           seatingPlanUrl: newRoom.seatingPlanUrl || null,
           ticketUrl: newRoom.ticketUrl || null,
           description: newRoom.description || null,
+          hasQueue: newRoom.hasQueue,
+          queueTime: newRoom.queueTime,
           memberCount: 1,
           createdAt: newRoom.createdAt.toISOString(),
           eventDate: newRoom.eventDate

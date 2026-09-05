@@ -169,6 +169,8 @@ export async function GET(
         seatingPlanUrl: room.seatingPlanUrl || null,
         ticketUrl: room.ticketUrl || null,
         description: room.description || null,
+        hasQueue: Boolean(room.hasQueue),
+        queueTime: room.queueTime || null,
         memberCount: room.members.length,
         eventDate: room.eventDate
           ? room.eventDate.toISOString()
@@ -193,7 +195,7 @@ export async function PATCH(
   try {
     const { id } = await context.params;
     const body = await req.json();
-    const { status, title, eventDate, bannerUrl, seatingPlanUrl, ticketUrl, description } = body;
+    const { status, title, eventDate, hasQueue, queueTime, bannerUrl, seatingPlanUrl, ticketUrl, description } = body;
 
     const updateData: Prisma.RoomUpdateInput = {};
 
@@ -203,6 +205,20 @@ export async function PATCH(
 
     if (title !== undefined && typeof title === "string" && title.trim()) {
       updateData.title = title.trim();
+    }
+
+    if (hasQueue !== undefined) {
+      updateData.hasQueue = Boolean(hasQueue);
+      if (!hasQueue) {
+        updateData.queueTime = null;
+      }
+    }
+
+    if (queueTime !== undefined) {
+      updateData.queueTime =
+        queueTime && typeof queueTime === "string" && queueTime.trim()
+          ? queueTime.trim()
+          : null;
     }
 
     if (bannerUrl !== undefined) {
@@ -257,6 +273,8 @@ export async function PATCH(
     return NextResponse.json({
       room: {
         ...updated,
+        hasQueue: updated.hasQueue,
+        queueTime: updated.queueTime,
         eventDate: updated.eventDate ? updated.eventDate.toISOString() : null,
       },
     });

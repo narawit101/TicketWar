@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Room } from "@/types";
-import { formatEventDate } from "@/lib/date";
+import { formatEventDate, getQueueText } from "@/lib/date";
 import { useClickOutside } from "@/lib/hooks";
 import {
   ArrowLeft,
@@ -15,7 +15,6 @@ import {
   ArchiveRestore,
   Trash2,
   LogOut,
-  CheckCircle2,
 } from "lucide-react";
 
 interface RoomHeaderProps {
@@ -45,7 +44,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   return (
-    <div className="shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 pb-3.5 border-b border-zinc-800/80">
+    <div className="sticky top-16 z-20 bg-[#121212]/95 backdrop-blur-md -mx-4 md:-mx-6 px-4 md:px-6 py-3.5 border-b border-zinc-800/80 shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 transition-all">
       <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
         {/* Back button */}
         <Link
@@ -85,27 +84,28 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
           {/* Sub-info: Status & Date */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-zinc-300">
-            <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-[#b3b3b3] shrink-0">
-              {room.status === "ACTIVE" ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
-              ) : (
-                <Archive className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              )}
-              <span
-                className={
-                  room.status === "ACTIVE" ? "text-zinc-200" : "text-zinc-400"
-                }
-              >
-                {room.status === "ACTIVE" ? "ใช้งาน" : "จัดเก็บ"}
-              </span>
-            </span>
-
             <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-300 font-medium whitespace-nowrap">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
               <span>วันกดบัตร:</span>
               <span className="text-zinc-100 font-semibold">
                 {formatEventDate(room.eventDate)}
               </span>
+              <span className="text-zinc-500 mx-0.5">•</span>
+              <span
+                className={
+                  room.hasQueue
+                    ? "text-[#1ed760] font-bold"
+                    : "text-zinc-400 font-medium"
+                }
+              >
+                {getQueueText(room.hasQueue, room.queueTime)}
+              </span>
+              {room.status !== "ACTIVE" && (
+                <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-zinc-400 shrink-0 ml-1">
+                  <Archive className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <span>จัดเก็บ</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

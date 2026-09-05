@@ -70,6 +70,8 @@ model Room {
   ticketUrl      String?     @map("ticket_url")       // ลิงก์เว็บกดบัตร / เว็บหลัก
   description    String?     @map("description")      // หมายเหตุของงาน / รายละเอียดเพิ่มเติม (ไม่บังคับ)
   eventDate      DateTime?   @map("event_date")        // วันแสดง / วันเวลากดบัตร
+  hasQueue       Boolean     @default(false) @map("has_queue") // มีระบบรันคิวก่อนกดบัตรหรือไม่
+  queueTime      String?     @map("queue_time")        // เวลารันคิว เช่น "09:00"
   status         RoomStatus  @default(ACTIVE)
   pinnedMessageId String?    @map("pinned_message_id")
   createdById    String      @map("created_by_id")

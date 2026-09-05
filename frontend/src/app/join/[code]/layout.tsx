@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { formatEventDate } from "@/lib/date";
+import { formatEventDateWithQueue } from "@/lib/date";
 import Link from "next/link";
 import { TicketWarLogo } from "@/components/common/TicketWarLogo";
 
@@ -25,6 +25,8 @@ export async function generateMetadata({
         seatingPlanUrl: true,
         description: true,
         eventDate: true,
+        hasQueue: true,
+        queueTime: true,
         owner: { select: { name: true } },
       },
     });
@@ -37,7 +39,7 @@ export async function generateMetadata({
     }
 
     const dateStr = room.eventDate
-      ? ` วันเวลากดบัตร: ${formatEventDate(room.eventDate)}`
+      ? ` วันเวลากดบัตร: ${formatEventDateWithQueue(room.eventDate, (room as { hasQueue?: boolean; queueTime?: string | null }).hasQueue, (room as { hasQueue?: boolean; queueTime?: string | null }).queueTime)}`
       : "";
     const ownerStr = room.owner?.name ? ` โดย ${room.owner.name}` : "";
     const title = `${room.title} - ชวนร่วมทีมกดบัตร`;

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Crown, Users, Archive, X, CheckCircle2 } from "lucide-react";
+import { Crown, Users, Archive, X } from "lucide-react";
 
 interface RoomFiltersProps {
   roomsCount: number;
@@ -90,24 +90,12 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
             type="button"
             onClick={() => setStatusFilter("ALL")}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
-              statusFilter === "ALL"
+              statusFilter !== "ARCHIVED"
                 ? "bg-[#282828] text-white shadow-sm"
                 : "text-[#888888] hover:text-white"
             }`}
           >
-            สถานะทั้งหมด
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("ACTIVE")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-              statusFilter === "ACTIVE"
-                ? "bg-[#282828] text-white shadow-sm"
-                : "text-[#888888] hover:text-white"
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
-            <span className="whitespace-nowrap">ใช้งาน</span>
+            ห้องทั้งหมด
           </button>
           <button
             type="button"
@@ -124,7 +112,7 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
             }`}
           >
             <Archive className="w-3.5 h-3.5 shrink-0" />
-            <span className="whitespace-nowrap">จัดเก็บ</span>
+            <span className="whitespace-nowrap">คลังจัดเก็บ</span>
           </button>
         </div>
 

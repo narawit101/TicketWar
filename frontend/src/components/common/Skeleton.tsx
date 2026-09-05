@@ -102,7 +102,7 @@ export const FileRowSkeleton: React.FC = () => {
 
 export const RoomHeaderSkeleton: React.FC = () => {
   return (
-    <div className="shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 pb-3.5 border-b border-zinc-800/80 animate-pulse">
+    <div className="sticky top-16 z-20 bg-[#121212]/95 backdrop-blur-md -mx-4 md:-mx-6 px-4 md:px-6 py-3.5 border-b border-zinc-800/80 shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 animate-pulse transition-all">
       <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
         <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
         <div className="min-w-0 flex-1 space-y-2">

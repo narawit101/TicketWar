@@ -27,7 +27,7 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
     (statusFilter !== "ALL" || dateFilter !== "ALL" || !!customDate);
 
   const getEmptyTitle = () => {
-    if (statusFilter === "ARCHIVED") return "ไม่มีห้องที่จัดเก็บ";
+    if (statusFilter === "ARCHIVED") return "ไม่มีห้องในคลังจัดเก็บ";
     if (dateFilter !== "ALL" || customDate)
       return "ไม่พบห้องกดบัตรที่ตรงกับตัวกรอง";
     if (ownershipTab === "MINE") return "คุณยังไม่ได้สร้างห้องกดบัตร";
@@ -60,24 +60,28 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
 
       {statusFilter !== "ARCHIVED" && (
         <div className="flex items-center justify-center gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onOpenJoin}
-            className="px-4 py-2 rounded-full text-xs font-bold text-[#b3b3b3] hover:text-white border border-[#333333] transition cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span>เข้าร่วมด้วยรหัส</span>
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={onOpenCreate}
-            className="btn-pill btn-pill-green text-xs px-5 py-2 font-bold cursor-pointer inline-flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5 text-black stroke-3" />
-            <span>สร้างห้องใหม่</span>
-          </button>
+          {ownershipTab !== "MINE" && (
+            <button
+              type="button"
+              onClick={onOpenJoin}
+              className="px-4 py-2 rounded-full text-xs font-bold text-[#b3b3b3] hover:text-white border border-[#333333] transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
+                <span>เข้าร่วมด้วยรหัส</span>
+              </div>
+            </button>
+          )}
+          {ownershipTab !== "JOINED" && (
+            <button
+              type="button"
+              onClick={onOpenCreate}
+              className="btn-pill btn-pill-green text-xs px-5 py-2 font-bold cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5 text-black stroke-3" />
+              <span>สร้างห้องใหม่</span>
+            </button>
+          )}
         </div>
       )}
     </div>

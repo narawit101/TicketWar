@@ -98,6 +98,30 @@ export function formatThaiDate(
 export const formatEventDate = (dateStr?: string | Date | null): string =>
   formatThaiDate(dateStr, { includeTime: true });
 
+export function getQueueText(
+  hasQueue?: boolean,
+  queueTime?: string | null
+): string {
+  if (!hasQueue) return "ไม่มีรันคิว";
+  const t = queueTime?.trim();
+  if (!t) return "มีรันคิว";
+  return `รันคิว ${t}${t.endsWith("น.") ? "" : " น."}`;
+}
+
+/**
+ * Formats event date combined with concert queue information:
+ * e.g. "24 ต.ค. 2569 10:00 น. • รันคิว 09:00 น."
+ * e.g. "24 ต.ค. 2569 10:00 น. • ไม่มีรันคิว"
+ */
+export function formatEventDateWithQueue(
+  dateStr?: string | Date | null,
+  hasQueue?: boolean,
+  queueTime?: string | null
+): string {
+  const baseDate = formatEventDate(dateStr);
+  return `${baseDate} • ${getQueueText(hasQueue, queueTime)}`;
+}
+
 /**
  * Normalizes any date string or Date object into YYYY-MM-DD for native HTML <input type="date">
  * in Asia/Bangkok timezone.

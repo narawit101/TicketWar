@@ -14,7 +14,6 @@ export default function RoomsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const {
-    rooms,
     loading,
     actionLoadingId,
     ownershipTab,
@@ -49,6 +48,7 @@ export default function RoomsPage() {
     handleResetFilters,
     markRoomAsRead,
     filteredRooms,
+    activeRoomsCount,
     myRoomsCount,
     joinedRoomsCount,
   } = useDashboardRooms();
@@ -65,33 +65,37 @@ export default function RoomsPage() {
 
         {/* Action Buttons: Join with Code & Create Room */}
         <div className="flex items-center gap-2.5 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={() => setIsJoinOpen(true)}
-            className="flex-1 md:flex-none px-4 py-2 rounded-full text-xs font-bold text-white bg-[#222222] hover:bg-[#2e2e2e] border border-[#333333] hover:border-[#555555] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            <div className="flex items-center justify-center gap-2.5">
-              <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span>เข้าร่วมด้วยรหัส</span>
-            </div>
-          </button>
+          {ownershipTab !== "MINE" && (
+            <button
+              type="button"
+              onClick={() => setIsJoinOpen(true)}
+              className="flex-1 md:flex-none px-4 py-2 rounded-full text-xs font-bold text-white bg-[#222222] hover:bg-[#2e2e2e] border border-[#333333] hover:border-[#555555] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <div className="flex items-center justify-center gap-2.5">
+                <KeyRound className="w-3.5 h-3.5 text-[#1ed760]" />
+                <span>เข้าร่วมด้วยรหัส</span>
+              </div>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="flex-1 md:flex-none btn-pill btn-pill-green text-xs px-4 py-2 gap-1.5 cursor-pointer font-bold shadow-lg flex items-center justify-center"
-          >
-            <div className="flex items-center justify-center gap-2.5">
-              <Plus className="w-4 h-4 text-black stroke-3" />
-              <span>สร้างห้องใหม่</span>
-            </div>
-          </button>
+          {ownershipTab !== "JOINED" && (
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="flex-1 md:flex-none btn-pill btn-pill-green text-xs px-4 py-2 gap-1.5 cursor-pointer font-bold shadow-lg flex items-center justify-center"
+            >
+              <div className="flex items-center justify-center gap-2.5">
+                <Plus className="w-4 h-4 text-black stroke-3" />
+                <span>สร้างห้องใหม่</span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Navigation Filter Controls */}
       <RoomFilters
-        roomsCount={rooms.length}
+        roomsCount={activeRoomsCount}
         myRoomsCount={myRoomsCount}
         joinedRoomsCount={joinedRoomsCount}
         ownershipTab={ownershipTab}

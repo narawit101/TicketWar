@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
-import { formatEventDate } from "@/lib/date";
+import { formatEventDate, getQueueText } from "@/lib/date";
 import {
   Calendar,
   Users,
@@ -24,6 +24,8 @@ interface RoomPreview {
   bannerUrl?: string;
   seatingPlanUrl?: string;
   eventDate?: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   status: string;
   inviteCode: string;
   ownerName: string;
@@ -265,8 +267,20 @@ export default function JoinRoomByLinkPage() {
           {/* Room Metadata Badges */}
           <div className="space-y-1.5 p-3 rounded-xl bg-[#141414] border border-[#222222] text-xs text-[#b3b3b3]">
             <div className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-[#1ed760]" />
-              <span>{formatEventDate(room.eventDate)}</span>
+              <Calendar className="w-3.5 h-3.5 text-[#1ed760] shrink-0" />
+              <span>
+                <span>{formatEventDate(room.eventDate)}</span>
+                <span className="text-[#666666] mx-1.5">•</span>
+                <span
+                  className={
+                    room.hasQueue
+                      ? "text-[#1ed760] font-bold"
+                      : "text-[#888888]"
+                  }
+                >
+                  {getQueueText(room.hasQueue, room.queueTime)}
+                </span>
+              </span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-[#888888]">
               <Users className="w-3.5 h-3.5 text-[#539df5]" />

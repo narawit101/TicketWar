@@ -102,6 +102,8 @@ export interface Room {
   ticketUrl?: string;
   description?: string;
   eventDate: string;
+  hasQueue?: boolean;
+  queueTime?: string | null;
   inviteCode: string;
   status: RoomStatus;
   createdById: string;

@@ -91,13 +91,22 @@ export const RoomSeatTasksList: React.FC<RoomSeatTasksListProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab("ALL")}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === "ALL"
-                ? "bg-[#282828] text-white shadow-sm"
+                ? "bg-[#1ed760] text-black shadow-sm"
                 : "text-[#888888] hover:text-white"
             }`}
           >
-            งานทั้งหมด ({tasks.length})
+            <span>งานทั้งหมด</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                activeTab === "ALL"
+                  ? "bg-black/25 text-black font-extrabold"
+                  : "bg-[#252525] text-[#1ed760] font-bold"
+              }`}
+            >
+              {tasks.length}
+            </span>
           </button>
           <button
             type="button"
@@ -109,17 +118,15 @@ export const RoomSeatTasksList: React.FC<RoomSeatTasksListProps> = ({
             }`}
           >
             <span>งานของฉัน</span>
-            {myTasksCount > 0 && (
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  activeTab === "MY"
-                    ? "bg-black/25 text-black font-extrabold"
-                    : "bg-[#252525] text-[#1ed760] font-bold"
-                }`}
-              >
-                {myTasksCount}
-              </span>
-            )}
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                activeTab === "MY"
+                  ? "bg-black/25 text-black font-extrabold"
+                  : "bg-[#252525] text-[#1ed760] font-bold"
+              }`}
+            >
+              {myTasksCount}
+            </span>
           </button>
         </div>
 

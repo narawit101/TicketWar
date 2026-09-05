@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { Room } from "@/types";
-import { formatEventDate } from "@/lib/date";
+import { formatEventDate, getQueueText } from "@/lib/date";
 import {
   Crown,
   Users,
@@ -14,7 +14,6 @@ import {
   ArchiveRestore,
   Trash2,
   MessagesSquare,
-  CheckCircle2,
 } from "lucide-react";
 import { RoomImageCarousel, CarouselSlide } from "./RoomImageCarousel";
 import { ConfirmType } from "@/components/modals";
@@ -116,17 +115,13 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               <span className="text-xs">{room.memberCount} คน</span>
             </button>
 
-            {/* Status Tag */}
-            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-              {isLive ? (
-                <CheckCircle2 className="w-3 h-3 text-[#1ed760]" />
-              ) : (
+            {/* Status Tag - Only show if archived */}
+            {!isLive && (
+              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-400 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
                 <Archive className="w-3 h-3 text-zinc-400" />
-              )}
-              <span className={isLive ? "text-zinc-200" : "text-zinc-400"}>
-                {isLive ? "ใช้งาน" : "จัดเก็บ"}
+                <span>จัดเก็บ</span>
               </span>
-            </span>
+            )}
           </div>
         </div>
 
@@ -148,7 +143,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
         <div className="relative group/title mb-2">
           <h2
             className="text-base font-bold text-white tracking-tight group-hover:text-[#1ed760] transition-colors line-clamp-1"
-            title={room.title}
+            // title={room.title}
           >
             {room.title}
           </h2>
@@ -161,8 +156,20 @@ export const RoomCard: React.FC<RoomCardProps> = ({
         {/* Room Metadata */}
         <div className="space-y-1 text-xs text-[#b3b3b3] mb-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 text-[#888888]" />
-            <span>{formatEventDate(room.eventDate)}</span>
+            <Calendar className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+            <span className="line-clamp-1">
+              <span>{formatEventDate(room.eventDate)}</span>
+              <span className="text-[#666666] mx-1.5">•</span>
+              <span
+                className={
+                  room.hasQueue
+                    ? "text-[#1ed760] font-bold"
+                    : "text-[#888888]"
+                }
+              >
+                {getQueueText(room.hasQueue, room.queueTime)}
+              </span>
+            </span>
           </div>
         </div>
       </div>
