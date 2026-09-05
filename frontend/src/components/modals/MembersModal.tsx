@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { RoomMemberItem } from "@/types";
 import { X, Crown, UserX, Loader2, AlertTriangle, Users } from "lucide-react";
-import { Avatar } from "@/components/common";
+import { Avatar, MemberRowSkeleton } from "@/components/common";
 import { RoomInviteSection } from "@/components/room";
 
 interface MembersModalProps {
@@ -13,6 +13,7 @@ interface MembersModalProps {
   isOwner: boolean;
   onKickMember: (userId: string, memberName: string) => Promise<void> | void;
   showInviteSection?: boolean;
+  isLoading?: boolean;
 }
 
 export const MembersModal: React.FC<MembersModalProps> = ({
@@ -24,6 +25,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
   isOwner,
   onKickMember,
   showInviteSection = true,
+  isLoading = false,
 }) => {
   const [memberToKick, setMemberToKick] = useState<RoomMemberItem | null>(null);
   const [isKicking, setIsKicking] = useState(false);
@@ -103,7 +105,7 @@ export const MembersModal: React.FC<MembersModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-[#252525] mb-3">
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-            สมาชิกในห้อง ({members.length})
+            {isLoading ? "สมาชิกในห้อง" : `สมาชิกในห้อง (${members.length})`}
           </h2>
           <button
             type="button"
@@ -151,6 +153,18 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                 {isKicking && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>ให้ออกจากแชท</span>
               </button>
+            </div>
+          </div>
+        ) : isLoading ? (
+          <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar pb-6 pt-1">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Crown className="w-3.5 h-3.5 text-[#1ed760]/50" />
+                <span className="text-xs text-zinc-500 font-semibold">กำลังโหลดสมาชิก...</span>
+              </div>
+              <MemberRowSkeleton />
+              <MemberRowSkeleton />
+              <MemberRowSkeleton />
             </div>
           </div>
         ) : (

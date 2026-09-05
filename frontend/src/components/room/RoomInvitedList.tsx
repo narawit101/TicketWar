@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { RoomInvitationItem } from "@/types";
-import { Avatar } from "@/components/common";
+import { Avatar, MemberRowSkeleton } from "@/components/common";
 import { Trash2, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
@@ -127,7 +127,7 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-0.5">
         <span className="text-xs sm:text-sm font-semibold text-[#888888] tracking-wider uppercase">
-          รอตอบรับคำเชิญ ({pendingInvitations.length})
+          {loading ? "รอตอบรับคำเชิญ" : `รอตอบรับคำเชิญ (${pendingInvitations.length})`}
         </span>
         <button
           type="button"
@@ -144,7 +144,13 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
 
       {/* Invitations List */}
       <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-0.5">
-        {pendingInvitations.map((inv) => (
+        {loading ? (
+          <>
+            <MemberRowSkeleton />
+            <MemberRowSkeleton />
+          </>
+        ) : (
+          pendingInvitations.map((inv) => (
           <div
             key={inv.id}
             className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-[#121212] border border-[#282828] hover:border-[#383838] transition"
@@ -191,7 +197,8 @@ export const RoomInvitedList: React.FC<RoomInvitedListProps> = ({
               )}
             </div>
           </div>
-        ))}
+        ))
+      )}
       </div>
     </div>
   );

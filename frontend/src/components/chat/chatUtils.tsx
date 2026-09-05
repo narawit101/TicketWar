@@ -70,6 +70,14 @@ export const getPdfFileName = (msg: Message) => {
   return "เอกสาร.pdf";
 };
 
+export const getOptimizedCloudinaryThumbnail = (url?: string): string => {
+  if (!url) return "";
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    return url.replace("/upload/", "/upload/c_fill,w_300,h_300,q_auto,f_auto/");
+  }
+  return url;
+};
+
 // 20 minutes gap triggers a time divider (like Messenger / Instagram)
 const TIME_GAP_THRESHOLD_MS = 20 * 60 * 1000;
 

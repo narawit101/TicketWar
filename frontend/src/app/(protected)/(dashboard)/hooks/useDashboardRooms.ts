@@ -8,13 +8,47 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-hot-toast";
 import { getSocket } from "@/lib/socket";
 
+import useSWR from "swr";
+
+const roomsFetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch rooms");
+  return res.json();
+};
+
 export function useDashboardRooms() {
   const { user } = useAuth();
 
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
+  const swrKey = user?.id ? `/api/rooms?userId=${user.id}` : null;
+  const { data, isLoading, mutate } = useSWR<{ rooms: Room[] }>(
+    swrKey,
+    roomsFetcher,
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 2500,
+    },
+  );
+
+  const rooms = useMemo(() => data?.rooms || [], [data?.rooms]);
+  const loading = !data && isLoading;
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  const updateRooms = useCallback(
+    (updater: (prev: Room[]) => Room[]) => {
+      mutate(
+        (current) => {
+          if (!current) return current;
+          return { ...current, rooms: updater(current.rooms || []) };
+        },
+        { revalidate: false },
+      );
+    },
+    [mutate],
+  );
+
+  const refreshRooms = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   // Filters
   const [ownershipTab, setOwnershipTab] = useState<"ALL" | "MINE" | "JOINED">(
@@ -49,34 +83,6 @@ export function useDashboardRooms() {
   const [roomMembers, setRoomMembers] = useState<RoomMemberItem[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
-  // Fetch rooms
-  useEffect(() => {
-    let ignore = false;
-    async function load() {
-      if (!user) return;
-      try {
-        const res = await fetch(`/api/rooms?userId=${user.id}`);
-        const data = await res.json();
-        if (!ignore && res.ok && data.rooms) {
-          setRooms(data.rooms);
-        }
-      } catch (err) {
-        console.error("Failed to fetch rooms:", err);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      ignore = true;
-    };
-  }, [user, refreshKey]);
-
-  const refreshRooms = useCallback(() => {
-    setRefreshKey((prev) => prev + 1);
-  }, []);
-
   // Realtime Socket Lobby listener
   useEffect(() => {
     const socket = getSocket();
@@ -105,7 +111,7 @@ export function useDashboardRooms() {
       // Don't count own messages as unread
       if (senderId && user?.id && senderId === user.id) return;
 
-      setRooms((prev) =>
+      updateRooms((prev) =>
         prev.map((r) =>
           r.id === roomId
             ? { ...r, unreadCount: (r.unreadCount || 0) + 1 }
@@ -115,7 +121,7 @@ export function useDashboardRooms() {
     };
 
     const handleRoomRead = ({ roomId }: { roomId: string }) => {
-      setRooms((prev) =>
+      updateRooms((prev) =>
         prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r)),
       );
     };
@@ -132,7 +138,7 @@ export function useDashboardRooms() {
       socket.off("lobby_room_message", handleRoomMessage);
       socket.off("lobby_room_read", handleRoomRead);
     };
-  }, [user?.id, refreshRooms]);
+  }, [user?.id, refreshRooms, updateRooms]);
 
   // Create room
   const handleCreateRoom = async (data: {
@@ -212,7 +218,7 @@ export function useDashboardRooms() {
       const result = await res.json();
       if (res.ok && result.room) {
         toast.success("บันทึกข้อมูลห้องเรียบร้อยแล้ว");
-        setRooms((prev) =>
+        updateRooms((prev) =>
           prev.map((r) => (r.id === data.id ? { ...r, ...result.room } : r)),
         );
         getSocket().emit("room_updated", {
@@ -247,7 +253,7 @@ export function useDashboardRooms() {
           throw new Error(data.error || "ไม่สามารถออกจากห้องได้");
         }
         toast.success("คุณได้ออกจากห้องแล้ว");
-        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+        updateRooms((prev) => prev.filter((r) => r.id !== roomId));
         getSocket().emit("member_kicked", {
           roomId,
           targetUserId: user.id,
@@ -291,9 +297,9 @@ export function useDashboardRooms() {
       toast.success(data.message || "อัปเดตสถานะสำเร็จ");
 
       if (nextStatus === "DELETED") {
-        setRooms((prev) => prev.filter((r) => r.id !== roomId));
+        updateRooms((prev) => prev.filter((r) => r.id !== roomId));
       } else {
-        setRooms((prev) =>
+        updateRooms((prev) =>
           prev.map((r) => (r.id === roomId ? { ...r, status: nextStatus } : r)),
         );
       }
@@ -355,11 +361,14 @@ export function useDashboardRooms() {
     setCustomDate("");
   };
 
-  const markRoomAsRead = useCallback((roomId: string) => {
-    setRooms((prev) =>
-      prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r)),
-    );
-  }, []);
+  const markRoomAsRead = useCallback(
+    (roomId: string) => {
+      updateRooms((prev) =>
+        prev.map((r) => (r.id === roomId ? { ...r, unreadCount: 0 } : r)),
+      );
+    },
+    [updateRooms],
+  );
 
   const handleOpenMembers = useCallback(async (room: Room) => {
     setMembersModalRoom(room);
@@ -392,7 +401,7 @@ export function useDashboardRooms() {
         }
 
         setRoomMembers((prev) => prev.filter((m) => m.userId !== targetUserId));
-        setRooms((prev) =>
+        updateRooms((prev) =>
           prev.map((r) =>
             r.id === membersModalRoom.id
               ? { ...r, memberCount: Math.max(1, r.memberCount - 1) }
@@ -416,7 +425,7 @@ export function useDashboardRooms() {
         );
       }
     },
-    [membersModalRoom, user],
+    [membersModalRoom, user, updateRooms],
   );
 
   return {

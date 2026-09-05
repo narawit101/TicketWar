@@ -51,6 +51,7 @@ interface DashboardModalsProps {
 
   membersModalRoom: Room | null;
   roomMembers: RoomMemberItem[];
+  loadingMembers?: boolean;
   onCloseMembers: () => void;
   onKickMember: (userId: string, memberName: string) => Promise<void> | void;
   currentUserId?: string;
@@ -75,6 +76,7 @@ export const DashboardModals: React.FC<DashboardModalsProps> = ({
   onCloseLightbox,
   membersModalRoom,
   roomMembers,
+  loadingMembers = false,
   onCloseMembers,
   onKickMember,
   currentUserId,
@@ -133,6 +135,7 @@ export const DashboardModals: React.FC<DashboardModalsProps> = ({
         isOpen={!!membersModalRoom}
         onClose={onCloseMembers}
         members={roomMembers}
+        isLoading={loadingMembers}
         roomId={membersModalRoom?.id}
         currentUserId={currentUserId}
         isOwner={

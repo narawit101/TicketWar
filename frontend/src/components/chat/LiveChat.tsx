@@ -28,6 +28,7 @@ import {
 } from "./chatUtils";
 
 export interface LiveChatProps {
+  roomId?: string;
   messages: Message[];
   currentUserName: string;
   currentUserAvatar?: string | null;
@@ -59,6 +60,7 @@ export interface LiveChatProps {
 }
 
 export const LiveChat: React.FC<LiveChatProps> = ({
+  roomId,
   messages,
   currentUserName,
   currentUserAvatar,
@@ -697,6 +699,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       <ChatMediaGalleryModal
         isOpen={isMediaGalleryOpen}
         onClose={() => setIsMediaGalleryOpen(false)}
+        roomId={roomId}
         roomPhotos={roomPhotos}
         roomFiles={roomFiles}
         onSelectPhoto={setLightboxUrl}

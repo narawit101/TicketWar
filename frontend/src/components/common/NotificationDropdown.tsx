@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Bell, Check, Calendar, Loader2, Music2 } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { NotificationItemSkeleton } from "./Skeleton";
 import { useClickOutside } from "@/lib/hooks";
 import { getSocket } from "@/lib/socket";
 import { playNotificationChime } from "@/lib/audio";
@@ -215,7 +216,9 @@ export const NotificationDropdown: React.FC = () => {
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-[#1ed760]" />
               <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
-                คำเชิญเข้าห้อง ({pendingCount})
+                {loading && invitations.length === 0
+                  ? "คำเชิญเข้าห้อง"
+                  : `คำเชิญเข้าห้อง (${pendingCount})`}
               </h3>
             </div>
             {pendingCount > 0 && (
@@ -228,9 +231,9 @@ export const NotificationDropdown: React.FC = () => {
           {/* Body List */}
           <div className="max-h-84 overflow-y-auto p-2 space-y-2 divide-y divide-transparent">
             {loading && invitations.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#888888] flex flex-col items-center gap-2">
-                <Loader2 className="w-5 h-5 text-[#1ed760] animate-spin" />
-                <span>กำลังโหลดการแจ้งเตือน...</span>
+              <div className="space-y-2 p-1">
+                <NotificationItemSkeleton />
+                <NotificationItemSkeleton />
               </div>
             ) : invitations.length === 0 ? (
               <div className="py-8 px-4 text-center space-y-2">

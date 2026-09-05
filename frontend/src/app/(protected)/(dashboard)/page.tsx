@@ -2,11 +2,13 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, KeyRound, Loader2 } from "lucide-react";
+import { Plus, KeyRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { RoomCard, RoomFilters, RoomEmptyState } from "@/components/room";
 import { useDashboardRooms } from "./hooks/useDashboardRooms";
 import { DashboardModals } from "./components/DashboardModals";
+
+import { RoomCardSkeleton } from "@/components/common";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -38,6 +40,7 @@ export default function RoomsPage() {
     membersModalRoom,
     setMembersModalRoom,
     roomMembers,
+    loadingMembers,
     handleOpenMembers,
     handleKickMember,
     handleCreateRoom,
@@ -101,11 +104,12 @@ export default function RoomsPage() {
         setCustomDate={setCustomDate}
       />
 
-      {/* Loading State */}
+      {/* Loading State: Clean Skeleton Grid */}
       {loading && (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 text-center">
-          <Loader2 className="w-8 h-8 text-[#1ed760] animate-spin" />
-          <p className="text-xs text-[#888888]">กำลังโหลดห้องกดบัตรของคุณ...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <RoomCardSkeleton />
+          <RoomCardSkeleton />
+          <RoomCardSkeleton />
         </div>
       )}
 
@@ -171,6 +175,7 @@ export default function RoomsPage() {
         onCloseLightbox={() => setLightbox(null)}
         membersModalRoom={membersModalRoom}
         roomMembers={roomMembers}
+        loadingMembers={loadingMembers}
         onCloseMembers={() => setMembersModalRoom(null)}
         onKickMember={handleKickMember}
         currentUserId={user?.id}

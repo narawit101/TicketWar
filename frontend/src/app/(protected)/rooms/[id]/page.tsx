@@ -270,6 +270,7 @@ export default function RoomDetailPage() {
         {/* Right Column: Full-Height Live Chat (6 cols = 60%) */}
         <div className="lg:col-span-6 h-150 sm:h-170 lg:h-full flex flex-col min-h-0 overflow-hidden">
           <LiveChat
+            roomId={roomId}
             messages={chat.messages}
             currentUserName={currentUserName}
             currentUserAvatar={user?.avatarUrl}
