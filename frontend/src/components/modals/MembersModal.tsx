@@ -124,8 +124,12 @@ export const MembersModal: React.FC<MembersModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Crown className="w-3.5 h-3.5 text-[#1ed760]/50" />
-                <span className="text-xs text-zinc-500 font-semibold">กำลังโหลดสมาชิก...</span>
+                {/* <span className="text-xs text-zinc-500 font-semibold">กำลังโหลดสมาชิก...</span> */}
               </div>
+              <MemberRowSkeleton />
+              <MemberRowSkeleton />
+              <MemberRowSkeleton />
+              <MemberRowSkeleton />
               <MemberRowSkeleton />
               <MemberRowSkeleton />
               <MemberRowSkeleton />
@@ -178,7 +182,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   roomId={roomId}
                   currentUserId={currentUserId}
                   isOwner={isOwner}
-                  onInviteSent={() => setInviteRefreshTrigger((prev) => prev + 1)}
+                  onInviteSent={() =>
+                    setInviteRefreshTrigger((prev) => prev + 1)
+                  }
                 />
               </div>
             )}

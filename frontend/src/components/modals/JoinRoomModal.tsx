@@ -214,7 +214,7 @@ const JoinRoomDialog: React.FC<{
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-black" />
-                      <span>กำลังตรวจสอบ...</span>
+                      {/* <span>กำลังตรวจสอบ...</span> */}
                     </>
                   ) : (
                     <>
