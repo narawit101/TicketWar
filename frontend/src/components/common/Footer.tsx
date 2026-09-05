@@ -2,6 +2,23 @@ import React from "react";
 import Link from "next/link";
 import { TicketWarLogo } from "./TicketWarLogo";
 
+const FOOTER_LINKS = [
+  { label: "ห้องแชท", href: "/", isExternal: false },
+  {
+    label: "ThaiTicketMajor",
+    href: "https://www.thaiticketmajor.com",
+    isExternal: true,
+  },
+  { label: "AllTicket", href: "https://www.allticket.com", isExternal: true },
+  { label: "Eventpop", href: "https://www.eventpop.me", isExternal: true },
+  { label: "Zipevent", href: "https://www.zipeventapp.com", isExternal: true },
+  {
+    label: "Ticketmelon",
+    href: "https://www.ticketmelon.com/th",
+    isExternal: true,
+  },
+];
+
 export const Footer: React.FC = () => {
   return (
     <footer className="w-full border-t border-[#252525] bg-[#121212] py-5 px-4 md:px-8 mt-auto">
@@ -17,33 +34,27 @@ export const Footer: React.FC = () => {
 
         {/* Fast Links */}
         <div className="flex items-center gap-4 text-xs">
-          <Link href="/" className="hover:text-white transition-colors">
-            ห้องแชท
-          </Link>
-          <a
-            href="https://www.thaiticketmajor.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            ThaiTicketMajor
-          </a>
-          <a
-            href="https://www.allticket.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            AllTicket
-          </a>
-          <a
-            href="https://www.eventpop.me"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors"
-          >
-            Eventpop
-          </a>
+          {FOOTER_LINKS.map((link) =>
+            link.isExternal ? (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="hover:text-white transition-colors"
+              >
+                {link.label}
+              </Link>
+            ),
+          )}
         </div>
 
         {/* Copyright */}

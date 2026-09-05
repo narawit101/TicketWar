@@ -13,7 +13,7 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
-  MessageSquare,
+  MessagesSquare,
   CheckCircle2,
 } from "lucide-react";
 import { RoomImageCarousel, CarouselSlide } from "./RoomImageCarousel";
@@ -72,10 +72,23 @@ export const RoomCard: React.FC<RoomCardProps> = ({
       onClick={() => onEnterRoom(room.id)}
       className="card-spotify p-5 border border-[#222222] hover:border-[#383838] hover:bg-[#181818]/90 flex flex-col justify-between group transition-all relative cursor-pointer"
     >
+      {/* Top-Right Floating Red Notification Badge for Unread Messages */}
+      {typeof room.unreadCount === "number" && room.unreadCount > 0 && (
+        <div className="absolute top-3.5 right-3.5 z-20 pointer-events-none">
+          <span className="relative flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500 text-white font-bold text-xs ">
+            <MessagesSquare className="w-3 h-3 text-white" />
+            <span>{room.unreadCount > 99 ? "99+" : room.unreadCount}</span>
+            <span className="hidden sm:inline font-medium text-[11px] text-rose-100">
+              ใหม่
+            </span>
+          </span>
+        </div>
+      )}
+
       {/* Card Header: Role & Status Tags */}
       <div>
         <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap pr-20">
             {/* Role Tag */}
             {isOwner ? (
               <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
@@ -114,14 +127,6 @@ export const RoomCard: React.FC<RoomCardProps> = ({
                 {isLive ? "ใช้งาน" : "จัดเก็บ"}
               </span>
             </span>
-
-            {/* Unread Message Pill Tag */}
-            {typeof room.unreadCount === "number" && room.unreadCount > 0 && (
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-[#1ed760] border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-                <MessageSquare className="w-3 h-3 text-[#1ed760]" />
-                <span>{room.unreadCount} ข้อความใหม่</span>
-              </span>
-            )}
           </div>
         </div>
 
