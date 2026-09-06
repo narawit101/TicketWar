@@ -153,6 +153,29 @@ const RoomModalDialog: React.FC<{
     reader.readAsDataURL(file);
   };
 
+  // Handle clipboard paste (Ctrl+V) for image files
+  const handlePasteImage = (
+    e: React.ClipboardEvent,
+    maxDim: number,
+    onSuccess: (dataUrl: string) => void,
+  ) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          processImageFile(file, maxDim, (data) => {
+            onSuccess(data);
+            toast.success("วางรูปภาพเรียบร้อย");
+          });
+          return;
+        }
+      }
+    }
+  };
+
   const handlePosterFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -386,7 +409,13 @@ const RoomModalDialog: React.FC<{
             {posterMode === "upload" ? (
               <div>
                 {posterData ? (
-                  <div className="flex items-center gap-3.5 p-3 rounded-xl bg-[#1a1a1a] border border-[#282828]">
+                  <div
+                    tabIndex={0}
+                    onPaste={(e) =>
+                      handlePasteImage(e, 1200, (data) => setPosterData(data))
+                    }
+                    className="flex items-center gap-3.5 p-3 rounded-xl bg-[#1a1a1a] border border-[#282828] focus:border-[#1ed760]/60 focus:outline-none"
+                  >
                     <img
                       src={posterData}
                       alt="Poster Preview"
@@ -397,7 +426,7 @@ const RoomModalDialog: React.FC<{
                         รูปโปสเตอร์
                       </span>
                       <span className="text-xs text-[#888888] mt-0.5 block">
-                        พร้อมแสดงในห้องกดบัตร
+                        พร้อมแสดงในห้อง (กด Ctrl+V เพื่อเปลี่ยนรูปได้)
                       </span>
                     </div>
                     <button
@@ -415,12 +444,16 @@ const RoomModalDialog: React.FC<{
                   </div>
                 ) : (
                   <div
+                    tabIndex={0}
                     onClick={() => posterFileRef.current?.click()}
-                    className="border border-dashed border-[#333333] hover:border-[#1ed760]/60 rounded-xl p-4.5 text-center cursor-pointer transition bg-[#191919] hover:bg-[#202020]"
+                    onPaste={(e) =>
+                      handlePasteImage(e, 1200, (data) => setPosterData(data))
+                    }
+                    className="border border-dashed border-[#333333] hover:border-[#1ed760]/60 focus:border-[#1ed760] focus:outline-none rounded-xl p-4.5 text-center cursor-pointer transition bg-[#191919] hover:bg-[#202020]"
                   >
                     <UploadCloud className="w-6 h-6 text-[#888888] mx-auto mb-1.5" />
                     <span className="text-xs sm:text-sm text-[#b3b3b3] font-medium block">
-                      คลิกเพื่อเลือกไฟล์รูปโปสเตอร์
+                      คลิกเพื่อเลือกไฟล์ หรือกด Ctrl+V เพื่อวางรูป
                     </span>
                     <span className="text-[11px] text-[#777777] mt-0.5 block">
                       รองรับ JPG, PNG, WebP (ย่อขนาดอัตโนมัติ)
@@ -487,7 +520,13 @@ const RoomModalDialog: React.FC<{
             {seatingMode === "upload" ? (
               <div>
                 {seatingData ? (
-                  <div className="flex items-center gap-3.5 p-3 rounded-xl bg-[#1a1a1a] border border-[#282828]">
+                  <div
+                    tabIndex={0}
+                    onPaste={(e) =>
+                      handlePasteImage(e, 1600, (data) => setSeatingData(data))
+                    }
+                    className="flex items-center gap-3.5 p-3 rounded-xl bg-[#1a1a1a] border border-[#282828] focus:border-[#539df5]/60 focus:outline-none"
+                  >
                     <img
                       src={seatingData}
                       alt="Seating Plan Preview"
@@ -498,7 +537,7 @@ const RoomModalDialog: React.FC<{
                         รูปผังที่นั่ง
                       </span>
                       <span className="text-xs text-[#888888] mt-0.5 block">
-                        พร้อมแสดงในห้องกดบัตร
+                        พร้อมแสดงในห้อง (กด Ctrl+V เพื่อเปลี่ยนรูปได้)
                       </span>
                     </div>
                     <button
@@ -516,12 +555,16 @@ const RoomModalDialog: React.FC<{
                   </div>
                 ) : (
                   <div
+                    tabIndex={0}
                     onClick={() => seatingFileRef.current?.click()}
-                    className="border border-dashed border-[#333333] hover:border-[#539df5]/60 rounded-xl p-4.5 text-center cursor-pointer transition bg-[#191919] hover:bg-[#202020]"
+                    onPaste={(e) =>
+                      handlePasteImage(e, 1600, (data) => setSeatingData(data))
+                    }
+                    className="border border-dashed border-[#333333] hover:border-[#539df5]/60 focus:border-[#539df5] focus:outline-none rounded-xl p-4.5 text-center cursor-pointer transition bg-[#191919] hover:bg-[#202020]"
                   >
                     <UploadCloud className="w-6 h-6 text-[#888888] mx-auto mb-1.5" />
                     <span className="text-xs sm:text-sm text-[#b3b3b3] font-medium block">
-                      คลิกเพื่อเลือกไฟล์รูปผังที่นั่ง
+                      คลิกเพื่อเลือกไฟล์ หรือกด Ctrl+V เพื่อวางรูป
                     </span>
                     <span className="text-[11px] text-[#777777] mt-0.5 block">
                       รองรับ JPG, PNG, WebP (ย่อขนาดอัตโนมัติ)

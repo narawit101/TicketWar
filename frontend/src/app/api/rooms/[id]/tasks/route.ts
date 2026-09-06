@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseDateInBangkok } from "@/lib/date";
+import { parseDateInBangkok, toInputDateValue } from "@/lib/date";
 
 interface SecuredItem {
   userId?: string;
@@ -68,7 +68,7 @@ export async function POST(
         roomId: task.roomId,
         targetLocation: task.targetLocation,
         backupLocation: task.backupLocation,
-        targetDate: task.targetDate.toISOString().split("T")[0],
+        targetDate: toInputDateValue(task.targetDate),
         price: task.price,
         backupPrice: task.backupPrice,
         quantityNeeded: task.quantityNeeded,
@@ -152,7 +152,7 @@ export async function PATCH(
         roomId: updated.roomId,
         targetLocation: updated.targetLocation,
         backupLocation: updated.backupLocation,
-        targetDate: updated.targetDate.toISOString().split("T")[0],
+        targetDate: toInputDateValue(updated.targetDate),
         price: updated.price,
         backupPrice: updated.backupPrice,
         quantityNeeded: updated.quantityNeeded,

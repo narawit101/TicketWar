@@ -12,7 +12,7 @@ export async function generateMetadata({
   const { code } = await params;
   if (!code) {
     return {
-      title: "คำเชิญเข้าห้องกดบัตร | TicketWar",
+      title: "คำเชิญเข้าร่วมห้องแชท | TicketWar",
     };
   }
 
@@ -33,7 +33,7 @@ export async function generateMetadata({
 
     if (!room) {
       return {
-        title: "ไม่พบห้องกดบัตร | TicketWar",
+        title: "ไม่พบห้อง | TicketWar",
         description: "รหัสคำเชิญไม่ถูกต้องหรือห้องนี้อาจถูกลบไปแล้ว",
       };
     }
@@ -42,10 +42,10 @@ export async function generateMetadata({
       ? ` วันเวลากดบัตร: ${formatEventDateWithQueue(room.eventDate, (room as { hasQueue?: boolean; queueTime?: string | null }).hasQueue, (room as { hasQueue?: boolean; queueTime?: string | null }).queueTime)}`
       : "";
     const ownerStr = room.owner?.name ? ` โดย ${room.owner.name}` : "";
-    const title = `${room.title} - ชวนร่วมทีมกดบัตร`;
+    const title = `${room.title} - ชวนเข้าร่วมห้องแชท`;
     const description =
       room.description ||
-      `ชวนร่วมทีมกดบัตร "${room.title}"${ownerStr}${dateStr} บน TicketWar`;
+      `ชวนเข้าร่วมห้องแชท "${room.title}"${ownerStr}${dateStr} บน TicketWar`;
 
     // Use poster banner first, fallback to seating plan if available
     const imageUrl = room.bannerUrl || room.seatingPlanUrl || undefined;
@@ -76,8 +76,8 @@ export async function generateMetadata({
   } catch (err) {
     console.error("Failed to generate metadata for join room:", err);
     return {
-      title: "คำเชิญเข้าห้องกดบัตร | TicketWar",
-      description: "ร่วมทีมกดบัตรคอนเสิร์ตบน TicketWar",
+      title: "คำเชิญเข้าร่วมห้องแชท | TicketWar",
+      description: "เข้าร่วมห้องแชทบน TicketWar",
     };
   }
 }

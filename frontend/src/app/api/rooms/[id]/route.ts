@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { isSystemShoutout } from "@/lib/validation";
-import { parseDateInBangkok } from "@/lib/date";
+import { parseDateInBangkok, toInputDateValue } from "@/lib/date";
 
 export async function GET(
   req: Request,
@@ -87,7 +87,7 @@ export async function GET(
         roomId: t.roomId,
         targetLocation: t.targetLocation,
         backupLocation: t.backupLocation || null,
-        targetDate: t.targetDate.toISOString().split("T")[0],
+        targetDate: toInputDateValue(t.targetDate),
         price: t.price,
         backupPrice:
           t.backupPrice !== undefined && t.backupPrice !== null

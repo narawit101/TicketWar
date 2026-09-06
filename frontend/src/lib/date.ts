@@ -136,7 +136,7 @@ export function toInputDateValue(raw?: string | Date | null): string {
     if (!isNaN(d.getTime())) {
       return toInputDateTime(d).split("T")[0];
     }
-  } catch {}
+  } catch { }
   return String(raw);
 }
 
@@ -190,9 +190,9 @@ export function parseDateInBangkok(input?: string | Date | null): Date | null {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // YYYY-MM-DD without time
+  // YYYY-MM-DD without time (set to 12:00:00+07:00 noon to avoid UTC midnight backward shift)
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const d = new Date(`${str}T00:00:00+07:00`);
+    const d = new Date(`${str}T12:00:00+07:00`);
     return isNaN(d.getTime()) ? null : d;
   }
 
