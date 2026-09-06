@@ -9,6 +9,7 @@ import {
   ConfirmActionModal,
   ConfirmType,
   MembersModal,
+  WarRoomSummaryModal,
 } from "@/components/modals";
 import { CarouselSlide } from "@/components/room";
 import { Room, SeatTask, RoomMemberItem, TaskAssignee } from "@/types";
@@ -21,8 +22,11 @@ interface RoomModalsProps {
   isOwner: boolean;
   members: RoomMemberItem[];
   roomSlides: CarouselSlide[];
+  tasks: SeatTask[];
 
   // Modal Visibility States
+  isSummaryOpen: boolean;
+  setIsSummaryOpen: (open: boolean) => void;
   isEditRoomOpen: boolean;
   setIsEditRoomOpen: (open: boolean) => void;
   isEditModalOpen: boolean;
@@ -72,6 +76,9 @@ export const RoomModals: React.FC<RoomModalsProps> = ({
   isOwner,
   members,
   roomSlides,
+  tasks,
+  isSummaryOpen,
+  setIsSummaryOpen,
   isEditRoomOpen,
   setIsEditRoomOpen,
   isEditModalOpen,
@@ -168,6 +175,15 @@ export const RoomModals: React.FC<RoomModalsProps> = ({
         isOwner={isOwner}
         onKickMember={onKickMember}
       />
+
+      {room && (
+        <WarRoomSummaryModal
+          isOpen={isSummaryOpen}
+          onClose={() => setIsSummaryOpen(false)}
+          room={room}
+          tasks={tasks}
+        />
+      )}
     </>
   );
 };

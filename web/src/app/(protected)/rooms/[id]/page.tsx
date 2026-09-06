@@ -52,6 +52,7 @@ export default function RoomDetailPage() {
     type: ConfirmType;
   } | null>(null);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   // 1. Live Chat Domain Hook
   const chat = useRoomChat({
@@ -218,6 +219,7 @@ export default function RoomDetailPage() {
           onOpenMembers={() => setIsMembersModalOpen(true)}
           onOpenEditRoom={() => setIsEditRoomOpen(true)}
           onOpenShare={() => setIsShareModalOpen(true)}
+          onOpenSummary={() => setIsSummaryOpen(true)}
           onConfirmStatusChange={(type) =>
             setConfirmModal({ isOpen: true, type })
           }
@@ -348,6 +350,9 @@ export default function RoomDetailPage() {
         isOwner={isOwner}
         members={members}
         roomSlides={roomSlides}
+        tasks={taskDomain.tasks}
+        isSummaryOpen={isSummaryOpen}
+        setIsSummaryOpen={setIsSummaryOpen}
         isEditRoomOpen={isEditRoomOpen}
         setIsEditRoomOpen={setIsEditRoomOpen}
         isEditModalOpen={isEditModalOpen}

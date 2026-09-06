@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   Edit3,
   Share2,
+  FileSpreadsheet,
   Archive,
   ArchiveRestore,
   Trash2,
@@ -28,6 +29,7 @@ interface RoomHeaderProps {
   onOpenMembers: () => void;
   onOpenEditRoom: () => void;
   onOpenShare: () => void;
+  onOpenSummary: () => void;
   onConfirmStatusChange: (
     type: "ARCHIVE" | "RESTORE" | "DELETE" | "LEAVE",
   ) => void;
@@ -40,6 +42,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
   onOpenMembers,
   onOpenEditRoom,
   onOpenShare,
+  onOpenSummary,
   onConfirmStatusChange,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -148,13 +151,25 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
       {/* Right Tools: Members Button & Management */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
+        {/* War Room Summary Button */}
+        <button
+          onClick={onOpenSummary}
+          className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-[#1e1e1e] hover:bg-[#282828] text-zinc-200 border border-[#333333] text-xs gap-1.5 sm:gap-2 flex items-center font-bold transition cursor-pointer shadow-sm shrink-0"
+          title="สรุปผล & ส่งออก Excel"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1ed760] shrink-0" />
+          <span>
+            <span>สรุป</span>
+          </span>
+        </button>
+
         {/* Members Button */}
         <button
           onClick={onOpenMembers}
           className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/60 text-xs gap-1.5 sm:gap-2 flex items-center font-medium transition cursor-pointer shadow-sm shrink-0"
           title={`ดูสมาชิกในห้อง (${memberCount} คน)`}
         >
-          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400 shrink-0" />
+          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#1ed760] shrink-0" />
           <span>
             <span className="hidden sm:inline">สมาชิก </span>({memberCount})
           </span>
@@ -174,6 +189,17 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
           {isMenuOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onOpenSummary();
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#1ed760]" />
+                <span>สรุปผลสงคราม (Excel)</span>
+              </button>
+
               {isOwner && (
                 <button
                   onClick={() => {
