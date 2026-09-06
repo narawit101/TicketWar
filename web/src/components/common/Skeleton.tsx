@@ -113,8 +113,9 @@ export const RoomHeaderSkeleton: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0 pt-0.5">
-        <Skeleton className="h-8 w-24 rounded-xl" />
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
+        <Skeleton className="h-8 w-16 sm:w-18 rounded-xl" />
+        <Skeleton className="h-8 w-20 sm:w-24 rounded-xl" />
         <Skeleton className="h-8 w-8 rounded-xl" />
       </div>
     </div>

@@ -374,7 +374,7 @@ export function generateSummaryText(room: Room, tasks: SeatTask[]): string {
   }
 
   text += `━━━━━━━━━━━━━━━━━━\n`;
-  text += `ส่งจาก TicketWar ⚔️`;
+  text += `TicketWar ⚔️`;
 
   return text;
 }
