@@ -46,10 +46,20 @@ export function useDashboardRooms() {
   );
   const [customDate, setCustomDate] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const PAGE_SIZE = 6;
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const swrKey = user?.id
-    ? `/api/rooms?userId=${user.id}&page=${currentPage}&limit=${PAGE_SIZE}&tab=${ownershipTab}&status=${statusFilter}&dateFilter=${dateFilter}&customDate=${encodeURIComponent(customDate)}`
+    ? `/api/rooms?userId=${user.id}&page=${currentPage}&limit=${PAGE_SIZE}&tab=${ownershipTab}&status=${statusFilter}&dateFilter=${dateFilter}&customDate=${encodeURIComponent(customDate)}&search=${encodeURIComponent(debouncedSearch)}`
     : null;
   const { data, isLoading, mutate } = useSWR<RoomsApiResponse>(
     swrKey,
@@ -385,6 +395,7 @@ export function useDashboardRooms() {
   const handleResetFilters = () => {
     setStatusFilter("ALL");
     setCustomDate("");
+    setSearchQuery("");
     setCurrentPage(1);
     if (dateFilter === "UPCOMING" && statusFilter === "ALL" && !customDate) {
       setDateFilter("ALL");
@@ -527,6 +538,8 @@ export function useDashboardRooms() {
     executeConfirmedStatusChange,
     handleResetFilters,
     markRoomAsRead,
+    searchQuery,
+    setSearchQuery,
     filteredRooms,
     activeRoomsCount,
     myRoomsCount,

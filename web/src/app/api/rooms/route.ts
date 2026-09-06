@@ -14,6 +14,7 @@ export async function GET(req: Request) {
     const status = searchParams.get("status") || "ALL"; // ALL | ACTIVE | ARCHIVED
     const dateFilter = searchParams.get("dateFilter") || "UPCOMING"; // UPCOMING | ALL | CUSTOM
     const customDate = searchParams.get("customDate") || "";
+    const search = (searchParams.get("search") || "").trim();
 
     const statusCondition = status === "ARCHIVED" ? "ARCHIVED" : "ACTIVE";
 
@@ -60,6 +61,25 @@ export async function GET(req: Request) {
           gte: startOfDay,
           lte: endOfDay,
         };
+      }
+    }
+
+    // Search query filtering across title, description, and inviteCode
+    if (search) {
+      const searchCondition: Prisma.RoomWhereInput = {
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { inviteCode: { contains: search, mode: "insensitive" } },
+        ],
+      };
+
+      if (!baseWhere.AND) {
+        baseWhere.AND = [searchCondition];
+      } else if (Array.isArray(baseWhere.AND)) {
+        baseWhere.AND.push(searchCondition);
+      } else {
+        baseWhere.AND = [baseWhere.AND, searchCondition];
       }
     }
 

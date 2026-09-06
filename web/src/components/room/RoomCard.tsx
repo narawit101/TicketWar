@@ -200,9 +200,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               <span className="text-[#666666] mx-1.5">•</span>
               <span
                 className={
-                  room.hasQueue
-                    ? "text-[#1ed760] font-bold"
-                    : "text-[#888888]"
+                  room.hasQueue ? "text-[#1ed760] font-bold" : "text-[#888888]"
                 }
               >
                 {getQueueText(room.hasQueue, room.queueTime)}

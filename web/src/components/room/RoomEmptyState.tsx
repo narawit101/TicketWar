@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
-import { Archive, Disc, KeyRound, Plus } from "lucide-react";
+import { Archive, Disc, KeyRound, Plus, Search } from "lucide-react";
 
 interface RoomEmptyStateProps {
   statusFilter: "ALL" | "ACTIVE" | "ARCHIVED";
   dateFilter: "ALL" | "UPCOMING" | "CUSTOM";
   customDate: string;
   ownershipTab: "ALL" | "MINE" | "JOINED";
+  searchQuery?: string;
+  onClearSearch?: () => void;
   onResetFilters: () => void;
   onOpenJoin: () => void;
   onOpenCreate: () => void;
@@ -18,15 +20,19 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
   dateFilter,
   customDate,
   ownershipTab,
+  searchQuery,
+  onClearSearch,
   onResetFilters,
   onOpenJoin,
   onOpenCreate,
 }) => {
+  const isSearchActive = !!searchQuery?.trim();
   const isFilterActive =
     statusFilter !== "ARCHIVED" &&
-    (statusFilter !== "ALL" || dateFilter !== "ALL" || !!customDate);
+    (statusFilter !== "ALL" || dateFilter !== "ALL" || !!customDate || isSearchActive);
 
   const getEmptyTitle = () => {
+    if (isSearchActive) return `ไม่พบห้องกดบัตรที่ตรงกับ "${searchQuery?.trim()}"`;
     if (statusFilter === "ARCHIVED") return "ไม่มีห้องในคลังจัดเก็บ";
     if (dateFilter !== "ALL" || customDate)
       return "ไม่พบห้องกดบัตรที่ตรงกับตัวกรอง";
@@ -38,7 +44,9 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
   return (
     <div className="py-16 px-4 card-spotify border border-[#222222] text-center max-w-lg mx-auto space-y-4">
       <div className="w-14 h-14 rounded-full bg-[#1f1f1f] text-[#888888] flex items-center justify-center mx-auto">
-        {statusFilter === "ARCHIVED" ? (
+        {isSearchActive ? (
+          <Search className="w-7 h-7 text-[#888888]" />
+        ) : statusFilter === "ARCHIVED" ? (
           <Archive className="w-7 h-7 text-[#666666]" />
         ) : (
           <Disc className="w-7 h-7" />
@@ -50,10 +58,10 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
         {isFilterActive && (
           <button
             type="button"
-            onClick={onResetFilters}
+            onClick={isSearchActive && onClearSearch ? onClearSearch : onResetFilters}
             className="mt-2 text-xs text-[#1ed760] hover:underline font-semibold cursor-pointer inline-block"
           >
-            ล้างตัวกรองทั้งหมด
+            {isSearchActive ? "ล้างคำค้นหา" : "ล้างตัวกรองทั้งหมด"}
           </button>
         )}
       </div>
