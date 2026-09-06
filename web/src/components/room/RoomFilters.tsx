@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Crown, Users, Archive, X } from "lucide-react";
-import { formatThaiDate } from "@/lib/date";
 
 interface RoomFiltersProps {
   roomsCount: number;
@@ -172,9 +171,6 @@ export const RoomFilters: React.FC<RoomFiltersProps> = ({
             />
             {customDate && (
               <>
-                <span className="text-[#1ed760] font-bold text-xs pl-1.5 whitespace-nowrap">
-                  {formatThaiDate(customDate)}
-                </span>
                 <button
                   type="button"
                   onClick={() => {

@@ -11,7 +11,7 @@ task/
 ├── prisma/                 # 🗄️ Single Source of Truth (Database Schema & PostgreSQL Client)
 │   └── schema.prisma       # Schema supporting Pooled (6543) & Direct (5432) connections
 │
-├── frontend/               # 🌐 Next.js 16 (React 19, Tailwind CSS v4 Turbopack, API Routes)
+├── web/                    # 🌐 Next.js 16 (React 19, Tailwind CSS v4 Turbopack, API Routes)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── (protected)/# Protected Routes (Streamlined Lobby Dashboard & War Rooms)
@@ -23,7 +23,7 @@ task/
 │   │   └── types/          # TypeScript Domain Interfaces
 │   └── package.json
 │
-├── backend/                # 🔌 Standalone WebSocket Server (Node.js + Socket.io)
+├── websocket/              # 🔌 Standalone WebSocket Server (Node.js + Socket.io)
 │   ├── server.js           # Realtime Socket.io relay server (Zero DB bottleneck, low RAM)
 │   └── package.json        # Production ready ("start": "node server.js")
 │

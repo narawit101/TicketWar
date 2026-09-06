@@ -85,10 +85,10 @@ task/
 ├── package.json              # Root runner scripts (concurrent frontend + backend + prisma)
 ├── prisma/
 │   └── schema.prisma         # Single Source of Truth (Database Schema, Pooler & Direct URLs)
-├── backend/
+├── websocket/
 │   ├── server.js             # Standalone WebSocket Server (Node.js + Socket.io)
 │   └── package.json          # Production start script ("start": "node server.js")
-├── frontend/                 # Next.js 16 (React 19 + Tailwind CSS v4 + Turbopack)
+├── web/                      # Next.js 16 (React 19 + Tailwind CSS v4 + Turbopack)
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── (protected)/
@@ -140,8 +140,8 @@ task/
    - Build command: `npm install`
    - Start command: `node server.js`
    - Set environment variables: `PORT=4000`, `FRONTEND_URL=https://your-vercel-domain.vercel.app`
-3. **Vercel (Frontend Next.js)**:
-   - Root directory: `frontend`
+3. **Vercel (Web Next.js)**:
+   - Root directory: `web`
    - Environment variables: `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_SOCKET_URL=https://your-render-app.onrender.com`, Cloudinary credentials.
 4. **Cloudinary**:
    - Provide `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.

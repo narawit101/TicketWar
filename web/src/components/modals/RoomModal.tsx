@@ -158,6 +158,7 @@ const RoomModalDialog: React.FC<{
     e: React.ClipboardEvent,
     maxDim: number,
     onSuccess: (dataUrl: string) => void,
+    onModeSwitch?: () => void,
   ) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -166,6 +167,7 @@ const RoomModalDialog: React.FC<{
         const file = items[i].getAsFile();
         if (file) {
           e.preventDefault();
+          if (onModeSwitch) onModeSwitch();
           processImageFile(file, maxDim, (data) => {
             onSuccess(data);
             toast.success("วางรูปภาพเรียบร้อย");
@@ -384,10 +386,10 @@ const RoomModalDialog: React.FC<{
                 <button
                   type="button"
                   onClick={() => setPosterMode("url")}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     posterMode === "url"
-                      ? "bg-[#333333] text-white"
-                      : "text-[#888888] hover:text-white"
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
                   }`}
                 >
                   ลิงก์ URL
@@ -395,10 +397,10 @@ const RoomModalDialog: React.FC<{
                 <button
                   type="button"
                   onClick={() => setPosterMode("upload")}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     posterMode === "upload"
-                      ? "bg-[#333333] text-white"
-                      : "text-[#888888] hover:text-white"
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
                   }`}
                 >
                   อัปโหลด
@@ -421,14 +423,6 @@ const RoomModalDialog: React.FC<{
                       alt="Poster Preview"
                       className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-xl border border-[#383838] shrink-0 shadow-sm"
                     />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-white font-semibold block truncate">
-                        รูปโปสเตอร์
-                      </span>
-                      <span className="text-xs text-[#888888] mt-0.5 block">
-                        พร้อมแสดงในห้อง (กด Ctrl+V เพื่อเปลี่ยนรูปได้)
-                      </span>
-                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -453,10 +447,10 @@ const RoomModalDialog: React.FC<{
                   >
                     <UploadCloud className="w-6 h-6 text-[#888888] mx-auto mb-1.5" />
                     <span className="text-xs sm:text-sm text-[#b3b3b3] font-medium block">
-                      คลิกเพื่อเลือกไฟล์ หรือกด Ctrl+V เพื่อวางรูป
+                      คลิกเพื่อเลือกไฟล์ หรือวางรูป
                     </span>
                     <span className="text-[11px] text-[#777777] mt-0.5 block">
-                      รองรับ JPG, PNG, WebP (ย่อขนาดอัตโนมัติ)
+                      รองรับ JPG, PNG, WebP
                     </span>
                     <input
                       ref={posterFileRef}
@@ -475,7 +469,15 @@ const RoomModalDialog: React.FC<{
                   maxLength={1000}
                   value={posterUrlInput}
                   onChange={(e) => setPosterUrlInput(e.target.value)}
-                  placeholder="https://example.com/poster.jpg"
+                  onPaste={(e) =>
+                    handlePasteImage(
+                      e,
+                      1200,
+                      (data) => setPosterData(data),
+                      () => setPosterMode("upload"),
+                    )
+                  }
+                  placeholder="https://example.com/poster.jpg หรือกด วางรูป"
                   className="input-spotify w-full text-xs py-2 px-3 rounded-lg bg-[#1f1f1f] text-white"
                 />
               </div>
@@ -495,10 +497,10 @@ const RoomModalDialog: React.FC<{
                 <button
                   type="button"
                   onClick={() => setSeatingMode("url")}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     seatingMode === "url"
-                      ? "bg-[#333333] text-white"
-                      : "text-[#888888] hover:text-white"
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
                   }`}
                 >
                   ลิงก์ URL
@@ -506,10 +508,10 @@ const RoomModalDialog: React.FC<{
                 <button
                   type="button"
                   onClick={() => setSeatingMode("upload")}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     seatingMode === "upload"
-                      ? "bg-[#333333] text-white"
-                      : "text-[#888888] hover:text-white"
+                      ? "bg-[#1ed760] text-black shadow-sm"
+                      : "text-[#b3b3b3] hover:text-white"
                   }`}
                 >
                   อัปโหลด
@@ -532,14 +534,6 @@ const RoomModalDialog: React.FC<{
                       alt="Seating Plan Preview"
                       className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-xl border border-[#383838] shrink-0 shadow-sm"
                     />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-white font-semibold block truncate">
-                        รูปผังที่นั่ง
-                      </span>
-                      <span className="text-xs text-[#888888] mt-0.5 block">
-                        พร้อมแสดงในห้อง (กด Ctrl+V เพื่อเปลี่ยนรูปได้)
-                      </span>
-                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -564,10 +558,10 @@ const RoomModalDialog: React.FC<{
                   >
                     <UploadCloud className="w-6 h-6 text-[#888888] mx-auto mb-1.5" />
                     <span className="text-xs sm:text-sm text-[#b3b3b3] font-medium block">
-                      คลิกเพื่อเลือกไฟล์ หรือกด Ctrl+V เพื่อวางรูป
+                      คลิกเพื่อเลือกไฟล์ หรือวางรูป
                     </span>
                     <span className="text-[11px] text-[#777777] mt-0.5 block">
-                      รองรับ JPG, PNG, WebP (ย่อขนาดอัตโนมัติ)
+                      รองรับ JPG, PNG, WebP
                     </span>
                     <input
                       ref={seatingFileRef}
@@ -586,7 +580,15 @@ const RoomModalDialog: React.FC<{
                   maxLength={1000}
                   value={seatingUrlInput}
                   onChange={(e) => setSeatingUrlInput(e.target.value)}
-                  placeholder="https://example.com/seating-plan.jpg"
+                  onPaste={(e) =>
+                    handlePasteImage(
+                      e,
+                      1600,
+                      (data) => setSeatingData(data),
+                      () => setSeatingMode("upload"),
+                    )
+                  }
+                  placeholder="https://example.com/seating-plan.jpg หรือกด วางรูป"
                   className="input-spotify w-full text-xs py-2 px-3 rounded-lg bg-[#1f1f1f] text-white"
                 />
               </div>

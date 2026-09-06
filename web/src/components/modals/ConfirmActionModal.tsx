@@ -74,9 +74,9 @@ export const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
       desc: `คุณต้องการเปลี่ยนสถานะห้อง "${roomTitle}" เป็นจัดเก็บใช่หรือไม่? ห้องจะเปลี่ยนเป็นสถานะอ่านอย่างเดียว (ไม่สามารถกดรับที่นั่งหรือส่งข้อความเพิ่มได้)`,
       confirmBtn: "จัดเก็บ",
       btnClass:
-        "bg-[#242424] hover:bg-[#303030] text-zinc-200 border border-[#383838]",
-      icon: <Archive className="w-5 h-5 text-zinc-300" />,
-      iconBg: "bg-zinc-800 border border-zinc-700/50",
+        "bg-amber-600 hover:bg-amber-500 text-white font-bold border-transparent",
+      icon: <Archive className="w-5 h-5 text-amber-400" />,
+      iconBg: "bg-amber-500/10 border border-amber-500/20",
     },
     RESTORE: {
       title: "เปิดใช้งานห้องต่อ",

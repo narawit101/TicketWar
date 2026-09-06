@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
-    "dev:front": "npm --prefix frontend run dev",
-    "server": "npm --prefix backend run dev",
-    "dev:server": "npm --prefix backend run dev",
-    "build": "npm --prefix frontend run build",
-    "lint": "npm --prefix frontend run lint"
+    "dev": "npm --prefix web run dev",
+    "dev:web": "npm --prefix web run dev",
+    "dev:front": "npm --prefix web run dev",
+    "server": "npm --prefix websocket run dev",
+    "dev:server": "npm --prefix websocket run dev",
+    "dev:socket": "npm --prefix websocket run dev",
+    "build": "npm --prefix web run build",
+    "lint": "npm --prefix web run lint"
   }
 }
