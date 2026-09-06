@@ -468,7 +468,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
               วางรูปภาพหรือไฟล์ PDF ที่นี่
             </p>
             <p className="text-xs text-zinc-400">
-              รูปภาพ (สูงสุด 15 MB) และไฟล์ PDF (สูงสุด 3.5 MB)
+              รูปภาพ (สูงสุด 15 MB) <br /> ไฟล์ PDF (สูงสุด 3.5 MB)
             </p>
           </div>
         </div>
@@ -489,7 +489,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             type="button"
             onClick={() => setIsMediaGalleryOpen(true)}
             className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-lg transition cursor-pointer flex items-center gap-1 text-xs"
-            title="ดูรูปและไฟล์ทั้งหมดในห้อง (สไตล์ Facebook)"
+            title="ดูรูปและไฟล์ทั้งหมดในห้อง"
           >
             <Images className="w-4 h-4" />
             <span className="hidden sm:inline text-xs font-medium">
