@@ -1,6 +1,7 @@
 import React from "react";
 import { Message } from "@/types";
 import { formatThaiDate } from "@/lib/date";
+import { toast } from "react-hot-toast";
 
 export const MAX_IMAGES = 10;
 export const QUICK_REACTIONS = ["❤️", "😆", "😮", "😢", "😡", "👍", "👌"];
@@ -68,6 +69,105 @@ export const getPdfFileName = (msg: Message) => {
     } catch {}
   }
   return "เอกสาร.pdf";
+};
+
+export const compressImageClientSide = (
+  file: File,
+  maxDim = 1600,
+): Promise<string> => {
+  return new Promise((resolve) => {
+    // GIF or tiny image (<200KB) don't need recompression
+    if (file.type === "image/gif" || file.size < 200 * 1024) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || "");
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve((e.target?.result as string) || "");
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => resolve("");
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
+  });
+};
+
+export const processChatFiles = async (
+  files: File[],
+): Promise<{ dataUrl: string; name: string }[]> => {
+  const promises: Promise<{ dataUrl: string; name: string } | null>[] = [];
+
+  for (const file of files) {
+    if (file.type.startsWith("image/")) {
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error(
+          `รูปภาพ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 15 MB)`,
+        );
+        continue;
+      }
+      promises.push(
+        compressImageClientSide(file).then((dataUrl) =>
+          dataUrl ? { dataUrl, name: file.name || "image.jpg" } : null,
+        ),
+      );
+    } else if (isPdfFile(file)) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error(
+          `ไฟล์ PDF "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 3.5 MB)`,
+        );
+        continue;
+      }
+      promises.push(
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) =>
+            resolve({
+              dataUrl: (e.target?.result as string) || "",
+              name: file.name || "document.pdf",
+            });
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        }),
+      );
+    } else {
+      toast.error(`ไฟล์ "${file.name}" ไม่รองรับ (รองรับเฉพาะรูปภาพและ PDF)`);
+    }
+  }
+
+  const results = await Promise.all(promises);
+  return results.filter(
+    (item): item is { dataUrl: string; name: string } =>
+      item !== null && Boolean(item.dataUrl),
+  );
 };
 
 export const getOptimizedCloudinaryThumbnail = (url?: string): string => {

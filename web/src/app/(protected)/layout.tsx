@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, Loader2, UserCog } from "lucide-react";
+import { LogOut, Loader2, UserCog, RotateCw } from "lucide-react";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 import { EditProfileModal } from "@/components/modals";
 import {
   Footer,
@@ -13,7 +14,7 @@ import {
   TicketWarLogo,
 } from "@/components/common";
 import { useClickOutside } from "@/lib/hooks";
-import { getSocket } from "@/lib/socket";
+import { getSocket, useSocketStatus } from "@/lib/socket";
 
 export default function ProtectedLayout({
   children,
@@ -22,6 +23,7 @@ export default function ProtectedLayout({
 }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const { status: socketStatus, reconnect } = useSocketStatus();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -37,6 +39,15 @@ export default function ProtectedLayout({
   }, [user, loading, router]);
 
   useClickOutside(dropdownRef, () => setIsDropdownOpen(false));
+
+  const statusLabel =
+    socketStatus === "connected"
+      ? "ออนไลน์"
+      : socketStatus === "connecting"
+        ? "กำลังเชื่อมต่อ"
+        : "ออฟไลน์";
+
+  const statusTooltip = `สถานะ: ${statusLabel}${socketStatus === "disconnected" ? " (คลิกเพื่อต่อใหม่)" : ""}`;
 
   if (loading) {
     return (
@@ -73,15 +84,26 @@ export default function ProtectedLayout({
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="rounded-full hover:scale-105 transition-transform cursor-pointer p-0.5 focus:outline-none"
+              className="relative rounded-full hover:scale-105 transition-transform cursor-pointer p-0.5 focus:outline-none"
               aria-label="เมนูผู้ใช้งาน"
               aria-expanded={isDropdownOpen}
+              title={statusTooltip}
             >
               <Avatar
                 src={user.avatarUrl}
                 name={user.name}
                 size="md"
                 className="border-2 border-transparent hover:border-[#1ed760] transition-colors shadow-md"
+              />
+              {/* Discord/Slack style status dot */}
+              <span
+                className={`absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#121212] transition-colors ${
+                  socketStatus === "connected"
+                    ? "bg-[#1ed760]"
+                    : socketStatus === "connecting"
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-rose-500"
+                }`}
               />
             </button>
 
@@ -91,7 +113,18 @@ export default function ProtectedLayout({
                 {/* User Info Header */}
                 <div className="px-4 py-3 border-b border-[#252525]">
                   <div className="flex items-center gap-3">
-                    <Avatar src={user.avatarUrl} name={user.name} size="md" />
+                    <div className="relative shrink-0">
+                      <Avatar src={user.avatarUrl} name={user.name} size="md" />
+                      <span
+                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a1a] ${
+                          socketStatus === "connected"
+                            ? "bg-[#1ed760]"
+                            : socketStatus === "connecting"
+                              ? "bg-amber-400 animate-pulse"
+                              : "bg-rose-500"
+                        }`}
+                      />
+                    </div>
                     <div className="overflow-hidden min-w-0 flex-1">
                       <p className="text-sm sm:text-base font-bold text-white truncate leading-snug">
                         {user.name}
@@ -100,6 +133,43 @@ export default function ProtectedLayout({
                         {user.email}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Realtime Status Row with Retry Action */}
+                  <div className="mt-3 pt-2.5 border-t border-[#252525]/80 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          socketStatus === "connected"
+                            ? "bg-[#1ed760]"
+                            : socketStatus === "connecting"
+                              ? "bg-amber-400 animate-pulse"
+                              : "bg-rose-500"
+                        }`}
+                      />
+                      <span className="text-xs text-zinc-300 font-medium truncate">
+                        {socketStatus === "connected"
+                          ? "ออนไลน์"
+                          : socketStatus === "connecting"
+                            ? "กำลังเชื่อมต่อ..."
+                            : "ออฟไลน์"}
+                      </span>
+                    </div>
+
+                    {socketStatus !== "connected" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          reconnect();
+                          toast.success("กำลังพยายามเชื่อมต่อเซิร์ฟเวอร์ใหม่...");
+                        }}
+                        className="px-2 py-0.5 rounded-md bg-[#252525] hover:bg-[#333333] text-zinc-200 hover:text-white text-[11px] font-medium transition cursor-pointer flex items-center gap-1 shrink-0 border border-zinc-700/60"
+                        title="ลองเชื่อมต่อเซิร์ฟเวอร์ใหม่"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                        <span>ต่อใหม่</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

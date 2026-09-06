@@ -1,6 +1,9 @@
+import { useEffect, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
+
+export type SocketStatus = "connected" | "connecting" | "disconnected";
 
 export const getSocket = (): Socket => {
   if (!socket && typeof window !== "undefined") {
@@ -40,3 +43,59 @@ export const getSocket = (): Socket => {
 
   return socket as Socket;
 };
+
+export const reconnectSocket = () => {
+  if (typeof window !== "undefined") {
+    const s = getSocket();
+    if (!s.connected) {
+      s.connect();
+    }
+  }
+};
+
+export const useSocketStatus = (): {
+  status: SocketStatus;
+  reconnect: () => void;
+} => {
+  const [status, setStatus] = useState<SocketStatus>(() => {
+    if (typeof window === "undefined" || !socket) return "connecting";
+    return socket.connected ? "connected" : "connecting";
+  });
+
+  const handleReconnect = useCallback(() => {
+    setStatus("connecting");
+    reconnectSocket();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const s = getSocket();
+
+    const onConnect = () => setStatus("connected");
+    const onDisconnect = () => setStatus("disconnected");
+    const onConnectError = () => setStatus("disconnected");
+    const onReconnectAttempt = () => setStatus("connecting");
+
+    // Set immediate status
+    if (s.connected) {
+      setStatus("connected");
+    } else {
+      setStatus("connecting");
+    }
+
+    s.on("connect", onConnect);
+    s.on("disconnect", onDisconnect);
+    s.on("connect_error", onConnectError);
+    s.io.on("reconnect_attempt", onReconnectAttempt);
+
+    return () => {
+      s.off("connect", onConnect);
+      s.off("disconnect", onDisconnect);
+      s.off("connect_error", onConnectError);
+      s.io.off("reconnect_attempt", onReconnectAttempt);
+    };
+  }, []);
+
+  return { status, reconnect: handleReconnect };
+};
+

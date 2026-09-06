@@ -16,6 +16,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   stripEmojis,
   extractFirstUrl,
+  processChatFiles,
 } from "./chatUtils";
 import { toast } from "react-hot-toast";
 import { fetchLinkPreview, LinkPreviewData } from "./LinkPreviewCard";
@@ -145,37 +146,11 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     inputRef.current?.focus();
   };
 
-  const readAndAddFiles = (files: File[]) => {
-    const validFiles: File[] = [];
-    for (const file of files) {
-      if (!file.type.startsWith("image/") && !isPdfFile(file)) continue;
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error(
-          `ไฟล์ "${file.name}" มีขนาดใหญ่เกินไป (จำกัดไม่เกิน 3.5 MB)`,
-        );
-        continue;
-      }
-      validFiles.push(file);
-    }
-    if (validFiles.length === 0) return;
-
-    const readers = validFiles.map((file) => {
-      return new Promise<{ dataUrl: string; name: string }>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          resolve({
-            dataUrl: (event.target?.result as string) || "",
-            name: file.name || (isPdfFile(file) ? "document.pdf" : "image.png"),
-          });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then((items) => {
-      const valid = items.filter((item) => Boolean(item.dataUrl));
+  const readAndAddFiles = async (files: File[]) => {
+    const valid = await processChatFiles(files);
+    if (valid.length > 0) {
       addFiles(valid);
-    });
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

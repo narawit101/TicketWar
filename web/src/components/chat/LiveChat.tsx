@@ -12,6 +12,7 @@ import {
   Minimize2,
   Images,
   FileText,
+  UploadCloud,
 } from "lucide-react";
 import { ConfirmActionModal, ImageLightboxModal } from "@/components/modals";
 import { Avatar } from "@/components/common";
@@ -24,7 +25,8 @@ import {
   isPdfUrl,
   stripEmojis,
   handleDownloadFile,
-  isPdfFile,
+  processChatFiles,
+  MAX_IMAGES,
 } from "./chatUtils";
 
 export interface LiveChatProps {
@@ -379,17 +381,75 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  // Drag and drop state
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  const addFilesToPending = (items: { dataUrl: string; name: string }[]) => {
+    if (items.length === 0) return;
+    setPendingFiles((prev) => {
+      const remainingSlots = MAX_IMAGES - prev.length;
+      if (remainingSlots <= 0) {
+        toast.error(`แนบไฟล์ได้สูงสุด ${MAX_IMAGES} ไฟล์`);
+        return prev;
+      }
+      if (items.length > remainingSlots) {
+        toast(
+          `แนบไฟล์ได้สูงสุด ${MAX_IMAGES} ไฟล์ (เพิ่มได้อีก ${remainingSlots} ไฟล์)`,
+        );
+      }
+      return [...prev, ...items.slice(0, remainingSlots)];
+    });
+    inputRef.current?.focus();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+    dragCounterRef.current += 1;
+    if (e.dataTransfer?.types?.includes("Files")) {
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDraggingOver(false);
+    if (isReadOnly) return;
+
     const files = Array.from(e.dataTransfer?.files || []);
-    if (files.some((f) => f.type.startsWith("image/") || isPdfFile(f))) {
-      e.preventDefault();
-      // Drop handled through file reading
+    if (files.length > 0) {
+      const valid = await processChatFiles(files);
+      if (valid.length > 0) {
+        addFilesToPending(valid);
+      }
     }
   };
 
   return (
     <div
-      onDragOver={(e) => e.preventDefault()}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={
         isFullscreen
@@ -397,6 +457,23 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           : "relative bg-zinc-900/70 border border-zinc-800/80 rounded-xl flex flex-col h-full min-h-0 overflow-hidden shadow-sm"
       }
     >
+      {/* Spotify-styled Drag & Drop File Overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 bg-[#121212]/90 backdrop-blur-sm border-2 border-dashed border-[#1ed760] rounded-xl flex flex-col items-center justify-center gap-3 p-6 pointer-events-none select-none transition-all animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-16 h-16 rounded-full bg-[#1ed760]/15 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-lg">
+            <UploadCloud className="w-8 h-8 animate-bounce" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-sm sm:text-base font-bold text-white">
+              วางรูปภาพหรือไฟล์ PDF ที่นี่
+            </p>
+            <p className="text-xs text-zinc-400">
+              รูปภาพ (สูงสุด 15 MB) และไฟล์ PDF (สูงสุด 3.5 MB)
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="px-4 py-3 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/90 shrink-0">
         <div className="flex items-center gap-2">
