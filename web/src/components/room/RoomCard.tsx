@@ -2,7 +2,11 @@
 
 import React, { useState, useRef } from "react";
 import { Room } from "@/types";
-import { formatEventDate, getQueueText } from "@/lib/date";
+import {
+  formatEventDate,
+  getQueueText,
+  formatRoomCountdownStatus,
+} from "@/lib/date";
 import {
   Crown,
   Users,
@@ -14,6 +18,8 @@ import {
   ArchiveRestore,
   Trash2,
   MessagesSquare,
+  Clock,
+  Flame,
 } from "lucide-react";
 import { RoomImageCarousel, CarouselSlide } from "./RoomImageCarousel";
 import { ConfirmType } from "@/components/modals";
@@ -65,6 +71,14 @@ export const RoomCard: React.FC<RoomCardProps> = ({
       type: "seating",
     });
   }
+
+  // Calculate live countdown status without pulse
+  const countdown = formatRoomCountdownStatus({
+    eventDate: room.eventDate,
+    hasQueue: room.hasQueue,
+    queueTime: room.queueTime,
+    roomStatus: room.status,
+  });
 
   return (
     <div
@@ -120,6 +134,30 @@ export const RoomCard: React.FC<RoomCardProps> = ({
               <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-400 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
                 <Archive className="w-3 h-3 text-zinc-400" />
                 <span>จัดเก็บ</span>
+              </span>
+            )}
+
+            {/* Mini Countdown Tag - Clean, non-flickering */}
+            {isLive && countdown.text && (
+              <span
+                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm transition-colors ${
+                  countdown.status === "ACTIVE"
+                    ? "bg-[#1ed760]/15 text-[#1ed760] border border-[#1ed760]/30"
+                    : countdown.status === "ENDED"
+                      ? "bg-[#181818] text-zinc-500 border border-zinc-800"
+                      : countdown.isUrgent
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                        : "bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50"
+                }`}
+              >
+                {countdown.status === "ACTIVE" ? (
+                  <Flame className="w-3 h-3 text-[#1ed760] fill-[#1ed760]" />
+                ) : (
+                  <Clock
+                    className={`w-3 h-3 ${countdown.isUrgent ? "text-amber-400" : "text-[#1ed760]"}`}
+                  />
+                )}
+                <span>{countdown.text}</span>
               </span>
             )}
           </div>

@@ -1,7 +1,11 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Room } from "@/types";
-import { formatEventDate, getQueueText } from "@/lib/date";
+import {
+  formatEventDate,
+  getQueueText,
+  formatRoomCountdownStatus,
+} from "@/lib/date";
 import { useClickOutside } from "@/lib/hooks";
 import {
   ArrowLeft,
@@ -42,6 +46,13 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(menuRef, () => setIsMenuOpen(false));
+
+  const countdown = formatRoomCountdownStatus({
+    eventDate: room.eventDate,
+    hasQueue: room.hasQueue,
+    queueTime: room.queueTime,
+    roomStatus: room.status,
+  });
 
   return (
     <div className="sticky top-16 z-20 bg-[#121212]/95 backdrop-blur-md -mx-4 md:-mx-6 px-4 md:px-6 py-3.5 border-b border-zinc-800/80 shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 transition-all">
@@ -104,6 +115,26 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                 {getQueueText(room.hasQueue, room.queueTime)}
               </span>
             </div>
+
+            {/* Inline Countdown & Status */}
+            {countdown.text && (
+              <div className="inline-flex items-center gap-1 shrink-0">
+                <span className="text-zinc-500">•</span>
+                <span
+                  className={
+                    countdown.status === "ACTIVE"
+                      ? "text-[#1ed760] font-bold"
+                      : countdown.status === "ENDED"
+                        ? "text-zinc-500 font-normal"
+                        : countdown.isUrgent
+                          ? "text-amber-400 font-semibold"
+                          : "text-zinc-300 font-medium"
+                  }
+                >
+                  {countdown.text}
+                </span>
+              </div>
+            )}
 
             {room.status !== "ACTIVE" && (
               <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-zinc-400 shrink-0">

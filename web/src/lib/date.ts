@@ -199,3 +199,108 @@ export function parseDateInBangkok(input?: string | Date | null): Date | null {
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
 }
+
+export interface RoomCountdownStatus {
+  text: string;
+  status: "UPCOMING" | "ACTIVE" | "ENDED";
+  isUrgent: boolean;
+}
+
+/**
+ * Calculates countdown / event status:
+ * 1. UPCOMING: Count down to queue opening or sale date ("อีก X วัน Y ชม.")
+ * 2. ACTIVE: If within 2 hours after sale date ("กำลังเปิดกด", calm Spotify green, no pulse)
+ * 3. ENDED: If archived, tickets all secured, or > 2 hours after sale ("จบแล้ว" / "ได้บัตรครบแล้ว")
+ */
+export function formatRoomCountdownStatus({
+  eventDate,
+  hasQueue,
+  queueTime,
+  roomStatus,
+  isAllSecured,
+  now = new Date(),
+}: {
+  eventDate?: string | Date | null;
+  hasQueue?: boolean;
+  queueTime?: string | null;
+  roomStatus?: string;
+  isAllSecured?: boolean;
+  now?: Date;
+}): RoomCountdownStatus {
+  // If room is archived, it's explicitly finished
+  if (roomStatus === "ARCHIVED") {
+    return { text: "จบแล้ว", status: "ENDED", isUrgent: false };
+  }
+
+  const saleDate = parseDateInBangkok(eventDate);
+  if (!saleDate) {
+    return { text: "", status: "ENDED", isUrgent: false };
+  }
+
+  const saleTimeMs = saleDate.getTime();
+  const nowMs = now.getTime();
+
+  // If all tickets secured and sale time has already arrived
+  if (isAllSecured && nowMs >= saleTimeMs) {
+    return { text: "ได้บัตรครบแล้ว", status: "ENDED", isUrgent: false };
+  }
+
+  // Check queue time first (if room has queue)
+  let queueDate: Date | null = null;
+  if (hasQueue && queueTime) {
+    const cleanTime = queueTime.replace(/น\.?/g, "").trim();
+    const timeMatch = cleanTime.match(/^(\d{1,2}):(\d{2})$/);
+    if (timeMatch) {
+      const dateOnly = toInputDateValue(saleDate);
+      const queueIso = `${dateOnly}T${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}:00+07:00`;
+      const q = new Date(queueIso);
+      if (!isNaN(q.getTime())) {
+        queueDate = q;
+      }
+    }
+  }
+
+  // 1. If queue date is still in future
+  if (queueDate && queueDate.getTime() > nowMs) {
+    const diffMs = queueDate.getTime() - nowMs;
+    const diffSec = Math.floor(diffMs / 1000);
+    const days = Math.floor(diffSec / 86400);
+    const hours = Math.floor((diffSec % 86400) / 3600);
+    const minutes = Math.floor((diffSec % 3600) / 60);
+
+    let rem = "";
+    if (days > 0) rem = `อีก ${days} วัน ${hours} ชม.`;
+    else if (hours > 0) rem = `อีก ${hours} ชม. ${minutes} น.`;
+    else rem = `อีก ${Math.max(1, minutes)} นาที`;
+
+    return { text: rem, status: "UPCOMING", isUrgent: days === 0 };
+  }
+
+  // 2. If sale date is still in future
+  if (saleTimeMs > nowMs) {
+    const diffMs = saleTimeMs - nowMs;
+    const diffSec = Math.floor(diffMs / 1000);
+    const days = Math.floor(diffSec / 86400);
+    const hours = Math.floor((diffSec % 86400) / 3600);
+    const minutes = Math.floor((diffSec % 3600) / 60);
+
+    let rem = "";
+    if (days > 0) rem = `อีก ${days} วัน ${hours} ชม.`;
+    else if (hours > 0) rem = `อีก ${hours} ชม. ${minutes} น.`;
+    else rem = `อีก ${Math.max(1, minutes)} นาที`;
+
+    return { text: rem, status: "UPCOMING", isUrgent: days === 0 };
+  }
+
+  // 3. Past sale date:
+  // If within 2 hours after sale date: considered actively dropping / in progress
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  if (nowMs - saleTimeMs < TWO_HOURS_MS) {
+    return { text: "กำลังเปิดจำหน่าย", status: "ACTIVE", isUrgent: true };
+  }
+
+  // 4. Over 2 hours after sale date: ended
+  return { text: "จบแล้ว", status: "ENDED", isUrgent: false };
+}
+
+
