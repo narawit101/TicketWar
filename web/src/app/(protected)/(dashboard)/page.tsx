@@ -152,6 +152,7 @@ export default function RoomsPage() {
           ownershipTab={ownershipTab}
           searchQuery={searchQuery}
           onClearSearch={() => setSearchQuery("")}
+          onViewAllDates={() => setDateFilter("ALL")}
           onResetFilters={handleResetFilters}
           onOpenJoin={() => setIsJoinOpen(true)}
           onOpenCreate={() => setIsCreateOpen(true)}

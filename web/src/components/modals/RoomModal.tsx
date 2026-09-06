@@ -235,7 +235,7 @@ const RoomModalDialog: React.FC<{
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#252525] bg-[#1a1a1a]">
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-            {isCreate ? "สร้างห้องกดบัตรใหม่" : "แก้ไขข้อมูลห้องกดบัตร"}
+            {isCreate ? "สร้างห้องแชทใหม่" : "แก้ไขข้อมูลห้องแชท"}
           </h2>
           <button
             onClick={onClose}

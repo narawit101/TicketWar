@@ -10,6 +10,7 @@ interface RoomEmptyStateProps {
   ownershipTab: "ALL" | "MINE" | "JOINED";
   searchQuery?: string;
   onClearSearch?: () => void;
+  onViewAllDates?: () => void;
   onResetFilters: () => void;
   onOpenJoin: () => void;
   onOpenCreate: () => void;
@@ -22,23 +23,32 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
   ownershipTab,
   searchQuery,
   onClearSearch,
+  onViewAllDates,
   onResetFilters,
   onOpenJoin,
   onOpenCreate,
 }) => {
   const isSearchActive = !!searchQuery?.trim();
-  const isFilterActive =
+  const isCustomDate = dateFilter === "CUSTOM" || !!customDate;
+  const isUpcomingOnly =
+    dateFilter === "UPCOMING" &&
+    !isCustomDate &&
+    !isSearchActive &&
+    statusFilter === "ALL";
+
+  const isUserFilterActive =
     statusFilter !== "ARCHIVED" &&
-    (statusFilter !== "ALL" || dateFilter !== "ALL" || !!customDate || isSearchActive);
+    (statusFilter !== "ALL" || isCustomDate || isSearchActive);
 
   const getEmptyTitle = () => {
-    if (isSearchActive) return `ไม่พบห้องกดบัตรที่ตรงกับ "${searchQuery?.trim()}"`;
+    if (isSearchActive)
+      return `ไม่พบห้องแชทที่ตรงกับ "${searchQuery?.trim()}"`;
     if (statusFilter === "ARCHIVED") return "ไม่มีห้องในคลังจัดเก็บ";
-    if (dateFilter !== "ALL" || customDate)
-      return "ไม่พบห้องกดบัตรที่ตรงกับตัวกรอง";
-    if (ownershipTab === "MINE") return "คุณยังไม่ได้สร้างห้องกดบัตร";
+    if (isCustomDate) return "ไม่พบห้องแชทที่ตรงกับวันที่เลือก";
+    if (isUpcomingOnly) return "ไม่มีงานที่กำลังจะถึงเร็วๆ นี้";
+    if (ownershipTab === "MINE") return "คุณยังไม่ได้สร้างห้องแชท";
     if (ownershipTab === "JOINED") return "คุณยังไม่ได้รับเชิญเข้าห้องใดๆ";
-    return "ไม่พบห้องกดบัตรในหมวดนี้";
+    return "ไม่พบห้องแชท";
   };
 
   return (
@@ -55,15 +65,31 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
 
       <div>
         <h3 className="text-base font-bold text-white">{getEmptyTitle()}</h3>
-        {isFilterActive && (
+        {isSearchActive ? (
           <button
             type="button"
-            onClick={isSearchActive && onClearSearch ? onClearSearch : onResetFilters}
+            onClick={onClearSearch || onResetFilters}
             className="mt-2 text-xs text-[#1ed760] hover:underline font-semibold cursor-pointer inline-block"
           >
-            {isSearchActive ? "ล้างคำค้นหา" : "ล้างตัวกรองทั้งหมด"}
+            ล้างคำค้นหา
           </button>
-        )}
+        ) : isUpcomingOnly ? (
+          <button
+            type="button"
+            onClick={onViewAllDates || onResetFilters}
+            className="mt-2 text-xs text-[#1ed760] hover:underline font-semibold cursor-pointer inline-block"
+          >
+            ดูห้องทั้งหมด
+          </button>
+        ) : isUserFilterActive ? (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="mt-2 text-xs text-[#1ed760] hover:underline font-semibold cursor-pointer inline-block"
+          >
+            ล้างตัวกรองทั้งหมด
+          </button>
+        ) : null}
       </div>
 
       {statusFilter !== "ARCHIVED" && (

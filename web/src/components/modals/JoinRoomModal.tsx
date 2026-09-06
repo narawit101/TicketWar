@@ -178,7 +178,7 @@ const JoinRoomDialog: React.FC<{
             <div className="flex items-center gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                  เข้าร่วมห้องกดบัตร
+                  เข้าร่วมห้องแชท
                 </h2>
                 <p className="text-sm text-[#b3b3b3]">
                   วางลิงก์คำเชิญ หรือกรอกรหัสห้อง 8 หลัก
@@ -288,7 +288,7 @@ const JoinRoomDialog: React.FC<{
               </div>
 
               <p className="text-sm text-[#b3b3b3] pt-1">
-                คุณต้องการเข้าร่วมห้องกดบัตรนี้เพื่อทำงานร่วมกับทีมใช่หรือไม่?
+                คุณต้องการเข้าร่วมห้องแชทนี้เพื่อทำงานร่วมกับทีมใช่หรือไม่?
               </p>
 
               {/* Actions */}
