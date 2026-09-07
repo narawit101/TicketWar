@@ -9,3 +9,4 @@ export { RoomModal, CreateRoomModal, EditRoomModal } from "./RoomModal";
 export type { RoomFormData, RoomModalProps } from "./RoomModal";
 export { ShareRoomModal } from "./ShareRoomModal";
 export { WarRoomSummaryModal } from "./WarRoomSummaryModal";
+export { PwaInstallModal } from "./PwaInstallModal";

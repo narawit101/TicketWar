@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Kanit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import { PwaRegister } from "@/components/common";
 
 const kanit = Kanit({
   weight: ["300", "400", "500", "600", "700"],
@@ -10,6 +11,14 @@ const kanit = Kanit({
   variable: "--font-kanit",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  themeColor: "#121212",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -20,8 +29,20 @@ export const metadata: Metadata = {
     template: "%s | TicketWar",
   },
   description: "ระบบแชทห้องส่วนตัว ไว้สำหรับพูดคุย",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TicketWar",
+  },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   openGraph: {
     siteName: "TicketWar",
@@ -42,6 +63,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-[#121212] text-white flex flex-col">
         <AuthProvider>
+          <PwaRegister />
           {children}
           <Toaster
             position="top-center"

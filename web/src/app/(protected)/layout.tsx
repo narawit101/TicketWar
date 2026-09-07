@@ -3,10 +3,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LogOut, Loader2, UserCog, RotateCw } from "lucide-react";
+import { LogOut, Loader2, UserCog, RotateCw, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { EditProfileModal } from "@/components/modals";
+import { EditProfileModal, PwaInstallModal } from "@/components/modals";
 import {
   Footer,
   Avatar,
@@ -27,6 +27,7 @@ export default function ProtectedLayout({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -187,6 +188,21 @@ export default function ProtectedLayout({
                     <span>แก้ไขข้อมูลส่วนตัว</span>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsPwaModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#d4d4d4] hover:text-white hover:bg-[#252525] transition cursor-pointer font-medium group"
+                  >
+                    <Smartphone className="w-4 h-4 text-[#539df5] group-hover:scale-110 transition-transform" />
+                    <span className="flex-1 text-left">ติดตั้งแอปลงเครื่อง</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#539df5]/15 text-[#539df5] border border-[#539df5]/30">
+                      PWA
+                    </span>
+                  </button>
+
                   <div className="h-px bg-[#252525] my-1" />
 
                   <button
@@ -211,6 +227,12 @@ export default function ProtectedLayout({
       <EditProfileModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
+      />
+
+      {/* PWA Install Modal */}
+      <PwaInstallModal
+        isOpen={isPwaModalOpen}
+        onClose={() => setIsPwaModalOpen(false)}
       />
 
       {/* Protected Pages Content */}

@@ -146,3 +146,12 @@ export interface SearchUserResult {
   avatarUrl?: string | null;
   membershipStatus?: "MEMBER" | "INVITED" | null;
 }
+
+export interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}

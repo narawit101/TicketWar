@@ -3,4 +3,5 @@ export { Footer } from "./Footer";
 export { NotificationDropdown } from "./NotificationDropdown";
 export { TicketWarLogo } from "./TicketWarLogo";
 export { Pagination } from "./Pagination";
+export { PwaRegister } from "./PwaRegister";
 export * from "./Skeleton";
