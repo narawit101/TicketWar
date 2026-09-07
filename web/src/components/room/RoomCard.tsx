@@ -20,6 +20,7 @@ import {
   MessagesSquare,
   Clock,
   Flame,
+  Ticket,
 } from "lucide-react";
 import { RoomImageCarousel, CarouselSlide } from "./RoomImageCarousel";
 import { ConfirmType } from "@/components/modals";
@@ -78,6 +79,11 @@ export const RoomCard: React.FC<RoomCardProps> = ({
     hasQueue: room.hasQueue,
     queueTime: room.queueTime,
     roomStatus: room.status,
+    isAllSecured: Boolean(
+      room.totalNeeded &&
+      room.totalNeeded > 0 &&
+      (room.totalSecured || 0) >= room.totalNeeded,
+    ),
   });
 
   return (
@@ -208,6 +214,45 @@ export const RoomCard: React.FC<RoomCardProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Ticket Progress Bar & Ratio */}
+        {typeof room.totalNeeded === "number" && room.totalNeeded > 0 && (
+          <div className="space-y-1.5 mb-1 bg-[#161616] p-2.5 rounded-xl border border-[#262626]">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-[#a0a0a0]">
+                <Ticket className="w-3.5 h-3.5 text-[#1ed760]" />
+                <span className="font-medium">ได้แล้ว</span>
+              </span>
+              <span className="font-bold text-white">
+                {room.totalSecured || 0}
+                <span className="text-[#888888] font-normal">
+                  {" "}
+                  / {room.totalNeeded} ใบ
+                </span>
+              </span>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full bg-[#242424] h-1.5 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  (room.totalSecured || 0) >= room.totalNeeded
+                    ? "bg-[#1ed760]"
+                    : (room.totalSecured || 0) > 0
+                      ? "bg-amber-400"
+                      : "bg-[#383838]"
+                }`}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      ((room.totalSecured || 0) / room.totalNeeded) * 100,
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Card Footer: Enter Room & Consolidated Action Dropdown */}

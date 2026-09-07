@@ -120,6 +120,9 @@ export async function GET(req: Request) {
         _count: {
           select: { members: true, seatTasks: true },
         },
+        seatTasks: {
+          select: { quantityNeeded: true, quantitySecured: true },
+        },
         members: userId
           ? {
               where: { userId },
@@ -152,6 +155,11 @@ export async function GET(req: Request) {
     const formattedRooms = rooms.map((r, idx: number) => {
       const isOwner =
         r.createdById === userId || r.members?.[0]?.role === "OWNER";
+      const totalNeeded =
+        r.seatTasks?.reduce((sum, t) => sum + (t.quantityNeeded || 0), 0) || 0;
+      const totalSecured =
+        r.seatTasks?.reduce((sum, t) => sum + (t.quantitySecured || 0), 0) || 0;
+
       return {
         id: r.id,
         title: r.title,
@@ -165,6 +173,8 @@ export async function GET(req: Request) {
         description: r.description || null,
         memberCount: Math.max(1, r._count.members),
         taskCount: r._count.seatTasks,
+        totalNeeded,
+        totalSecured,
         unreadCount: unreadCounts[idx] || 0,
         createdAt: r.createdAt.toISOString(),
         eventDate: r.eventDate

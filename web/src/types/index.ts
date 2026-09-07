@@ -112,6 +112,8 @@ export interface Room {
   role?: "OWNER" | "MEMBER";
   memberCount: number;
   taskCount?: number;
+  totalNeeded?: number;
+  totalSecured?: number;
   unreadCount?: number;
   createdAt?: string;
   members?: RoomMemberItem[];
