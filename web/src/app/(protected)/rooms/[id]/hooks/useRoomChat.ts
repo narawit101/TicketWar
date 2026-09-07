@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Message, ReplyToMessage, TypingUser } from "@/types";
 import { getSocket } from "@/lib/socket";
-import { playSoundAlert } from "@/lib/audio";
 import { toast } from "react-hot-toast";
 
 interface UseRoomChatParams {
@@ -49,13 +48,6 @@ export function useRoomChat({
         }
         return [...prev, incomingMsg];
       });
-      if (incomingMsg.isShoutout) {
-        playSoundAlert("alert");
-      }
-    };
-
-    const handleShoutout = () => {
-      playSoundAlert("alert");
     };
 
     const handleMessageDeleted = (data: { messageId: string }) => {
@@ -139,7 +131,6 @@ export function useRoomChat({
     socket.on("room_pinned_message_updated", handlePinnedMessageUpdated);
     socket.on("user_typing", handleUserTyping);
     socket.on("user_read", handleUserRead);
-    socket.on("shoutout_alert", handleShoutout);
 
     return () => {
       socket.off("new_message", handleNewMessage);
@@ -149,7 +140,6 @@ export function useRoomChat({
       socket.off("room_pinned_message_updated", handlePinnedMessageUpdated);
       socket.off("user_typing", handleUserTyping);
       socket.off("user_read", handleUserRead);
-      socket.off("shoutout_alert", handleShoutout);
     };
   }, [roomId, userId, currentUserName]);
 

@@ -9,7 +9,6 @@ import {
   SecuredByRecord,
 } from "@/types";
 import { getSocket } from "@/lib/socket";
-import { playSoundAlert } from "@/lib/audio";
 import { toast } from "react-hot-toast";
 
 interface UseRoomTasksParams {
@@ -233,8 +232,6 @@ export function useRoomTasks({
         return;
       }
 
-      playSoundAlert("success");
-
       const newPending: PendingPaymentRecord = {
         id: crypto.randomUUID(),
         userId: userId || "",
@@ -310,7 +307,6 @@ export function useRoomTasks({
         (p) => p.id !== pendingId,
       );
 
-      playSoundAlert("success");
       const nextSecured = target.quantitySecured + 1;
       const isNowFull = nextSecured >= target.quantityNeeded;
       const nextStatus: SeatStatus = isNowFull
@@ -409,7 +405,6 @@ export function useRoomTasks({
         return;
       }
 
-      playSoundAlert("success");
       const nextSecured = target.quantitySecured + 1;
       const isNowFull = nextSecured >= target.quantityNeeded;
       const remainingPending = target.pendingPayments || [];
@@ -561,17 +556,14 @@ export function useRoomTasks({
       });
 
       if (targetMember === null) {
-        playSoundAlert("warning");
         const unassignMsg = `${currentUserName} ยกเลิกการมอบหมายงาน ${target.targetLocation} ทั้งหมด`;
         onAddChatMessage?.(unassignMsg, undefined, true);
         toast.success("ยกเลิกการมอบหมายงานทั้งหมดเรียบร้อย");
       } else if (isRemoved) {
-        playSoundAlert("warning");
         const unassignMsg = `📢 ${currentUserName} ถอนการมอบหมายงาน ${target.targetLocation} จาก ${targetMember.name}`;
         onAddChatMessage?.(unassignMsg, undefined, true);
         toast.success(`ถอนการมอบหมาย ${targetMember.name} เรียบร้อย`);
       } else {
-        playSoundAlert("success");
         const assignMsg = `📢 ${currentUserName} มอบหมายงาน ${target.targetLocation} ให้กับ ${targetMember.name}`;
         onAddChatMessage?.(assignMsg, undefined, true);
         toast.success(`มอบหมายงานให้ ${targetMember.name} เรียบร้อย`);
@@ -606,7 +598,6 @@ export function useRoomTasks({
         (p) => p.id !== pendingId,
       );
 
-      playSoundAlert("warning");
       const nextStatus: SeatStatus =
         target.quantitySecured >= target.quantityNeeded
           ? "COMPLETED"
@@ -664,7 +655,6 @@ export function useRoomTasks({
       const target = tasks.find((t) => t.id === taskId);
       if (!target || target.quantitySecured <= 0) return;
 
-      playSoundAlert("warning");
       const nextSecured = target.quantitySecured - 1;
       const nextStatus: SeatStatus =
         nextSecured >= target.quantityNeeded ? "COMPLETED" : "AVAILABLE";

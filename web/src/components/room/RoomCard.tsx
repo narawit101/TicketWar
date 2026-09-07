@@ -186,7 +186,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
             {room.title}
           </h2>
           {/* Floating Tooltip */}
-          <div className="pointer-events-none absolute left-0 bottom-full mb-1.5 hidden group-hover/title:block z-40 max-w-xs px-2.5 py-1.5 text-xs font-medium text-white bg-[#181818] border border-[#333333] rounded-lg shadow-2xl backdrop-blur-md whitespace-normal wrap-break-words leading-snug animate-in fade-in zoom-in-95 duration-100">
+          <div className="pointer-events-none absolute left-0 bottom-full mb-1.5 hidden group-hover/title:block z-40 max-w-xs px-2.5 py-1.5 text-xs font-medium text-white bg-[#181818] border border-[#333333] rounded-lg shadow-2xl backdrop-blur-md whitespace-normal wrap-break-word leading-snug animate-in fade-in zoom-in-95 duration-100">
             {room.title}
           </div>
         </div>

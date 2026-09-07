@@ -1,5 +1,5 @@
 import { Room, SeatTask, SecuredByRecord, PendingPaymentRecord } from "@/types";
-import { formatThaiDate } from "@/lib/date";
+import { formatThaiDate, toInputDateValue } from "@/lib/date";
 import { toast } from "react-hot-toast";
 
 export interface MemberSummary {
@@ -305,7 +305,7 @@ export function exportSummaryToCSV(room: Room, tasks: SeatTask[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   const sanitizedTitle = room.title.replace(/[^a-zA-Z0-9ก-๙_-]/g, "_").slice(0, 30);
-  const dateStamp = new Date().toISOString().split("T")[0];
+  const dateStamp = toInputDateValue(new Date());
   link.setAttribute("href", url);
   link.setAttribute("download", `TicketWar_สรุป_${sanitizedTitle}_${dateStamp}.csv`);
   document.body.appendChild(link);

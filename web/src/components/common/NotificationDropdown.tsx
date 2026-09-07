@@ -9,7 +9,6 @@ import { Avatar } from "./Avatar";
 import { NotificationItemSkeleton } from "./Skeleton";
 import { useClickOutside } from "@/lib/hooks";
 import { getSocket } from "@/lib/socket";
-import { playNotificationChime } from "@/lib/audio";
 import { toast } from "react-hot-toast";
 
 export const NotificationDropdown: React.FC = () => {
@@ -70,9 +69,6 @@ export const NotificationDropdown: React.FC = () => {
     socket.emit("join_user", { userId: user.id });
 
     const handleNewInvitation = (newInv: RoomInvitationItem) => {
-      // Play soft notification chime
-      playNotificationChime();
-
       // Show rich Spotify toast
       toast.custom(
         (t) => (
