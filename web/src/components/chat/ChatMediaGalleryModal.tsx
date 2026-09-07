@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+ 
 import React, { useState, useMemo, useEffect } from "react";
 import { Message } from "@/types";
 import {

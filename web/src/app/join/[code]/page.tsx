@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -235,6 +234,9 @@ export default function JoinRoomByLinkPage() {
             <img
               src={room.bannerUrl}
               alt={room.title}
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-linear-to-t from-[#181818] via-[#181818]/40 to-transparent" />

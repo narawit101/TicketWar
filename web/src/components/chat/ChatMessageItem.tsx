@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+ 
 import React from "react";
 import { Message, ReplyToMessage } from "@/types";
 import { Avatar } from "@/components/common";

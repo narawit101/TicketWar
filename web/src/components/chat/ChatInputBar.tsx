@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+ 
 import React, { useRef, useEffect, useState } from "react";
 import { ReplyToMessage } from "@/types";
 import {
@@ -11,9 +11,7 @@ import {
 } from "lucide-react";
 import {
   isPdfUrl,
-  isPdfFile,
   MAX_IMAGES,
-  MAX_FILE_SIZE_BYTES,
   stripEmojis,
   extractFirstUrl,
   processChatFiles,

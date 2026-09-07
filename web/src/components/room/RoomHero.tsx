@@ -33,6 +33,9 @@ export const RoomHero: React.FC<RoomHeroProps> = ({
           <img
             src={room.bannerUrl}
             alt={`โปสเตอร์ ${room.title}`}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className="relative z-10 w-full h-full object-contain transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/20 z-10 pointer-events-none" />

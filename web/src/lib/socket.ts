@@ -1,9 +1,19 @@
-import { useEffect, useState, useCallback } from "react";
+import { useSyncExternalStore } from "react";
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
 export type SocketStatus = "connected" | "connecting" | "disconnected";
+
+let currentStatus: SocketStatus = "connecting";
+const statusListeners = new Set<() => void>();
+
+const updateStatus = (next: SocketStatus) => {
+  if (currentStatus !== next) {
+    currentStatus = next;
+    statusListeners.forEach((fn) => fn());
+  }
+};
 
 export const getSocket = (): Socket => {
   if (!socket && typeof window !== "undefined") {
@@ -30,10 +40,21 @@ export const getSocket = (): Socket => {
 
     socket.on("connect", () => {
       console.log("[Socket.io] Connected to server:", socket?.id);
+      updateStatus("connected");
     });
 
     socket.on("disconnect", (reason) => {
       console.log("[Socket.io] Disconnected:", reason);
+      updateStatus("disconnected");
+    });
+
+    socket.on("connect_error", (error) => {
+      console.log("[Socket.io] Connect error:", error);
+      updateStatus("disconnected");
+    });
+
+    socket.io.on("reconnect_attempt", () => {
+      updateStatus("connecting");
     });
   }
 
@@ -46,6 +67,7 @@ export const getSocket = (): Socket => {
 
 export const reconnectSocket = () => {
   if (typeof window !== "undefined") {
+    updateStatus("connecting");
     const s = getSocket();
     if (!s.connected) {
       s.connect();
@@ -53,49 +75,31 @@ export const reconnectSocket = () => {
   }
 };
 
+const subscribe = (callback: () => void) => {
+  if (typeof window !== "undefined") {
+    getSocket();
+  }
+  statusListeners.add(callback);
+  return () => {
+    statusListeners.delete(callback);
+  };
+};
+
+const getSnapshot = (): SocketStatus => {
+  if (typeof window === "undefined") return "connecting";
+  if (socket?.connected) return "connected";
+  return currentStatus;
+};
+
+const getServerSnapshot = (): SocketStatus => "connecting";
+
 export const useSocketStatus = (): {
   status: SocketStatus;
   reconnect: () => void;
 } => {
-  const [status, setStatus] = useState<SocketStatus>(() => {
-    if (typeof window === "undefined" || !socket) return "connecting";
-    return socket.connected ? "connected" : "connecting";
-  });
+  const status = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const handleReconnect = useCallback(() => {
-    setStatus("connecting");
-    reconnectSocket();
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const s = getSocket();
-
-    const onConnect = () => setStatus("connected");
-    const onDisconnect = () => setStatus("disconnected");
-    const onConnectError = () => setStatus("disconnected");
-    const onReconnectAttempt = () => setStatus("connecting");
-
-    // Set immediate status
-    if (s.connected) {
-      setStatus("connected");
-    } else {
-      setStatus("connecting");
-    }
-
-    s.on("connect", onConnect);
-    s.on("disconnect", onDisconnect);
-    s.on("connect_error", onConnectError);
-    s.io.on("reconnect_attempt", onReconnectAttempt);
-
-    return () => {
-      s.off("connect", onConnect);
-      s.off("disconnect", onDisconnect);
-      s.off("connect_error", onConnectError);
-      s.io.off("reconnect_attempt", onReconnectAttempt);
-    };
-  }, []);
-
-  return { status, reconnect: handleReconnect };
+  return { status, reconnect: reconnectSocket };
 };
+
 

@@ -270,7 +270,7 @@ export const NotificationDropdown: React.FC = () => {
                   {/* Room Card Preview */}
                   <div className="flex items-center gap-3 bg-[#1c1c1c] p-2.5 rounded-xl border border-[#2a2a2a]">
                     {inv.roomBannerUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                       
                       <img
                         src={inv.roomBannerUrl}
                         alt={inv.roomTitle}
