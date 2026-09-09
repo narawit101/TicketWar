@@ -1,373 +1,267 @@
-# Design System Inspired by Spotify
-
-## 1. Visual Theme & Atmosphere
-
-Spotify's web interface is a dark, immersive music player that wraps listeners in a near-black cocoon (`#121212`, `#181818`, `#1f1f1f`) where album art and content become the primary source of color. The design philosophy is "content-first darkness" — the UI recedes into shadow so that music, podcasts, and playlists can glow. Every surface is a shade of charcoal, creating a theater-like environment where the only true color comes from the iconic Spotify Green (`#1ed760`) and the album artwork itself.
-
-The typography uses SpotifyMixUI and SpotifyMixUITitle — proprietary fonts from the CircularSp family (Circular by Lineto, customized for Spotify) with an extensive fallback stack that includes Arabic, Hebrew, Cyrillic, Greek, Devanagari, and CJK fonts, reflecting Spotify's global reach. The type system is compact and functional: 700 (bold) for emphasis and navigation, 600 (semibold) for secondary emphasis, and 400 (regular) for body. Buttons use uppercase with positive letter-spacing (1.4px–2px) for a systematic, label-like quality.
-
-What distinguishes Spotify is its pill-and-circle geometry. Primary buttons use 500px–9999px radius (full pill), circular play buttons use 50% radius, and search inputs are 500px pills. Combined with heavy shadows (`rgba(0,0,0,0.5) 0px 8px 24px`) on elevated elements and a unique inset border-shadow combo (`rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset`), the result is an interface that feels like a premium audio device — tactile, rounded, and built for touch.
-
-**Key Characteristics:**
-
-- Near-black immersive dark theme (`#121212`–`#1f1f1f`) — UI disappears behind content
-- Spotify Green (`#1ed760`) as singular brand accent — never decorative, always functional
-- SpotifyMixUI/CircularSp font family with global script support
-- Pill buttons (500px–9999px) and circular controls (50%) — rounded, touch-optimized
-- Uppercase button labels with wide letter-spacing (1.4px–2px)
-- Heavy shadows on elevated elements (`rgba(0,0,0,0.5) 0px 8px 24px`)
-- Semantic colors: negative red (`#f3727f`), warning orange (`#ffa42b`), announcement blue (`#539df5`)
-- Album art as the primary color source — the UI is achromatic by design
-
-## 2. Color Palette & Roles
-
-### Primary Brand
-
-- **Spotify Green** (`#1ed760`): Primary brand accent — play buttons, active states, CTAs
-- **Near Black** (`#121212`): Deepest background surface
-- **Dark Surface** (`#181818`): Cards, containers, elevated surfaces
-- **Mid Dark** (`#1f1f1f`): Button backgrounds, interactive surfaces
-
-### Text
-
-- **White** (`#ffffff`): `--text-base`, primary text
-- **Silver** (`#b3b3b3`): Secondary text, muted labels, inactive nav
-- **Near White** (`#cbcbcb`): Slightly brighter secondary text
-- **Light** (`#fdfdfd`): Near-pure white for maximum emphasis
-
-### Semantic
-
-- **Negative Red** (`#f3727f`): `--text-negative`, error states
-- **Warning Orange** (`#ffa42b`): `--text-warning`, warning states
-- **Announcement Blue** (`#539df5`): `--text-announcement`, info states
-
-### Surface & Border
-
-- **Dark Card** (`#252525`): Elevated card surface
-- **Mid Card** (`#272727`): Alternate card surface
-- **Border Gray** (`#4d4d4d`): Button borders on dark
-- **Light Border** (`#7c7c7c`): Outlined button borders, muted links
-- **Separator** (`#b3b3b3`): Divider lines
-- **Light Surface** (`#eeeeee`): Light-mode buttons (rare)
-- **Spotify Green Border** (`#1db954`): Green accent border variant
-
-### Shadows
-
-- **Heavy** (`rgba(0,0,0,0.5) 0px 8px 24px`): Dialogs, menus, elevated panels
-- **Medium** (`rgba(0,0,0,0.3) 0px 8px 8px`): Cards, dropdowns
-- **Inset Border** (`rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset`): Input border-shadow combo
-
-## 3. Typography Rules
-
-### Font Families
-
-- **Title**: `SpotifyMixUITitle`, fallbacks: `CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek, CircularSp-Deva, Helvetica Neue, helvetica, arial, Hiragino Sans, Hiragino Kaku Gothic ProN, Meiryo, MS Gothic`
-- **UI / Body**: `SpotifyMixUI`, same fallback stack
-
-### Hierarchy
-
-| Role             | Font              | Size             | Weight  | Line Height  | Letter Spacing | Notes                        |
-| ---------------- | ----------------- | ---------------- | ------- | ------------ | -------------- | ---------------------------- |
-| Section Title    | SpotifyMixUITitle | 24px (1.50rem)   | 700     | normal       | normal         | Bold title weight            |
-| Feature Heading  | SpotifyMixUI      | 18px (1.13rem)   | 600     | 1.30 (tight) | normal         | Semibold section heads       |
-| Body Bold        | SpotifyMixUI      | 16px (1.00rem)   | 700     | normal       | normal         | Emphasized text              |
-| Body             | SpotifyMixUI      | 16px (1.00rem)   | 400     | normal       | normal         | Standard body                |
-| Button Uppercase | SpotifyMixUI      | 14px (0.88rem)   | 600–700 | 1.00 (tight) | 1.4px–2px      | `text-transform: uppercase`  |
-| Button           | SpotifyMixUI      | 14px (0.88rem)   | 700     | normal       | 0.14px         | Standard button              |
-| Nav Link Bold    | SpotifyMixUI      | 14px (0.88rem)   | 700     | normal       | normal         | Navigation                   |
-| Nav Link         | SpotifyMixUI      | 14px (0.88rem)   | 400     | normal       | normal         | Inactive nav                 |
-| Caption Bold     | SpotifyMixUI      | 14px (0.88rem)   | 700     | 1.50–1.54    | normal         | Bold metadata                |
-| Caption          | SpotifyMixUI      | 14px (0.88rem)   | 400     | normal       | normal         | Metadata                     |
-| Small Bold       | SpotifyMixUI      | 12px (0.75rem)   | 700     | 1.50         | normal         | Tags, counts                 |
-| Small            | SpotifyMixUI      | 12px (0.75rem)   | 400     | normal       | normal         | Fine print                   |
-| Badge            | SpotifyMixUI      | 10.5px (0.66rem) | 600     | 1.33         | normal         | `text-transform: capitalize` |
-| Micro            | SpotifyMixUI      | 10px (0.63rem)   | 400     | normal       | normal         | Smallest text                |
-
-### Principles
-
-- **Bold/regular binary**: Most text is either 700 (bold) or 400 (regular), with 600 used sparingly. This creates a clear visual hierarchy through weight contrast rather than size variation.
-- **Uppercase buttons as system**: Button labels use uppercase + wide letter-spacing (1.4px–2px), creating a systematic "label" voice distinct from content text.
-- **Compact sizing**: The range is 10px–24px — narrower than most systems. Spotify's type is compact and functional, designed for scanning playlists, not reading articles.
-- **Global script support**: The extensive fallback stack (Arabic, Hebrew, Cyrillic, Greek, Devanagari, CJK) reflects Spotify's 180+ market reach.
-
-## 4. Component Stylings
-
-### Buttons
-
-**Dark Pill**
-
-- Background: `#1f1f1f`
-- Text: `#ffffff` or `#b3b3b3`
-- Padding: 8px 16px
-- Radius: 9999px (full pill)
-- Use: Navigation pills, secondary actions
-
-**Dark Large Pill**
-
-- Background: `#181818`
-- Text: `#ffffff`
-- Padding: 0px 43px
-- Radius: 500px
-- Use: Primary app navigation buttons
-
-**Light Pill**
-
-- Background: `#eeeeee`
-- Text: `#181818`
-- Radius: 500px
-- Use: Light-mode CTAs (cookie consent, marketing)
-
-**Outlined Pill**
-
-- Background: transparent
-- Text: `#ffffff`
-- Border: `1px solid #7c7c7c`
-- Padding: 4px 16px 4px 36px (asymmetric for icon)
-- Radius: 9999px
-- Use: Follow buttons, secondary actions
-
-**Circular Play**
-
-- Background: `#1f1f1f`
-- Text: `#ffffff`
-- Padding: 12px
-- Radius: 50% (circle)
-- Use: Play/pause controls
-
-### Cards & Containers
-
-- Background: `#181818` or `#1f1f1f`
-- Radius: 6px–8px
-- No visible borders on most cards
-- Hover: slight background lightening
-- Shadow: `rgba(0,0,0,0.3) 0px 8px 8px` on elevated
-
-### Inputs & Form Controls
-
-- **Standard Form Inputs & Textareas**: `#1f1f1f` background, `#ffffff` text
-  - **Radius: 8px (`rounded-lg`) — "มนน้อย"**: Form inputs and textareas must always use `8px` (`rounded-lg`). Never apply pill radius (`500px` / `9999px`) to form inputs or textareas.
-  - Border / Inset: `box-shadow: rgb(18, 18, 18) 0px 1px 0px, rgb(77, 77, 77) 0px 0px 0px 1px inset`
-  - Focus: border becomes `#1ed760` (Spotify Green) with `1.5px inset`
-- **Global Search Input (Exception)**: `#1f1f1f` background, `#ffffff` text
-  - Radius: 500px (pill)
-  - Padding: 12px 96px 12px 48px (icon-aware)
-  - Use: Only standalone global search bars, not form modals
-
-### Navigation
-
-- Dark sidebar with SpotifyMixUI 14px weight 700 for active, 400 for inactive
-- `#b3b3b3` muted color for inactive items, `#ffffff` for active
-- Circular icon buttons (50% radius)
-- Spotify logo top-left in green
-
-## 5. Layout Principles
-
-### Spacing System
-
-- Base unit: 8px
-- Scale: 1px, 2px, 3px, 4px, 5px, 6px, 8px, 10px, 12px, 14px, 15px, 16px, 20px
-
-### Grid & Container
-
-- Sidebar (fixed) + main content area
-- Grid-based album/playlist cards
-- Full-width now-playing bar at bottom
-- Responsive content area fills remaining space
-
-### Whitespace Philosophy
-
-- **Dark compression**: Spotify packs content densely — playlist grids, track lists, and navigation are all tightly spaced. The dark background provides visual rest between elements without needing large gaps.
-- **Content density over breathing room**: This is an app, not a marketing site. Every pixel serves the listening experience.
-
-### Border Radius Scale
-
-- Minimal (2px): Badges, explicit tags
-- Subtle (4px): Inputs, small elements
-- Standard (6px): Album art containers, cards
-- Comfortable (8px): Sections, dialogs
-- Medium (10px–20px): Panels, overlay elements
-- Large (100px): Large pill buttons
-- Pill (500px): Primary buttons, search input
-- Full Pill (9999px): Navigation pills, search
-- Circle (50%): Play buttons, avatars, icons
-
-## 6. Depth & Elevation
-
-| Level              | Treatment                                                           | Use                            |
-| ------------------ | ------------------------------------------------------------------- | ------------------------------ |
-| Base (Level 0)     | `#121212` background                                                | Deepest layer, page background |
-| Surface (Level 1)  | `#181818` or `#1f1f1f`                                              | Cards, sidebar, containers     |
-| Elevated (Level 2) | `rgba(0,0,0,0.3) 0px 8px 8px`                                       | Dropdown menus, hover cards    |
-| Dialog (Level 3)   | `rgba(0,0,0,0.5) 0px 8px 24px`                                      | Modals, overlays, menus        |
-| Inset (Border)     | `rgb(18,18,18) 0px 1px 0px, rgb(124,124,124) 0px 0px 0px 1px inset` | Input borders                  |
-
-**Shadow Philosophy**: Spotify uses notably heavy shadows for a dark-themed app. The 0.5 opacity shadow at 24px blur creates a dramatic "floating in darkness" effect for dialogs and menus, while the 0.3 opacity at 8px blur provides a more subtle card lift. The unique inset border-shadow combination on inputs creates a recessed, tactile quality.
-
-## 7. Do's and Don'ts
-
-### Do
-
-- Use near-black backgrounds (`#121212`–`#1f1f1f`) — depth through shade variation
-- Apply Spotify Green (`#1ed760`) only for play controls, active states, and primary CTAs
-- Use pill shape (500px–9999px) for all buttons — circular (50%) for play controls
-- Apply uppercase + wide letter-spacing (1.4px–2px) on button labels
-- Keep typography compact (10px–24px range) — this is an app, not a magazine
-- Use heavy shadows (`0.3–0.5 opacity`) for elevated elements on dark backgrounds
-- Let album art provide color — the UI itself is achromatic
-
-### Don't
-
-- Don't use Spotify Green decoratively or on backgrounds — it's functional only
-- Don't use light backgrounds for primary surfaces — the dark immersion is core
-- Don't skip the pill/circle geometry on buttons — square buttons break the identity
-- Don't use thin/subtle shadows — on dark backgrounds, shadows need to be heavy to be visible
-- Don't add additional brand colors — green + achromatic grays is the complete palette
-- Don't use relaxed line-heights — Spotify's typography is compact and dense
-- Don't expose raw gray borders — use shadow-based or inset borders instead
-
-## 8. Responsive Behavior
-
-### Breakpoints
-
-| Name          | Width       | Key Changes           |
-| ------------- | ----------- | --------------------- |
-| Mobile Small  | <425px      | Compact mobile layout |
-| Mobile        | 425–576px   | Standard mobile       |
-| Tablet        | 576–768px   | 2-column grid         |
-| Tablet Large  | 768–896px   | Expanded layout       |
-| Desktop Small | 896–1024px  | Sidebar visible       |
-| Desktop       | 1024–1280px | Full desktop layout   |
-| Large Desktop | >1280px     | Expanded grid         |
-
-### Collapsing Strategy
-
-- Sidebar: full → collapsed → hidden
-- Album grid: 5 columns → 3 → 2 → 1
-- Now-playing bar: maintained at all sizes
-- Search: pill input maintained, width adjusts
-- Navigation: sidebar → bottom bar on mobile
-
-## 9. Agent Prompt Guide
-
-### Quick Color Reference
-
-- Background: Near Black (`#121212`)
-- Surface: Dark Card (`#181818`)
-- Text: White (`#ffffff`)
-- Secondary text: Silver (`#b3b3b3`)
-- Accent: Spotify Green (`#1ed760`)
-- Border: `#4d4d4d`
-- Error: Negative Red (`#f3727f`)
-
-### Example Component Prompts
-
-- "Create a dark card: #181818 background, 8px radius. Title at 16px SpotifyMixUI weight 700, white text. Subtitle at 14px weight 400, #b3b3b3. Shadow rgba(0,0,0,0.3) 0px 8px 8px on hover."
-- "Design a pill button: #1f1f1f background, white text, 9999px radius, 8px 16px padding. 14px SpotifyMixUI weight 700, uppercase, letter-spacing 1.4px."
-- "Build a circular play button: Spotify Green (#1ed760) background, #000000 icon, 50% radius, 12px padding."
-- "Create search input: #1f1f1f background, white text, 500px radius, 12px 48px padding. Inset border: rgb(124,124,124) 0px 0px 0px 1px inset."
-- "Design navigation sidebar: #121212 background. Active items: 14px weight 700, white. Inactive: 14px weight 400, #b3b3b3."
-
-### Iteration Guide
-
-1. Start with #121212 — everything lives in near-black darkness
-2. Spotify Green for functional highlights only (play, active, CTA)
-3. Pill shape for buttons only — 9999px for pills, 50% for circular controls; use 8px (rounded-lg) for inputs and cards
-4. Uppercase + wide tracking on buttons — the systematic label voice
-5. Heavy shadows (0.3–0.5 opacity) for elevation — light shadows are invisible on dark
-6. Album art provides all the color — the UI stays achromatic
+---
+name: TicketWar
+description: Real-time concert ticket booking coordination platform with Spotify-inspired dark aesthetic
+colors:
+  primary: "#1ed760"
+  primary-hover: "#1cd05a"
+  background-deep: "#121212"
+  surface-card: "#181818"
+  surface-elevated: "#1f1f1f"
+  surface-highlight: "#242424"
+  surface-modal: "#1a1a1a"
+  border-subtle: "#252525"
+  border-default: "#282828"
+  border-highlight: "#383838"
+  text-primary: "#ffffff"
+  text-secondary: "#b3b3b3"
+  text-muted: "#a0a0a0"
+  text-dim: "#71717a"
+  status-success: "#1ed760"
+  status-warning: "#ffa42b"
+  status-danger: "#f3727f"
+  status-info: "#539df5"
+typography:
+  display:
+    fontFamily: "Kanit, sans-serif"
+    fontSize: "2rem"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.02em"
+  headline:
+    fontFamily: "Kanit, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 700
+    lineHeight: 1.3
+  title:
+    fontFamily: "Kanit, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 600
+    lineHeight: 1.4
+  body:
+    fontFamily: "Kanit, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  label:
+    fontFamily: "Kanit, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 600
+    lineHeight: 1.4
+    letterSpacing: "0.05em"
+rounded:
+  sm: "6px"
+  md: "8px"
+  lg: "12px"
+  xl: "16px"
+  full: "9999px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "24px"
+  xxl: "32px"
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "#000000"
+    rounded: "{rounded.full}"
+    padding: "10px 24px"
+  button-secondary:
+    backgroundColor: "{colors.surface-elevated}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.full}"
+    padding: "8px 18px"
+  card:
+    backgroundColor: "{colors.surface-card}"
+    rounded: "{rounded.lg}"
+    padding: "16px"
+  modal:
+    backgroundColor: "{colors.surface-card}"
+    rounded: "{rounded.xl}"
+---
+
+# TicketWar Design System (Spotify Standard)
+
+## Overview
+
+**TicketWar** is a mission-critical, real-time ticket war coordination platform built for teams racing to secure high-demand concert tickets (ThaiTicketMajor, AllTicket, Eventpop).
+
+The design philosophy is **"Content-First Darkness"** inspired by Spotify:
+- **Atmospheric Theater**: The UI recedes into deep charcoal (`#121212`, `#181818`, `#1f1f1f`) so that event posters, seat status badges, and team communication glow with contrast and clarity.
+- **High-Stakes Focus**: During intense 10:00 AM ticket drops, anxiety and adrenaline run high. Visual clutter, extraneous animations, and ambiguous controls are strictly eliminated.
+- **Ponytail Philosophy (Zero-Boilerplate)**: Built natively with HTML5, standard React hooks, Tailwind CSS v4, and Lucide icons. Every line of design code earns its place.
+- **Zero-Emoji Discipline**: Emojis create visual noise and inconsistent rendering across operating systems. The platform enforces crisp Lucide icons and clear typography.
 
 ---
 
-## 10. Tailwind CSS v4 Canonical Classes Standard (`tailwindcss(suggestCanonicalClasses)`)
+## Colors
 
-> **MANDATORY CODING RULE:**  
-> In all TSX/JSX components and CSS files, **write ONLY Tailwind CSS v4 Canonical Classes**.  
-> Never write deprecated v3 aliases. Any occurrence flagged by `tailwindcss(suggestCanonicalClasses)` must be immediately converted to its canonical equivalent.
+The color system relies on Spotify's curated achromatic spectrum paired with high-clarity functional highlights.
 
-### Canonical Class Mappings Reference
+### 1. Surfaces & Backgrounds
+- **Deep Background (`#121212`)**: The foundational canvas for all pages.
+- **Elevated Card Surface (`#181818`)**: Primary containers, seat task cards, room cards.
+- **Interactive Elevated Surface (`#1f1f1f` / `#242424`)**: Chat input bars, hover states, secondary button backgrounds.
+- **Modal Header/Footer (`#1a1a1a`)**: Pinned header and footer areas in modal dialogs.
+- **Dividers & Subtle Borders (`#252525` / `#282828` / `#333333`)**: Clean separators without harsh contrast.
 
-| Deprecated / Non-Canonical (Tailwind v3) | Canonical Class (Tailwind v4) | Purpose / Note |
-| :--- | :--- | :--- |
-| `bg-gradient-to-t` | `bg-linear-to-t` | Linear gradient pointing top |
-| `bg-gradient-to-r` | `bg-linear-to-r` | Linear gradient pointing right |
-| `bg-gradient-to-b` | `bg-linear-to-b` | Linear gradient pointing bottom |
-| `bg-gradient-to-l` | `bg-linear-to-l` | Linear gradient pointing left |
-| `bg-gradient-to-tr` | `bg-linear-to-tr` | Linear gradient top-right |
-| `bg-gradient-to-br` | `bg-linear-to-br` | Linear gradient bottom-right |
-| `break-words` | `wrap-break-word` | `overflow-wrap: break-word` (preserves line wrapping without mid-word breaks) |
-| `aspect-[16/9]` | `aspect-video` | Standard 16:9 video / banner container |
-| `aspect-[1/1]` | `aspect-square` | 1:1 square media container |
-| `stroke-[3]` | `stroke-3` | Native stroke width (no arbitrary value) |
-| `h-[1px]` / `w-[1px]` | `h-px` / `w-px` | 1px border line or separator |
-| `min-w-[220px]` | `min-w-55` | 55 * 4px = 220px |
-| `max-w-[280px]` | `max-w-70` | 70 * 4px = 280px |
-| `max-h-[420px]` | `max-h-105` | 105 * 4px = 420px |
-| `[color-scheme:dark]` | `scheme-dark` | Native browser input dark mode scheme |
-| `flex-grow` / `flex-shrink` | `grow` / `shrink` | Standard flex properties |
+### 2. Typography & Contrast (WCAG 2.1 AA Compliant)
+- **Primary Text (`#ffffff`)**: Headings, active values, button labels (`Contrast 18:1`).
+- **Secondary Text (`#b3b3b3`)**: Metadata, event dates, room descriptions (`Contrast 7.4:1`).
+- **Muted & Form Placeholder (`#a0a0a0`)**: Search placeholders, inactive tabs, captions (`Contrast 5.4:1 > 4.5:1 AA`).
+- **Subtle Timestamp (`#71717a` / `text-zinc-500`)**: Chat message timestamps.
+- *(Note: Raw grays like `#666666` and `#777777` are forbidden due to poor contrast on dark backgrounds).*
+
+### 3. Functional & Semantic Accents
+- **Spotify Green (`#1ed760`)**: Reserved exclusively for primary action buttons (`btn-pill-green`), active toggles, verified ticket secured states, and live link previews. Never used decoratively.
+- **Danger / Urgent (`#f3727f` / `rose-500`)**: Action cancellation, undo triggers, kick member actions, "ขอกำลังเสริม" indicators.
+- **Warning / Hold (`#ffa42b` / `amber-500`)**: Pending payment states, backup queue warnings, "คิวหลุด" alerts.
+- **Info / Announcement (`#539df5`)**: Room role badges (Member), informational highlights.
 
 ---
 
-## 11. Modal Dialog Architecture Standard (Anti-Cutoff Pattern)
+## Typography
 
-To guarantee that modal titles, close buttons (`[X]`), and action buttons are **never cut off** regardless of screen size:
+### Font Stack
+- **Primary Font**: `Kanit` (`--font-kanit`), fallback `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`.
+- **Thai & Latin Harmony**: Kanit delivers exceptional legibility for both Thai script and Latin ticketing abbreviations (e.g. `VIP-A`, `A2`, `Zone B`).
 
+### Type Scale & Weight Hierarchy
+
+| Role | Font / Weight | Size | Line Height | Tracking | Application |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Display** | Kanit Bold (700) | 24px–32px | 1.2 | -0.02em | Hero titles, landing headers |
+| **Headline** | Kanit Bold (700) | 18px–20px | 1.3 | normal | Modal headers, room card titles |
+| **Title / Subhead** | Kanit Semibold (600) | 15px–16px | 1.4 | normal | Task location, section subheads |
+| **Body Standard** | Kanit Regular (400) | 14px (0.875rem) | 1.5 | normal | Chat messages, descriptions |
+| **Action Label** | Kanit Bold (700) | 12px–13px | 1.0 | 0.05em | Button labels, pills (`uppercase` where fitting) |
+| **Caption / Meta** | Kanit Medium (500) | 11px–12px | 1.4 | normal | Time stamps, member counts, queue badges |
+| **Code / Shortcut** | Monospace (mono) | 10px–11px | 1.0 | normal | Keyboard accelerator badges (`Alt+1`, `5s`) |
+
+---
+
+## Layout
+
+### 1. Spacing Rhythm & Responsive Grids
+- **Base Grid Unit**: `8px` (`p-2`, `p-4`, `p-6`, `gap-3`, `gap-4`).
+- **Dashboard Grid**: Responsive card grid transitioning from 1 column (`<640px`) to 2 columns (`md:grid-cols-2`) and 3 columns (`lg:grid-cols-3`).
+- **Live Chat Layout**: Split view in room detail (`2-column` on desktop: Left Seat Tasks, Right Live Chat).
+
+### 2. Anti-Cutoff Modal Architecture Standard
+Every modal dialog follows a rigid 3-zone structure guaranteeing that headers, close buttons (`[X]`), and action buttons are **never cropped on mobile screens**:
 ```tsx
-/* Outer fixed overlay */
-<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-  {/* Modal container: strict max-h-[90vh] + flex flex-col + overflow-hidden */}
-  <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col text-left">
-    
-    {/* 1. Header: PINNED at the top (never scrolls) */}
-    <div className="flex items-center justify-between px-6 py-4 border-b border-[#252525] bg-[#1a1a1a] shrink-0">
-      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">หัวข้อโมดอล</h2>
-      <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-[#888888] hover:text-white hover:bg-[#252525] transition cursor-pointer">
-        <X className="w-5 h-5" />
-      </button>
+<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+  <div className="bg-[#181818] border border-[#282828] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+    {/* Zone 1: Pinned Header */}
+    <div className="px-6 py-4 border-b border-[#252525] bg-[#1a1a1a] shrink-0 flex items-center justify-between">
+      <h2 className="text-base font-bold text-white">หัวข้อ</h2>
+      <button type="button" className="p-1.5 rounded-lg text-[#888888] hover:text-white">✕</button>
     </div>
-
-    {/* 2. Body: SCROLLABLE inside (overflow-y-auto flex-1) */}
-    <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4 overflow-y-auto text-sm flex-1">
-      {/* Inputs (always rounded-lg, never pill) */}
-      
-      {/* 3. Footer: PINNED at bottom of form */}
-      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#252525]">
-        <button type="button" onClick={onClose} className="btn-pill btn-pill-dark px-5 py-2.5 text-sm">ยกเลิก</button>
-        <button type="submit" className="btn-pill btn-pill-green px-5 py-2.5 text-sm font-bold">บันทึก</button>
-      </div>
+    {/* Zone 2: Scrollable Body */}
+    <form className="p-6 space-y-4 overflow-y-auto text-sm flex-1 custom-scrollbar">
+      {/* Form Controls */}
     </form>
+    {/* Zone 3: Pinned Footer */}
+    <div className="px-6 py-3 border-t border-[#252525] bg-[#181818] shrink-0 flex items-center justify-end gap-2.5">
+      <button type="button" className="btn-pill btn-pill-dark">ยกเลิก</button>
+      <button type="submit" className="btn-pill btn-pill-green">บันทึก</button>
+    </div>
   </div>
 </div>
 ```
 
----
+### 3. Touch Target Ergonomics (Mobile 44px Standard)
+- All interactive icons, menu toggles (`MoreVertical`), and action controls on touch devices enforce a minimum click target of **44×44px** (using `min-w-10 min-h-10 sm:min-w-9 sm:min-h-9` or negative margin hit area extensions).
 
-## 12. Form Validation & Character Limits Standard
-
-Prevent database overflows, broken UI card layouts, and chat spam by applying strict constraints:
-
-| Scope | Field | Constraint | Rationale |
-| :--- | :--- | :---: | :--- |
-| **Room** | ชื่องาน (`title`) | `maxLength={80}` | Fits world concert tours without overflowing card titles or room headers |
-| **Room** | หมายเหตุ (`description`) | `maxLength={800}` | Sufficient for ticketing rules, bank transfer info, and meetup points |
-| **Room** | ลิงก์กดบัตร (`ticketUrl`) | `maxLength={500}` | Official ticketing URLs (ThaiTicketMajor, AllTicket, Eventpop) |
-| **Room** | ลิงก์รูปภาพ (Poster / Plan) | `maxLength={1000}` | Image URLs with query strings |
-| **Seat Task** | โซน/แถว/ที่นั่ง (`targetLocation`) | `maxLength={50}` | Cleanly fits badges on seat cards without wrapping awkwardly |
-| **Seat Task** | หมายเหตุสำรอง (`note`) | `maxLength={500}` | Fast-read fallback contingencies during the heat of ticket drops |
-| **Seat Task** | ราคาบัตร (`price`) | `min={0}` `max={999999}` | Ticket pricing up to 6 digits (THB) |
-| **Seat Task** | จำนวนใบ (`quantityNeeded`) | `min={1}` `max={10}` | Standard per-account ticket quota limits |
-| **Seat Task** | จำนวนที่ได้ (`quantitySecured`) | `min={0}` `max={quantityNeeded}` | Cannot exceed target tickets |
+### 4. Minimal Single-Line Footer
+- All dashboard pages feature the unified minimalist footer:
+  - Background: `#121212` with `border-t border-[#252525]`, compact `py-5 px-4 md:px-8`.
+  - Left: TW Green Icon Badge + `TicketWar`.
+  - Center: Nav links (`ห้องแชท`, `ThaiTicketMajor`, `AllTicket`, `Eventpop`).
+  - Right: `© 2026 TicketWar`.
 
 ---
 
-## 13. Minimal Footer Standard
+## Elevation & Depth
 
-All page layouts must include the minimal single-line footer:
-- **Background**: `#121212` with `border-t border-[#252525]`
-- **Height**: Compact `py-5 px-4 md:px-8 mt-auto`
-- **Typography**: `12px` / `text-xs text-[#888888]`
-- **Components**:
-  - Left: TW Green Icon Badge + `TicketWar`
-  - Center: Fast navigation links (`ห้องแชท`, `ThaiTicketMajor`, `AllTicket`, `Eventpop`)
-  - Right: `© 2026 TicketWar`
-- **Tone**: Zero marketing fluff, zero redundant slogans.
+TicketWar relies on dark tonal layering and heavy shadows rather than harsh borders to establish hierarchy.
 
+| Level | Surface Token | Shadow / Treatment | Usage |
+| :--- | :--- | :--- | :--- |
+| **Base (0)** | `#121212` | None | Window background, deep container |
+| **Card (1)** | `#181818` | `border border-[#282828]` | Room cards, seat tasks, chat bubble |
+| **Elevated (2)** | `#1f1f1f` / `#242424` | `shadow-md border border-[#333333]` | Hover cards, search pills, floating chips |
+| **Overlay (3)** | `#1a1a1a` | `shadow-2xl` (`rgba(0,0,0,0.5) 0px 8px 24px`) | Modal dialogs, dropdown menus, lightboxes |
+| **Glass (Sticky)** | `rgba(18,18,18,0.8)` | `backdrop-blur-md border-b border-[#252525]` | Sticky room header, chat action bar |
+
+---
+
+## Shapes
+
+The design system enforces the **"Subtle vs Full Pill"** geometric principle:
+
+1. **Subtle Rounded (`rounded-lg` / 8px to `rounded-xl` / 12px)**:
+   - Reserved strictly for **containers, cards, textareas, form inputs, and modal shells**.
+   - Form inputs and textareas must **never** be full pills.
+2. **Full Pill (`rounded-full` / 9999px)**:
+   - Reserved strictly for **Action Buttons (`btn-pill`)**, **Status Badges**, **Tags**, and the standalone **Global Search Input**.
+3. **Circular (`rounded-full` / 50%)**:
+   - Avatars, icon-only buttons (`btn-circle`), counter badges.
+
+---
+
+## Components
+
+### 1. Fast-Action Undo Guardrail (5-Second Countdown)
+When a user clicks "ได้บัตรแล้ว" or confirms payment during high-stress drops, an optimistic toast displays an active 5-second countdown before persisting to DB & relaying WebSocket audio alarms:
+- **Visual Countdown**: Live seconds ticker (`5s` ➔ `4s` ➔ `3s` ➔ `2s` ➔ `1s`).
+- **Progress Depletion Bar**: Continuous `#1ed760` bar shrinking from 100% to 0% over 5,000ms.
+- **Lucide Icons**: `<Ticket />` for seat secured, `<CreditCard />` for payment, `<Undo2 />` on the undo button. Zero emojis.
+- **Instant Rollback**: Clicking "เลิกทำ" immediately aborts the timer, restores optimistic state, and shows a neutral confirmation toast.
+
+### 2. Live Chat & Center Alert Banners
+- **Center Alert Pill**: System shoutouts (`ได้บัตรแล้ว`, `คิวหลุด`, `ขอกำลังเสริม`, `เข้ามาแล้ว`) render as centered neutral pills (`bg-zinc-800/90 border border-zinc-700/60 rounded-full px-4 py-1.5`).
+- **Sender Attribution**: Shouts automatically prefix the sender (`iceXD: ขอกำลังเสริม!`) so the whole team instantly knows who is calling.
+- **Quiet Elegance**: No flashy neon backgrounds or emojis. Clean typography and monospace timestamp.
+
+### 3. Keyboard Accelerators for Power Users
+- `Alt+1` ➔ Broadcasts `"ได้บัตรแล้ว!"`
+- `Alt+2` ➔ Broadcasts `"คิวหลุด!"`
+- `Alt+3` ➔ Broadcasts `"ขอกำลังเสริม!"`
+- Subtle, quiet quick shoutout chips placed above the chat input with monospace shortcut tags (`Alt+1`, `Alt+2`, `Alt+3`).
+
+### 4. Seat Task Card
+- Displays zone name (`targetLocation`), backup location (`backupLocation`), ticket price, and target/secured quantity counters.
+- Single-click action button (`+1 ได้บัตร`) with active visual feedback.
+- Assigned member avatar stack with remove and reassign capability.
+
+### 5. Form Validation & Safety Guardrails
+Strict field limits prevent layout breakage and database overflows:
+- Room Title: `maxLength={80}`
+- Room Description: `maxLength={800}`
+- Ticket URL: `maxLength={500}`
+- Target Location / Zone: `maxLength={50}`
+- Task Notes: `maxLength={500}`
+- Ticket Price: `min={0}` `max={999999}` (THB)
+- Quantity: `min={1}` `max={10}`
+
+---
+
+## Do's and Don'ts
+
+### Do
+- ✅ **Do** use Tailwind CSS v4 Canonical Classes (`bg-linear-to-*`, `wrap-break-word`, `aspect-video`, `h-px`, `stroke-3`).
+- ✅ **Do** enforce WCAG AA text contrast ratio > 4.5:1 (`text-[#ffffff]`, `text-[#b3b3b3]`, `text-[#a0a0a0]`).
+- ✅ **Do** respect `@media (prefers-reduced-motion: reduce)` by disabling aggressive scaling and bounce effects.
+- ✅ **Do** handle dates using Bangkok timezone (`parseDateInBangkok`, `toInputDateValue`) to prevent UTC zero-shift bugs.
+- ✅ **Do** compress images on client canvas before uploading to serverless APIs.
+- ✅ **Do** use Lucide icons (`<Ticket />`, `<CreditCard />`, `<Crown />`, `<Users />`) instead of emojis.
+
+### Don't
+- ❌ **Don't** use emojis anywhere in system messages, alerts, role tags, or toasts.
+- ❌ **Don't** use deprecated Tailwind classes (`bg-gradient-to-*`, `break-words`, `aspect-[16/9]`).
+- ❌ **Don't** use low-contrast grays (`#666666`, `#777777`) on dark surfaces.
+- ❌ **Don't** use pill radius on form inputs or cards (inputs are always `rounded-lg`).
+- ❌ **Don't** use decorative Spotify Green — reserve green strictly for active CTAs and ticket secured states.
+- ❌ **Don't** use `.toISOString().split("T")[0]` on Date-only values.

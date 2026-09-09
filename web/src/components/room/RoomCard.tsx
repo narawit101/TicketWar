@@ -110,14 +110,22 @@ export const RoomCard: React.FC<RoomCardProps> = ({
           <div className="flex items-center gap-1.5 flex-wrap pr-20">
             {/* Role Tag */}
             {isOwner ? (
-              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-                <Crown className="w-3 h-3 text-[#1ed760]" />
-                {/* <span>เจ้าของห้อง</span> */}
+              <span
+                className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-300 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm"
+                title="เจ้าของห้อง"
+                aria-label="บทบาท: เจ้าของห้อง"
+              >
+                <Crown className="w-3 h-3 text-[#1ed760]" aria-hidden="true" />
+                <span className="sr-only">เจ้าของห้อง</span>
               </span>
             ) : (
-              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-400 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm">
-                <Users className="w-3 h-3 text-[#539df5]" />
-                {/* <span>สมาชิก</span> */}
+              <span
+                className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-[#1f1f1f] text-zinc-400 border border-zinc-700/50 flex items-center gap-1.5 shadow-sm"
+                title="สมาชิก"
+                aria-label="บทบาท: สมาชิก"
+              >
+                <Users className="w-3 h-3 text-[#539df5]" aria-hidden="true" />
+                <span className="sr-only">สมาชิก</span>
               </span>
             )}
 
@@ -203,7 +211,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
             <Calendar className="w-3.5 h-3.5 text-[#888888] shrink-0" />
             <span className="line-clamp-1">
               <span>{formatEventDate(room.eventDate)}</span>
-              <span className="text-[#666666] mx-1.5">•</span>
+              <span className="text-zinc-500 mx-1.5">•</span>
               <span
                 className={
                   room.hasQueue ? "text-[#1ed760] font-bold" : "text-[#888888]"
@@ -282,7 +290,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({
                 e.stopPropagation();
                 setMenuOpen((prev) => !prev);
               }}
-              className="p-2 rounded-xl bg-[#1c1c1c] hover:bg-[#282828] text-[#888888] hover:text-white border border-[#2c2c2c] transition cursor-pointer flex items-center justify-center shadow-sm"
+              className="p-2 min-w-10 min-h-10 sm:min-w-9 sm:min-h-9 rounded-xl bg-[#1c1c1c] hover:bg-[#282828] text-[#888888] hover:text-white border border-[#2c2c2c] transition cursor-pointer flex items-center justify-center shadow-sm"
               title="เมนูจัดการห้อง"
               aria-label="เมนูจัดการห้อง"
             >

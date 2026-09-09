@@ -180,7 +180,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="p-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 transition cursor-pointer flex items-center justify-center shadow-sm"
+            className="p-2 min-w-10 min-h-10 sm:min-w-9 sm:min-h-9 rounded-xl bg-zinc-800/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 transition cursor-pointer flex items-center justify-center shadow-sm"
             title="เมนูเพิ่มเติม"
             aria-label="เมนูเพิ่มเติม"
           >

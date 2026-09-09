@@ -385,6 +385,50 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </div>
       )}
 
+      {/* Quick Shoutouts Bar */}
+      {!isReadOnly && (
+
+        <div className="px-3 pt-2 pb-1 bg-zinc-900/90 border-t border-zinc-800/80 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
+          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider shrink-0 select-none mr-0.5">
+            ส่งด่วน:
+          </span>
+          <button
+            type="button"
+            onClick={() => onSendMessage("ได้บัตรแล้ว!", undefined, true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#1ed760]/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+            title="กด Alt+1 เพื่อส่งทันที"
+          >
+            <span>ได้บัตรแล้ว!</span>
+            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-[#1ed760]">
+              Alt+1
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSendMessage("คิวหลุด!", undefined, true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-amber-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+            title="กด Alt+2 เพื่อส่งทันที"
+          >
+            <span>คิวหลุด!</span>
+            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-amber-400">
+              Alt+2
+            </kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => onSendMessage("ขอกำลังเสริม!", undefined, true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-rose-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+            title="กด Alt+3 เพื่อส่งทันที"
+          >
+            <span>ขอกำลังเสริม!</span>
+            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-rose-400">
+              Alt+3
+            </kbd>
+          </button>
+        </div>
+
+      )}
+
       {/* Input bar */}
       {!isReadOnly ? (
         <form

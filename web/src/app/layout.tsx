@@ -91,7 +91,7 @@ export default function RootLayout({
             }}
           />
         </AuthProvider>
-      </body>
+            </body>
     </html>
   );
 }

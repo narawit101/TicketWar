@@ -65,6 +65,11 @@ export const RoomEmptyState: React.FC<RoomEmptyStateProps> = ({
 
       <div>
         <h3 className="text-base font-bold text-white">{getEmptyTitle()}</h3>
+        {!isSearchActive && !isUserFilterActive && !isUpcomingOnly && statusFilter !== "ARCHIVED" && (
+          <p className="text-xs text-[#a0a0a0] max-w-sm mx-auto leading-relaxed mt-1.5">
+            สร้างห้องสำหรับกดบัตร แล้วแชร์รหัสให้เพื่อนร่วมทีม เพื่อเริ่มแบ่งโซนและติดตามสถานะที่นั่งแบบเรียลไทม์
+          </p>
+        )}
         {isSearchActive ? (
           <button
             type="button"

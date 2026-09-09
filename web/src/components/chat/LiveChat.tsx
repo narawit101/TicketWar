@@ -135,6 +135,29 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     inputRef.current?.focus({ preventScroll: true });
   }, []);
 
+  // Keyboard accelerators (Alt+1: ได้บัตรแล้ว, Alt+2: คิวหลุด, Alt+3: ขอกำลังเสริม)
+  useEffect(() => {
+    if (isReadOnly) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+
+      if (e.key === "1") {
+        e.preventDefault();
+        onSendMessage("ได้บัตรแล้ว!", undefined, true);
+      } else if (e.key === "2") {
+        e.preventDefault();
+        onSendMessage("คิวหลุด!", undefined, true);
+      } else if (e.key === "3") {
+        e.preventDefault();
+        onSendMessage("ขอกำลังเสริม!", undefined, true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onSendMessage, isReadOnly]);
+
   // Filter active typing users (excluding current user)
   const activeTypingUsers = useMemo(() => {
     return (typingUsers || []).filter((u) => u.userId !== currentUserId);
@@ -461,7 +484,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       {isDraggingOver && (
         <div className="absolute inset-0 z-50 bg-[#121212]/90 backdrop-blur-sm border-2 border-dashed border-[#1ed760] rounded-xl flex flex-col items-center justify-center gap-3 p-6 pointer-events-none select-none transition-all animate-in fade-in zoom-in-95 duration-150">
           <div className="w-16 h-16 rounded-full bg-[#1ed760]/15 border border-[#1ed760]/30 flex items-center justify-center text-[#1ed760] shadow-lg">
-            <UploadCloud className="w-8 h-8 animate-bounce" />
+            <UploadCloud className="w-8 h-8 animate-pulse text-[#1ed760] transition-transform duration-300" />
           </div>
           <div className="text-center space-y-1">
             <p className="text-sm sm:text-base font-bold text-white">
@@ -687,10 +710,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                         ", ",
                       )}${activeTypingUsers.length > 2 ? ` และอีก ${activeTypingUsers.length - 2} คน` : ""} กำลังพิมพ์`}
               </span>
-              <span className="flex items-center gap-0.5 ml-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-bounce" />
+              <span className="flex items-center gap-1 ml-1" aria-hidden="true">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse [animation-duration:1s] [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse [animation-duration:1s] [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1ed760] animate-pulse [animation-duration:1s]" />
               </span>
             </div>
           </div>

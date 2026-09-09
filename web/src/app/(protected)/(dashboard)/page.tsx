@@ -78,7 +78,7 @@ export default function RoomsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ค้นหาชื่อห้อง, รายละเอียด, รหัสเชิญ..."
-              className="w-full bg-[#1e1e1e] hover:bg-[#252525] focus:bg-[#222222] text-xs text-white placeholder-[#777777] rounded-full pl-9 pr-9 py-2 border border-[#333333] focus:border-[#1ed760] focus:outline-none transition-colors"
+              className="w-full bg-[#1e1e1e] hover:bg-[#252525] focus:bg-[#222222] text-xs text-white placeholder-[#a0a0a0] rounded-full pl-9 pr-9 py-2 border border-[#333333] focus:border-[#1ed760] focus:outline-none transition-colors"
             />
             {searchQuery && (
               <button

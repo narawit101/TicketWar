@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   SeatTask,
   SeatStatus,
@@ -10,6 +10,91 @@ import {
 } from "@/types";
 import { getSocket } from "@/lib/socket";
 import { toast } from "react-hot-toast";
+import { Ticket, CreditCard, Undo2 } from "lucide-react";
+
+interface UndoCountdownToastProps {
+  toastId: string;
+  title: string;
+  icon: "ticket" | "payment";
+  onUndo: () => void;
+  duration?: number;
+}
+
+function UndoCountdownToast({
+  toastId,
+  title,
+  icon,
+  onUndo,
+  duration = 5000,
+}: UndoCountdownToastProps) {
+  const [timeLeft, setTimeLeft] = useState(duration);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, duration - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [duration]);
+
+  const secondsLeft = Math.max(1, Math.ceil(timeLeft / 1000));
+  const progressPercent = Math.max(
+    0,
+    Math.min(100, (timeLeft / duration) * 100),
+  );
+
+  return (
+    <div className="flex flex-col gap-2.5 w-full min-w-70 max-w-85 text-xs select-none">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 text-white min-w-0">
+          <div className="p-1.5 rounded-lg bg-[#242424] border border-[#333333] shrink-0 text-[#1ed760]">
+            {icon === "ticket" ? (
+              <Ticket className="w-4 h-4" />
+            ) : (
+              <CreditCard className="w-4 h-4" />
+            )}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-white truncate text-xs">
+              {title}
+            </span>
+            <span className="text-[11px] text-neutral-400">
+              ยืนยันอัตโนมัติใน{" "}
+              <span className="font-mono text-[#1ed760] font-bold">
+                {secondsLeft}s
+              </span>
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            toast.dismiss(toastId);
+            onUndo();
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition cursor-pointer shadow-sm shrink-0 active:scale-95"
+        >
+          <Undo2 className="w-3.5 h-3.5" />
+          <span>เลิกทำ</span>
+        </button>
+      </div>
+
+      {/* Progress countdown bar */}
+      <div className="w-full h-1 bg-[#282828] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#1ed760] rounded-full transition-[width] duration-100 ease-linear"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 interface UseRoomTasksParams {
   roomId: string;
@@ -34,6 +119,30 @@ export function useRoomTasks({
     location: string;
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Guardrail: Pending undoable timers map (taskId -> { timer, commit, rollback })
+  const pendingSecuredTimersRef = useRef<
+    Map<
+      string,
+      {
+        timer: NodeJS.Timeout;
+        commit: () => void;
+        rollback: () => void;
+      }
+    >
+  >(new Map());
+
+  // Flush any pending commits on unmount
+  useEffect(() => {
+    const timers = pendingSecuredTimersRef.current;
+    return () => {
+      timers.forEach((entry) => {
+        clearTimeout(entry.timer);
+        entry.commit();
+      });
+      timers.clear();
+    };
+  }, []);
 
   // Socket event listeners for tasks
   useEffect(() => {
@@ -160,7 +269,7 @@ export function useRoomTasks({
         if (prev.some((t) => t.id === newTask.id)) return prev;
         return [newTask, ...prev];
       });
-      toast(`มีที่นั่งใหม่: ${newTask.targetLocation}`, { icon: "🎯" });
+      toast.success(`มีที่นั่งใหม่: ${newTask.targetLocation}`);
     };
 
     const handleTaskDeleted = (deletedTaskId: string) => {
@@ -219,7 +328,9 @@ export function useRoomTasks({
       const zoneSecuredCount =
         securedList.length > 0
           ? securedList
-              .filter((s) => (isBackup ? isRecordBackup(s) : !isRecordBackup(s)))
+              .filter((s) =>
+                isBackup ? isRecordBackup(s) : !isRecordBackup(s),
+              )
               .reduce((acc, s) => acc + (s.qty || 1), 0)
           : isBackup
             ? 0
@@ -302,7 +413,17 @@ export function useRoomTasks({
       const target = tasks.find((t) => t.id === taskId);
       if (!target) return;
 
-      const pendingItem = target.pendingPayments?.find((p) => p.id === pendingId);
+      // If existing pending timer exists for this task, commit it immediately
+      const existingTimer = pendingSecuredTimersRef.current.get(taskId);
+      if (existingTimer) {
+        clearTimeout(existingTimer.timer);
+        existingTimer.commit();
+      }
+
+      const previousTarget = { ...target };
+      const pendingItem = target.pendingPayments?.find(
+        (p) => p.id === pendingId,
+      );
       const remainingPending = (target.pendingPayments || []).filter(
         (p) => p.id !== pendingId,
       );
@@ -338,6 +459,7 @@ export function useRoomTasks({
         zoneType: pendingItem?.zoneType,
       });
 
+      // 1. Optimistic UI update locally
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -354,48 +476,93 @@ export function useRoomTasks({
         ),
       );
 
-      getSocket().emit("update_seat_status", {
-        roomId,
-        taskId,
-        status: nextStatus,
-        quantitySecured: nextSecured,
-        securedBy: updatedSecuredBy,
-        pendingPayments: remainingPending,
-        updatedBy: currentUserName,
-      });
+      // 2. Commit function executes network updates & shoutout
+      const commit = async () => {
+        pendingSecuredTimersRef.current.delete(taskId);
 
-      const confirmMsg = isNowFull
-        ? `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
-        : `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} แล้ว (+1 ใบ)`;
-
-      onAddChatMessage?.(confirmMsg, undefined, true);
-
-      try {
-        await fetch(`/api/rooms/${roomId}/tasks`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId,
-            status: nextStatus,
-            quantitySecured: nextSecured,
-            securedBy: updatedSecuredBy,
-            pendingPayments: remainingPending,
-            lastUpdatedById: userId,
-          }),
+        getSocket().emit("update_seat_status", {
+          roomId,
+          taskId,
+          status: nextStatus,
+          quantitySecured: nextSecured,
+          securedBy: updatedSecuredBy,
+          pendingPayments: remainingPending,
+          updatedBy: currentUserName,
         });
-      } catch (err) {
-        console.error("Failed to save confirm payment in DB:", err);
-      }
+
+        const confirmMsg = isNowFull
+          ? `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
+          : `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} แล้ว (+1 ใบ)`;
+
+        onAddChatMessage?.(confirmMsg, undefined, true);
+
+        try {
+          await fetch(`/api/rooms/${roomId}/tasks`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId,
+              status: nextStatus,
+              quantitySecured: nextSecured,
+              securedBy: updatedSecuredBy,
+              pendingPayments: remainingPending,
+              lastUpdatedById: userId,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to save confirm payment in DB:", err);
+        }
+      };
+
+      // 3. Rollback function cancels action and restores optimistic state
+      const rollback = () => {
+        pendingSecuredTimersRef.current.delete(taskId);
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? previousTarget : t)),
+        );
+        toast.success("ยกเลิกการชำระเงินแล้ว");
+      };
+
+      // 4. Start 5-second timer
+      const timer = setTimeout(() => {
+        commit();
+      }, 5000);
+
+      pendingSecuredTimersRef.current.set(taskId, { timer, commit, rollback });
+
+      // 5. Toast with 5-second countdown & "เลิกทำ (Undo)" button
+      toast(
+        (t) => (
+          <UndoCountdownToast
+            toastId={t.id}
+            title={`ชำระเงิน ${zoneLabel} แล้ว`}
+            icon="payment"
+            onUndo={() => {
+              clearTimeout(timer);
+              rollback();
+            }}
+            duration={5000}
+          />
+        ),
+        {
+          duration: 5000,
+          id: `undo-payment-${taskId}`,
+          style: {
+            background: "#181818",
+            color: "#ffffff",
+            border: "1px solid #282828",
+            borderRadius: "12px",
+            padding: "10px 14px",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+          },
+        },
+      );
     },
     [roomId, userId, currentUserName, tasks, onAddChatMessage],
   );
 
   const handleDirectSecured = useCallback(
-    async (
-      taskId: string,
-      zoneType: "MAIN" | "BACKUP",
-      zoneName: string,
-    ) => {
+    async (taskId: string, zoneType: "MAIN" | "BACKUP", zoneName: string) => {
       const target = tasks.find((t) => t.id === taskId);
       if (!target) return;
       if (target.quantitySecured >= target.quantityNeeded) {
@@ -405,6 +572,14 @@ export function useRoomTasks({
         return;
       }
 
+      // If existing pending timer exists for this task, commit it immediately
+      const existingTimer = pendingSecuredTimersRef.current.get(taskId);
+      if (existingTimer) {
+        clearTimeout(existingTimer.timer);
+        existingTimer.commit();
+      }
+
+      const previousTarget = { ...target };
       const nextSecured = target.quantitySecured + 1;
       const isNowFull = nextSecured >= target.quantityNeeded;
       const remainingPending = target.pendingPayments || [];
@@ -432,6 +607,7 @@ export function useRoomTasks({
         zoneType,
       });
 
+      // 1. Optimistic UI update locally so the user gets instant visual satisfaction
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -447,36 +623,85 @@ export function useRoomTasks({
         ),
       );
 
-      getSocket().emit("update_seat_status", {
-        roomId,
-        taskId,
-        status: nextStatus,
-        quantitySecured: nextSecured,
-        securedBy: updatedSecuredBy,
-        pendingPayments: remainingPending,
-        updatedBy: currentUserName,
-      });
+      // 2. Commit function executes network updates & shoutout broadcast
+      const commit = async () => {
+        pendingSecuredTimersRef.current.delete(taskId);
 
-      const msg = isNowFull
-        ? `${buyerName} ได้บัตร ${zoneName} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
-        : `${buyerName} ได้บัตร ${zoneName} แล้ว! (+1 ใบ)`;
-      onAddChatMessage?.(msg, undefined, true);
-
-      try {
-        await fetch(`/api/rooms/${roomId}/tasks`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            taskId,
-            status: nextStatus,
-            quantitySecured: nextSecured,
-            securedBy: updatedSecuredBy,
-            lastUpdatedById: userId,
-          }),
+        getSocket().emit("update_seat_status", {
+          roomId,
+          taskId,
+          status: nextStatus,
+          quantitySecured: nextSecured,
+          securedBy: updatedSecuredBy,
+          pendingPayments: remainingPending,
+          updatedBy: currentUserName,
         });
-      } catch (err) {
-        console.error("Failed to save direct secured in DB:", err);
-      }
+
+        const msg = isNowFull
+          ? `${buyerName} ได้บัตร ${zoneName} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
+          : `${buyerName} ได้บัตร ${zoneName} แล้ว! (+1 ใบ)`;
+        onAddChatMessage?.(msg, undefined, true);
+
+        try {
+          await fetch(`/api/rooms/${roomId}/tasks`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId,
+              status: nextStatus,
+              quantitySecured: nextSecured,
+              securedBy: updatedSecuredBy,
+              lastUpdatedById: userId,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to save direct secured in DB:", err);
+        }
+      };
+
+      // 3. Rollback function cancels action and restores optimistic state
+      const rollback = () => {
+        pendingSecuredTimersRef.current.delete(taskId);
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? previousTarget : t)),
+        );
+        toast.success("ยกเลิกการบันทึกแล้ว");
+      };
+
+      // 4. Start 5-second timer
+      const timer = setTimeout(() => {
+        commit();
+      }, 5000);
+
+      pendingSecuredTimersRef.current.set(taskId, { timer, commit, rollback });
+
+      // 5. Toast with 5-second countdown & "เลิกทำ (Undo)" button
+      toast(
+        (t) => (
+          <UndoCountdownToast
+            toastId={t.id}
+            title={`ได้บัตร ${zoneName} แล้ว`}
+            icon="ticket"
+            onUndo={() => {
+              clearTimeout(timer);
+              rollback();
+            }}
+            duration={5000}
+          />
+        ),
+        {
+          duration: 5000,
+          id: `undo-secured-${taskId}`,
+          style: {
+            background: "#181818",
+            color: "#ffffff",
+            border: "1px solid #282828",
+            borderRadius: "12px",
+            padding: "10px 14px",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
+          },
+        },
+      );
     },
     [roomId, userId, currentUserName, tasks, onAddChatMessage],
   );
@@ -560,11 +785,11 @@ export function useRoomTasks({
         onAddChatMessage?.(unassignMsg, undefined, true);
         toast.success("ยกเลิกการมอบหมายงานทั้งหมดเรียบร้อย");
       } else if (isRemoved) {
-        const unassignMsg = `📢 ${currentUserName} ถอนการมอบหมายงาน ${target.targetLocation} จาก ${targetMember.name}`;
+        const unassignMsg = `${currentUserName} ถอนการมอบหมายงาน ${target.targetLocation} จาก ${targetMember.name}`;
         onAddChatMessage?.(unassignMsg, undefined, true);
         toast.success(`ถอนการมอบหมาย ${targetMember.name} เรียบร้อย`);
       } else {
-        const assignMsg = `📢 ${currentUserName} มอบหมายงาน ${target.targetLocation} ให้กับ ${targetMember.name}`;
+        const assignMsg = `${currentUserName} มอบหมายงาน ${target.targetLocation} ให้กับ ${targetMember.name}`;
         onAddChatMessage?.(assignMsg, undefined, true);
         toast.success(`มอบหมายงานให้ ${targetMember.name} เรียบร้อย`);
       }

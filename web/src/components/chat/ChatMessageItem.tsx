@@ -231,10 +231,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
       {/* Shoutout / System Event Notification */}
       {msg.isShoutout ? (
-        <div className="flex justify-center my-1.5">
-          <div className="bg-zinc-800/90 border border-zinc-700/60 rounded-full px-4 py-1.5 text-xs sm:text-[13px] text-zinc-200 flex items-center gap-2 shadow-sm text-center">
-            <span>{stripEmojis(msg.text || "")}</span>
-            <span className="text-[11px] text-zinc-500 ml-1 shrink-0">
+        <div className="flex justify-center my-1.5 px-3">
+          <div className="bg-zinc-800/90 border border-zinc-700/60 rounded-full px-4 py-1.5 text-xs sm:text-[13px] text-zinc-200 flex items-center gap-2 shadow-sm text-center max-w-full backdrop-blur-sm">
+            <span className="font-medium truncate">
+              {msg.userName && !msg.text?.startsWith(msg.userName) ? (
+                <span className="font-bold text-white mr-1.5">{msg.userName}:</span>
+              ) : null}
+              {stripEmojis(msg.text || "")}
+            </span>
+            <span className="text-[11px] text-zinc-500 ml-1 shrink-0 font-mono">
               {formatChatTime(msg.createdAt)}
             </span>
           </div>
