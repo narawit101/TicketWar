@@ -1,17 +1,15 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { Room } from "@/types";
-import {
-  formatEventDate,
-  getQueueText,
-  formatRoomCountdownStatus,
-} from "@/lib/date";
+import { formatEventDate, getQueueText } from "@/lib/date";
 import { useClickOutside } from "@/lib/hooks";
+import { useRoomCountdown } from "./hooks/useRoomCountdown";
 import {
   ArrowLeft,
   ExternalLink,
   Calendar,
   Users,
+  Clock,
   MoreHorizontal,
   Edit3,
   Share2,
@@ -50,15 +48,132 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
-  const countdown = formatRoomCountdownStatus({
+  const countdown = useRoomCountdown({
     eventDate: room.eventDate,
     hasQueue: room.hasQueue,
     queueTime: room.queueTime,
     roomStatus: room.status,
   });
 
+  const fullTicketUrl = room.ticketUrl
+    ? room.ticketUrl.startsWith("http")
+      ? room.ticketUrl
+      : `https://${room.ticketUrl}`
+    : null;
+
+  const renderCountdownStrip = () => {
+    if (countdown.status === "ENDED" && !countdown.text) return null;
+
+    return (
+      <div className="w-full bg-[#161616] border-t border-zinc-800/80 px-4 md:px-6 py-2 flex items-center justify-between flex-wrap gap-2.5 select-none">
+        {/* Left: Status Label */}
+        <div className="flex items-center gap-2">
+          {countdown.status === "ACTIVE" ? (
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1ed760] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#1ed760]"></span>
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-[#1ed760]">
+                กำลังเปิดจำหน่ายบัตร
+              </span>
+            </div>
+          ) : countdown.status === "UPCOMING" ? (
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-zinc-300">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>
+                {countdown.targetType === "QUEUE"
+                  ? "นับถอยหลังเปิดรันคิว"
+                  : "นับถอยหลังเปิดจำหน่ายบัตร"}
+              </span>
+            </div>
+          ) : (
+            <span className="text-xs text-zinc-500 font-medium">
+              {countdown.text || "จำหน่ายบัตรเสร็จสิ้น"}
+            </span>
+          )}
+        </div>
+
+        {/* Right: ThaiTicket Digit Blocks / CTA Button */}
+        {countdown.status === "UPCOMING" && (
+          <div className="flex items-center gap-1 sm:gap-1.5 text-xs">
+            {countdown.days > 0 ? (
+              /* If more than 1 day, do NOT count seconds */
+              <>
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-white shadow-inner min-w-7 text-center">
+                    {String(countdown.days).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">วัน</span>
+                </div>
+                <span className="text-zinc-600 font-bold">:</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-white shadow-inner min-w-7 text-center">
+                    {String(countdown.hours).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">ชม.</span>
+                </div>
+
+                <span className="text-zinc-600 font-bold">:</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-white shadow-inner min-w-7 text-center">
+                    {String(countdown.minutes).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">นาที</span>
+                </div>
+              </>
+            ) : (
+              /* If less than 1 day, count seconds live */
+              <>
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-white shadow-inner min-w-7 text-center">
+                    {String(countdown.hours).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">ชม.</span>
+                </div>
+
+                <span className="text-zinc-600 font-bold">:</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-white shadow-inner min-w-7 text-center">
+                    {String(countdown.minutes).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">นาที</span>
+                </div>
+
+                <span className="text-zinc-600 font-bold">:</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="bg-[#1f1f1f] border border-zinc-700/80 rounded px-1.5 py-0.5 font-mono font-bold text-[#1ed760] shadow-inner min-w-7 text-center">
+                    {String(countdown.seconds).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11px] text-zinc-400">วินาที</span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {countdown.status === "ACTIVE" && fullTicketUrl && (
+          <a
+            href={fullTicketUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-1 bg-[#1ed760] hover:bg-[#1cd05a] text-black font-bold text-xs rounded-full inline-flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          >
+            <span>ซื้อบัตรทันที</span>
+            <ExternalLink className="w-3.5 h-3.5 stroke-3" />
+          </a>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="sticky top-16 z-20 bg-[#121212]/95 backdrop-blur-md -mx-4 md:-mx-6 px-4 md:px-6 py-3.5 border-b border-zinc-800/80 shrink-0 flex items-start justify-between gap-2.5 sm:gap-4 transition-all">
+    <div className="sticky top-16 z-20 bg-[#121212] -mx-4 md:-mx-6 border-b border-zinc-800/80 shrink-0 transition-all flex flex-col">
+      <div className="px-4 md:px-6 py-3.5 flex items-start justify-between gap-2.5 sm:gap-4">
       <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
         {/* Back button */}
         <Link
@@ -119,25 +234,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
               </span>
             </div>
 
-            {/* Inline Countdown & Status */}
-            {countdown.text && (
-              <div className="inline-flex items-center gap-1 shrink-0">
-                <span className="text-zinc-500">•</span>
-                <span
-                  className={
-                    countdown.status === "ACTIVE"
-                      ? "text-[#1ed760] font-bold"
-                      : countdown.status === "ENDED"
-                        ? "text-zinc-500 font-normal"
-                        : countdown.isUrgent
-                          ? "text-amber-400 font-semibold"
-                          : "text-zinc-300 font-medium"
-                  }
-                >
-                  {countdown.text}
-                </span>
-              </div>
-            )}
+
 
             {room.status !== "ACTIVE" && (
               <span className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#181818] border border-[#282828] text-[11px] sm:text-xs font-semibold text-zinc-400 shrink-0">
@@ -189,17 +286,6 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
           {isMenuOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150">
-              <button
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  onOpenSummary();
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-[#1ed760]" />
-                <span>สรุปผลสงคราม (Excel)</span>
-              </button>
-
               {isOwner && (
                 <button
                   onClick={() => {
@@ -282,5 +368,11 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
         </div>
       </div>
     </div>
-  );
+
+    {/* ThaiTicket-Style Countdown Strip in Sticky Nav */}
+    {renderCountdownStrip()}
+  </div>
+);
 };
+
+

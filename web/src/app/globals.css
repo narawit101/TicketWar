@@ -175,3 +175,27 @@ body {
     transform: none !important;
   }
 }
+
+/* ThaiTicket 10-Second Countdown Pulse & Fade */
+@keyframes tt-countdown-tick {
+  0% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+.animate-tt-tick {
+  animation: tt-countdown-tick 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

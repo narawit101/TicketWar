@@ -88,27 +88,27 @@ export async function GET(req: Request) {
       prisma.room.count({ where: baseWhere }),
       userId
         ? prisma.room.count({
-            where: {
-              status: statusCondition,
-              OR: [{ createdById: userId }, { members: { some: { userId } } }],
-            },
-          })
+          where: {
+            status: statusCondition,
+            OR: [{ createdById: userId }, { members: { some: { userId } } }],
+          },
+        })
         : 0,
       userId
         ? prisma.room.count({
-            where: {
-              status: statusCondition,
-              createdById: userId,
-            },
-          })
+          where: {
+            status: statusCondition,
+            createdById: userId,
+          },
+        })
         : 0,
       userId
         ? prisma.room.count({
-            where: {
-              status: statusCondition,
-              members: { some: { userId, role: { not: "OWNER" } } },
-            },
-          })
+          where: {
+            status: statusCondition,
+            members: { some: { userId, role: { not: "OWNER" } } },
+          },
+        })
         : 0,
     ]);
 
@@ -125,9 +125,9 @@ export async function GET(req: Request) {
         },
         members: userId
           ? {
-              where: { userId },
-              select: { role: true, lastReadAt: true },
-            }
+            where: { userId },
+            select: { role: true, lastReadAt: true },
+          }
           : false,
       },
       orderBy: [
@@ -285,7 +285,7 @@ export async function POST(req: Request) {
     const initialMessages = [
       {
         userId: ownerId,
-        text: `${ownerName} สร้างห้องกดบัตรแล้ว`,
+        text: `${ownerName} สร้างห้องแชทแล้ว`,
       },
     ];
 
@@ -325,14 +325,14 @@ export async function POST(req: Request) {
         },
         ...(validInviteeIds.length > 0
           ? {
-              invitations: {
-                create: validInviteeIds.map((inviteeId) => ({
-                  inviterId: ownerId,
-                  inviteeId,
-                  status: "PENDING",
-                })),
-              },
-            }
+            invitations: {
+              create: validInviteeIds.map((inviteeId) => ({
+                inviterId: ownerId,
+                inviteeId,
+                status: "PENDING",
+              })),
+            },
+          }
           : {}),
       },
       include: {

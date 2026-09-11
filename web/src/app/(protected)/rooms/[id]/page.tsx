@@ -1,10 +1,10 @@
- 
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+import { Map } from "lucide-react";
 
 import {
   RoomSeatTasksList,
@@ -339,7 +339,23 @@ export default function RoomDetailPage() {
             />
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="w-full bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-xl space-y-3.5 shrink-0">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80">
+            <h2 className="text-sm sm:text-xl font-bold text-zinc-100 flex items-center gap-2">
+              <span>ผังที่นั่งคอนเสิร์ต</span>
+            </h2>
+          </div>
+          <div className="relative w-full min-h-36 sm:min-h-44 rounded-xl bg-zinc-950/60 border border-zinc-800/60 flex flex-col items-center justify-center p-6 text-center select-none gap-2">
+            <div className="p-2.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-500">
+              <Map className="w-5 h-5" />
+            </div>
+            <span className="text-xs sm:text-sm font-semibold text-zinc-300">
+              ไม่มีรูปผังที่นั่ง
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Modals Orchestration Component */}
       <RoomModals
