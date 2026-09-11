@@ -8,6 +8,7 @@ import {
   FileText,
   X,
   Globe,
+  Zap,
 } from "lucide-react";
 import {
   isPdfUrl,
@@ -57,6 +58,14 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Collapsible quick shoutouts bar state (default closed)
+  const [isShoutoutsOpen, setIsShoutoutsOpen] = useState(false);
+
+  const handleShoutout = (text: string) => {
+    onSendMessage(text, undefined, true);
+    setIsShoutoutsOpen(false);
+  };
 
   // Link preview states while typing (Messenger style)
   const [previewData, setPreviewData] = useState<LinkPreviewData | null>(null);
@@ -386,47 +395,58 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       )}
 
       {/* Quick Shoutouts Bar */}
-      {!isReadOnly && (
+      {!isReadOnly && isShoutoutsOpen && (
+        <div className="px-3 py-1.5 bg-zinc-900/95 border-t border-zinc-800/80 flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider shrink-0 select-none mr-0.5 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-[#1ed760]" />
+              <span>ส่งด่วน:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => handleShoutout("ได้บัตรแล้ว!")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#1ed760]/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              title="กด Alt+1 เพื่อส่งทันที"
+            >
+              <span>ได้บัตรแล้ว!</span>
+              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-[#1ed760]">
+                Alt+1
+              </kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShoutout("คิวหลุด!")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-amber-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              title="กด Alt+2 เพื่อส่งทันที"
+            >
+              <span>คิวหลุด!</span>
+              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-amber-400">
+                Alt+2
+              </kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShoutout("ขอกำลังเสริม!")}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-rose-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              title="กด Alt+3 เพื่อส่งทันที"
+            >
+              <span>ขอกำลังเสริม!</span>
+              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-rose-400">
+                Alt+3
+              </kbd>
+            </button>
+          </div>
 
-        <div className="px-3 pt-2 pb-1 bg-zinc-900/90 border-t border-zinc-800/80 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
-          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider shrink-0 select-none mr-0.5">
-            ส่งด่วน:
-          </span>
           <button
             type="button"
-            onClick={() => onSendMessage("ได้บัตรแล้ว!", undefined, true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#1ed760]/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
-            title="กด Alt+1 เพื่อส่งทันที"
+            onClick={() => setIsShoutoutsOpen(false)}
+            className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition cursor-pointer shrink-0 ml-auto"
+            title="หุบแถบส่งด่วน"
+            aria-label="หุบแถบส่งด่วน"
           >
-            <span>ได้บัตรแล้ว!</span>
-            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-[#1ed760]">
-              Alt+1
-            </kbd>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSendMessage("คิวหลุด!", undefined, true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-amber-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
-            title="กด Alt+2 เพื่อส่งทันที"
-          >
-            <span>คิวหลุด!</span>
-            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-amber-400">
-              Alt+2
-            </kbd>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSendMessage("ขอกำลังเสริม!", undefined, true)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-rose-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
-            title="กด Alt+3 เพื่อส่งทันที"
-          >
-            <span>ขอกำลังเสริม!</span>
-            <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-rose-400">
-              Alt+3
-            </kbd>
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
-
       )}
 
       {/* Input bar */}
@@ -461,6 +481,27 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
                 {pendingFiles.length}
               </span>
             )}
+          </button>
+
+          {/* Quick shoutouts toggle button (Zap) */}
+          <button
+            type="button"
+            onClick={() => setIsShoutoutsOpen((prev) => !prev)}
+            className={`p-2 rounded-lg transition cursor-pointer relative shrink-0 ${
+              isShoutoutsOpen
+                ? "text-[#1ed760] bg-[#1ed760]/10"
+                : "text-[#b3b3b3] hover:text-white hover:bg-[#282828]"
+            }`}
+            title={
+              isShoutoutsOpen
+                ? "ซ่อนปุ่มส่งด่วน"
+                : "แสดงปุ่มส่งด่วน (Alt+1, Alt+2, Alt+3)"
+            }
+            aria-label={
+              isShoutoutsOpen ? "ซ่อนปุ่มส่งด่วน" : "แสดงปุ่มส่งด่วน"
+            }
+          >
+            <Zap className="w-4 h-4" />
           </button>
 
           {/* Text input (auto-expanding textarea with Shift+Enter support) */}
