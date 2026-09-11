@@ -61,10 +61,38 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
 
   // Collapsible quick shoutouts bar state (default closed)
   const [isShoutoutsOpen, setIsShoutoutsOpen] = useState(false);
+  const [queueNumberInput, setQueueNumberInput] = useState("");
+  const [queuePercentInput, setQueuePercentInput] = useState("");
 
   const handleShoutout = (text: string) => {
     onSendMessage(text, undefined, true);
     setIsShoutoutsOpen(false);
+  };
+
+  const handleSendQueueNumber = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const raw = queueNumberInput.trim().replace(/,/g, "");
+    if (!raw) return;
+
+    const num = Number(raw);
+    const text = !isNaN(num)
+      ? `คิวที่ ${num.toLocaleString("th-TH")}`
+      : `คิวที่ ${raw}`;
+
+    onSendMessage(text, undefined, true);
+    setQueueNumberInput("");
+  };
+
+  const handleSendQueuePercent = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const raw = queuePercentInput.trim().replace(/%/g, "");
+    if (!raw) return;
+
+    const num = Number(raw);
+    const text = !isNaN(num) ? `คิว ${num}%` : `คิว ${raw}%`;
+
+    onSendMessage(text, undefined, true);
+    setQueuePercentInput("");
   };
 
   // Link preview states while typing (Messenger style)
@@ -396,58 +424,131 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
 
       {/* Quick Shoutouts Bar */}
       {!isReadOnly && isShoutoutsOpen && (
-        <div className="px-3 py-1.5 bg-zinc-900/95 border-t border-zinc-800/80 flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider shrink-0 select-none mr-0.5 flex items-center gap-1">
-              <Zap className="w-3 h-3 text-[#1ed760]" />
-              <span>ส่งด่วน:</span>
+        <div className="p-2.5 bg-zinc-900/95 border-t border-zinc-800/80 flex flex-col gap-2 shrink-0 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          {/* Header Row: Label & Close */}
+          <div className="flex items-center justify-between px-0.5">
+            <span className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider select-none flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#1ed760]" />
+              <span>ส่งด่วน</span>
             </span>
             <button
               type="button"
+              onClick={() => setIsShoutoutsOpen(false)}
+              className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              title="หุบแถบส่งด่วน"
+              aria-label="หุบแถบส่งด่วน"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Row 1: Preset Status Buttons (Equal Width: 3 Columns) */}
+          <div className="grid grid-cols-3 gap-1.5 w-full">
+            <button
+              type="button"
               onClick={() => handleShoutout("ได้บัตรแล้ว!")}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#1ed760]/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-[#1ed760]/60 text-white text-xs font-medium transition active:scale-95 cursor-pointer text-center"
               title="กด Alt+1 เพื่อส่งทันที"
             >
               <span>ได้บัตรแล้ว!</span>
-              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-[#1ed760]">
+              <kbd className="hidden sm:inline px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-[#1ed760]">
                 Alt+1
               </kbd>
             </button>
+
             <button
               type="button"
               onClick={() => handleShoutout("คิวหลุด!")}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-amber-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-amber-500/60 text-white text-xs font-medium transition active:scale-95 cursor-pointer text-center"
               title="กด Alt+2 เพื่อส่งทันที"
             >
               <span>คิวหลุด!</span>
-              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-amber-400">
+              <kbd className="hidden sm:inline px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-amber-400">
                 Alt+2
               </kbd>
             </button>
+
             <button
               type="button"
               onClick={() => handleShoutout("ขอกำลังเสริม!")}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-rose-500/60 text-white text-[11px] font-medium transition active:scale-95 shrink-0 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-[#1f1f1f] hover:bg-[#282828] border border-[#333333] hover:border-rose-500/60 text-white text-xs font-medium transition active:scale-95 cursor-pointer text-center"
               title="กด Alt+3 เพื่อส่งทันที"
             >
               <span>ขอกำลังเสริม!</span>
-              <kbd className="px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-rose-400">
+              <kbd className="hidden sm:inline px-1 py-0.2 bg-black/40 rounded text-[9px] font-mono text-rose-400">
                 Alt+3
               </kbd>
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsShoutoutsOpen(false)}
-            className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition cursor-pointer shrink-0 ml-auto"
-            title="หุบแถบส่งด่วน"
-            aria-label="หุบแถบส่งด่วน"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          {/* Row 2: Queue & Percent Inputs (Equal Width: 2 Columns) */}
+          <div className="grid grid-cols-2 gap-1.5 w-full">
+            {/* Quick Queue Number Input */}
+            <form
+              onSubmit={handleSendQueueNumber}
+              className="flex items-center justify-between bg-[#1f1f1f] border border-[#333333] focus-within:border-[#1ed760]/70 rounded-xl px-2.5 py-1 text-xs text-white transition w-full"
+            >
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <span className="text-xs text-zinc-400 font-medium select-none shrink-0">
+                  คิวที่
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={queueNumberInput}
+                  onChange={(e) => setQueueNumberInput(e.target.value)}
+                  placeholder="เช่น 1500"
+                  className="w-full bg-transparent text-white font-mono text-xs focus:outline-none placeholder:text-zinc-600 min-w-0"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!queueNumberInput.trim()}
+                className="p-1 rounded-lg text-zinc-400 hover:text-[#1ed760] hover:bg-zinc-800 disabled:opacity-25 disabled:hover:bg-transparent transition cursor-pointer shrink-0 ml-1"
+                title="ส่งเลขคิว (Enter)"
+                aria-label="ส่งเลขคิว"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </form>
+
+            {/* Quick Queue Percentage Input */}
+            <form
+              onSubmit={handleSendQueuePercent}
+              className="flex items-center justify-between bg-[#1f1f1f] border border-[#333333] focus-within:border-[#1ed760]/70 rounded-xl px-2.5 py-1 text-xs text-white transition w-full"
+            >
+              <div className="flex items-center gap-1 min-w-0 flex-1">
+                <span className="text-xs text-zinc-400 font-medium select-none shrink-0">
+                  คิว
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={queuePercentInput}
+                  onChange={(e) => setQueuePercentInput(e.target.value)}
+                  placeholder="เช่น 45"
+                  className="w-full bg-transparent text-white font-mono text-xs focus:outline-none placeholder:text-zinc-600 min-w-0 text-center"
+                />
+                <span className="text-xs text-zinc-400 font-mono select-none shrink-0">
+                  %
+                </span>
+              </div>
+              <button
+                type="submit"
+                disabled={!queuePercentInput.trim()}
+                className="p-1 rounded-lg text-zinc-400 hover:text-[#1ed760] hover:bg-zinc-800 disabled:opacity-25 disabled:hover:bg-transparent transition cursor-pointer shrink-0 ml-1"
+                title="ส่งเปอร์เซ็นต์คิว (Enter)"
+                aria-label="ส่งเปอร์เซ็นต์คิว"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          </div>
         </div>
       )}
+
 
       {/* Input bar */}
       {!isReadOnly ? (
