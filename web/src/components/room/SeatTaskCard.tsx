@@ -16,7 +16,10 @@ import {
   Clock,
   Search,
   X,
+  Copy,
+  FileText,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { formatThaiDate } from "@/lib/date";
 import { useClickOutside } from "@/lib/hooks";
 import { parseZoneLocations } from "@/lib/validation";
@@ -133,6 +136,52 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
     setIsAssigneeMenuOpen(false);
     setAssigneeSearch("");
   });
+
+  // Note copy state & feedback
+  const [copiedNote, setCopiedNote] = useState(false);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyNote = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!task.note) return;
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(task.note);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = task.note;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
+
+      setCopiedNote(true);
+      toast.success("คัดลอกหมายเหตุแล้ว");
+
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopiedNote(false);
+      }, 2000);
+    } catch {
+      toast.error("ไม่สามารถคัดลอกข้อความได้");
+    }
+  };
 
   // Current assignees (multi-assignee support with fallback)
   const currentAssignees: TaskAssignee[] =
@@ -937,11 +986,31 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
 
       {/* Remarks Note (if exists) */}
       {task.note && (
-        <div className="bg-[#141414] text-zinc-200 p-2.5 rounded-xl border border-[#282828] mt-2.5 space-y-1">
-          <p className="text-[#888888] font-bold text-xs flex items-center gap-1">
-            <span>หมายเหตุ:</span>
-          </p>
-          <p className="text-md leading-relaxed text-zinc-300 whitespace-pre-line wrap-break-word">
+        <div className="bg-[#141414] text-zinc-200 p-2.5 rounded-xl border border-[#282828] mt-2.5 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[#888888] font-bold text-xs flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+              <span>หมายเหตุ:</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyNote}
+              title={copiedNote ? "คัดลอกแล้ว" : "คัดลอกหมายเหตุ"}
+              aria-label={copiedNote ? "คัดลอกแล้ว" : "คัดลอกหมายเหตุ"}
+              className={`p-1 rounded-md transition-colors cursor-pointer flex items-center justify-center ${
+                copiedNote
+                  ? "text-[#1ed760] bg-[#1ed760]/10"
+                  : "text-[#888888] hover:text-white hover:bg-[#252525]"
+              }`}
+            >
+              {copiedNote ? (
+                <Check className="w-3.5 h-3.5 stroke-3" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+          <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-line wrap-break-word select-all">
             {task.note}
           </p>
         </div>
