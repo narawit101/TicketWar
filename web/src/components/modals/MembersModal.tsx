@@ -239,7 +239,9 @@ export const MembersModal: React.FC<MembersModalProps> = ({
                   roomId={roomId}
                   isOwner={isOwner}
                   currentUserId={currentUserId}
-                  invitations={invitations}
+                  invitations={invitations.filter(
+                    (inv) => !members.some((m) => m.userId === inv.inviteeId)
+                  )}
                   loading={false}
                   onRefresh={fetchInvitations}
                   refreshTrigger={inviteRefreshTrigger}

@@ -110,6 +110,13 @@ export async function DELETE(
       },
     });
 
+    await prisma.roomInvitation.deleteMany({
+      where: {
+        roomId,
+        inviteeId: targetUserId,
+      },
+    });
+
     const actionText = isSelfLeaving
       ? `${targetUserName} ออกจากห้องแล้ว`
       : `${targetUserName} ถูกเตะออกจากห้อง`;

@@ -8,6 +8,24 @@ export async function GET(
   try {
     const { id: roomId } = await context.params;
 
+    // ตรวจสอบสมาชิกปัจจุบันในห้อง เพื่อเคลียร์คำเชิญที่ค้างของผู้ใช้ที่เข้ามาแล้ว
+    const members = await prisma.roomMember.findMany({
+      where: { roomId },
+      select: { userId: true },
+    });
+    const memberUserIds = new Set(members.map((m) => m.userId));
+
+    if (memberUserIds.size > 0) {
+      await prisma.roomInvitation.updateMany({
+        where: {
+          roomId,
+          status: "PENDING",
+          inviteeId: { in: Array.from(memberUserIds) },
+        },
+        data: { status: "ACCEPTED" },
+      });
+    }
+
     const invitations = await prisma.roomInvitation.findMany({
       where: { roomId },
       include: {

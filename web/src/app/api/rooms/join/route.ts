@@ -166,6 +166,30 @@ export async function POST(req: Request) {
           },
         },
       });
+
+      // อัปเดตสถานะคำเชิญที่ค้างอยู่ให้เป็น ACCEPTED
+      await prisma.roomInvitation.updateMany({
+        where: {
+          roomId: room.id,
+          inviteeId: userId,
+          status: "PENDING",
+        },
+        data: {
+          status: "ACCEPTED",
+        },
+      });
+    } else {
+      // กรณีเคยมีคำเชิญค้างอยู่แต่ผู้ใช้อยู่ในห้องแล้ว ให้เคลียร์เป็น ACCEPTED
+      await prisma.roomInvitation.updateMany({
+        where: {
+          roomId: room.id,
+          inviteeId: userId,
+          status: "PENDING",
+        },
+        data: {
+          status: "ACCEPTED",
+        },
+      });
     }
 
     const memberCount = await prisma.roomMember.count({
