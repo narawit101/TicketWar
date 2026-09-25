@@ -79,7 +79,12 @@ export const RoomSeatTasksList: React.FC<RoomSeatTasksListProps> = ({
       // Then sort by targetDate (earliest / closest first)
       const dateA = new Date(a.targetDate).getTime();
       const dateB = new Date(b.targetDate).getTime();
-      return dateA - dateB;
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+
+      // If same date, sort by price descending (higher price on top)
+      return (b.price || 0) - (a.price || 0);
     });
 
   return (

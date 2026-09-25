@@ -28,7 +28,7 @@ export async function GET(
           include: {
             lastUpdatedBy: { select: { name: true } },
           },
-          orderBy: { lastUpdatedAt: "desc" },
+          orderBy: [{ targetDate: "asc" }, { price: "desc" }],
         },
         messages: {
           include: {

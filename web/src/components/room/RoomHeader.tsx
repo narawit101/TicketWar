@@ -286,18 +286,16 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
 
           {isMenuOpen && (
             <div className="absolute right-0 mt-1.5 w-48 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150">
-              {isOwner && (
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onOpenEditRoom();
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>แก้ไขข้อมูลห้อง</span>
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onOpenEditRoom();
+                }}
+                className="w-full text-left px-3.5 py-2 text-xs text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800/70 flex items-center gap-2 transition cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>แก้ไขข้อมูลห้อง</span>
+              </button>
 
               <button
                 onClick={() => {

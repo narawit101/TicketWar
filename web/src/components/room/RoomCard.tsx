@@ -302,19 +302,17 @@ export const RoomCard: React.FC<RoomCardProps> = ({
                 onClick={(e) => e.stopPropagation()}
                 className="absolute right-0 bottom-full mb-1.5 w-48 bg-[#181818] border border-[#2c2c2c] rounded-xl shadow-2xl py-1 z-30 animate-in fade-in zoom-in-95 duration-150 text-left"
               >
-                {isOwner && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onEdit(room);
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-left px-3.5 py-2 text-xs text-white hover:bg-[#252525] flex items-center gap-2 transition cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#1ed760]" />
-                    <span>แก้ไขข้อมูลห้อง</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onEdit(room);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3.5 py-2 text-xs text-white hover:bg-[#252525] flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#1ed760]" />
+                  <span>แก้ไขข้อมูลห้อง</span>
+                </button>
 
                 <button
                   type="button"
