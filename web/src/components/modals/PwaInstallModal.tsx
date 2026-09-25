@@ -69,9 +69,6 @@ const PwaInstallDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-tight">
                 ติดตั้ง TicketWar ลงเครื่อง
               </h2>
-              <p className="text-xs text-[#a0a0a0]">
-                เปิดเร็ว เต็มจอ ไม่มีแถบ URL เกะกะ
-              </p>
             </div>
           </div>
 
@@ -160,11 +157,6 @@ const PwaInstallDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           {/* iOS Safari Instructions */}
           {showIosGuide ? (
             <div className="space-y-3">
-              <p className="text-xs text-[#a0a0a0] leading-relaxed">
-                เนื่องจาก iOS Safari กำหนดให้ติดตั้งผ่านเมนูของระบบ กรุณาทำตาม 3
-                สเต็ปง่ายๆ ดังนี้:
-              </p>
-
               <div className="space-y-2">
                 <div className="p-3 rounded-xl bg-[#141414] border border-[#252525] flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-[#252525] text-[#1ed760] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
@@ -215,11 +207,6 @@ const PwaInstallDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           ) : (
             /* Android / Desktop / Chrome Instructions */
             <div className="space-y-3">
-              <p className="text-xs text-[#a0a0a0] leading-relaxed">
-                ติดตั้งแอปลงบนเบราว์เซอร์ Chrome, Edge หรือโทรศัพท์ Android
-                เพื่อเข้าถึงวอร์รูมได้ภายในคลิกเดียว
-              </p>
-
               {canInstall ? (
                 <button
                   type="button"
@@ -263,37 +250,6 @@ const PwaInstallDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               )}
             </div>
           )}
-
-          {/* Benefits Feature Grid */}
-          <div className="pt-2 border-t border-[#252525] grid grid-cols-2 gap-2 text-left">
-            <div className="p-2.5 rounded-lg bg-[#141414] border border-[#222222]">
-              <p className="text-[11px] font-bold text-white flex items-center gap-1">
-                <span className="text-[#1ed760]">⚡</span> เปิดได้เร็วกว่า
-              </p>
-              <p className="text-[10px] text-[#888888] mt-0.5">
-                แคชส่วนติดต่อล่วงหน้า โหลดไวไม่ค้าง
-              </p>
-            </div>
-            <div className="p-2.5 rounded-lg bg-[#141414] border border-[#222222]">
-              <p className="text-[11px] font-bold text-white flex items-center gap-1">
-                <span className="text-[#539df5]">📱</span> ไร้ขอบเบราว์เซอร์
-              </p>
-              <p className="text-[10px] text-[#888888] mt-0.5">
-                เต็มจอ standalone เพิ่มพื้นที่ดูแชทและผัง
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Anti-Cutoff Footer */}
-        <div className="p-4 border-t border-[#252525] flex items-center justify-end shrink-0 bg-[#181818]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-full text-xs sm:text-sm font-bold text-[#b3b3b3] hover:text-white border border-[#333333] hover:border-[#555555] transition cursor-pointer"
-          >
-            เข้าใจแล้ว / ปิดหน้าต่าง
-          </button>
         </div>
       </div>
     </div>
