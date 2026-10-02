@@ -41,6 +41,7 @@ task/
 - **Frontend**: [Next.js 16](https://nextjs.org) (App Router, Turbopack) + React 19 + Tailwind CSS v4 (Deployable on **Vercel Hobby Tier** with client-side 3.5 MB file size guards).
 - **Backend & Realtime**: [Node.js](https://nodejs.org) + [Socket.io](https://socket.io) for persistent WebSocket communication (Deployable on **Render Web Service** with exponential backoff handling 50–60s cold starts).
 - **Database**: [PostgreSQL (Supabase)](https://supabase.com) managed via [Prisma ORM](https://www.prisma.io) — **Supports Transaction Connection Pooler (Port 6543) and Direct Migrations (Port 5432)**.
+- **Cache Layer**: [Redis](https://redis.io) via [ioredis](https://github.com/ioredis/ioredis) — Sub-millisecond response for Dashboard and Room Metadata with complete **Fail-Open resilience** (zero downtime fallback to DB if Redis is offline).
 - **Cloud Storage**: [Cloudinary](https://cloudinary.com) with folder segregation (`ticketwar/chat` for images, `ticketwar/files` for PDF receipts).
 - **Audio Alerts**: Zero-dependency Web Audio API synthesizing immediate alert pings directly in-browser.
 - **Deep Modules**: Standardized `<Avatar />` component, `<RoomCard />` with localized menus, and `useClickOutside` hook.
@@ -83,7 +84,11 @@ In accordance with [`DESIGN.md`](./DESIGN.md), all styling across the codebase m
    - Post-sale room closure: Archive (read-only) or Purge (permanent deletion).
 5. **Input Limits & Data Integrity**:
    - Enforced client-side and server-side length limits (e.g. room title 80 chars, notes 500–800 chars, quantity 1–10).
-6. **Minimal Spotify Footer**:
+6. **Sub-millisecond Redis Caching Layer**:
+   - Short-TTL (30s) Dashboard caching absorbing traffic spikes during ticket drops.
+   - Room Metadata & Member list caching (< 30ms) with instant event-driven active invalidation.
+   - Real-time zero-cache guarantee for SeatTasks and Live Chat to prevent stale ticket allocations.
+7. **Minimal Spotify Footer**:
    - Distraction-free, single-line footer with fast links to major ticketing platforms.
 
 ---
@@ -100,7 +105,9 @@ NEXT_PUBLIC_SOCKET_URL="http://localhost:4000"
 CLOUDINARY_API_KEY="your_api_key"
 CLOUDINARY_API_SECRET="your_api_secret"
 CLOUDINARY_CLOUD_NAME="your_cloud_name"
+REDIS_URL="redis://localhost:6379"
 ```
+
 
 > **For Supabase Deployment:**
 > - Set `DATABASE_URL` to the **Transaction Pooler (Port 6543)**.

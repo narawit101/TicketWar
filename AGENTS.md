@@ -37,6 +37,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - ❌ **NEVER** submit raw, uncompressed image files (> 4.5 MB) directly to Next.js API Routes (violates Vercel Serverless 4.5 MB request body limit).
 - ✅ **ALWAYS** compress images client-side via HTML5 Canvas (`processImageFile`) before uploading.
 
+### ❌ Real-time Data Integrity (Zero-Cache Rule)
+- ❌ **NEVER** cache `SeatTasks` (ticket targets, quantities secured/needed, pending payments) or `Live Chat` messages. Caching these causes stale data collisions during high-stakes ticket drops.
+- ✅ **ONLY CACHE** static/slow-changing metadata: Room metadata (`room:{id}:meta`), Room Members (`room:{id}:members`), and short-lived Dashboard feeds (`dashboard:{userId}:{params}`).
+
 ---
 
 ## 🎨 2. Spotify Design System Standard
@@ -79,6 +83,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
    - Enforce segregated folder storage:
      - `ticketwar/chat` for in-room chat images.
      - `ticketwar/files` for PDF documents and ticket receipts.
+
+4. **Redis Cache Layer (`ioredis`)**:
+   - Centralized cache helper located at `@/lib/redis`, configured via standard `REDIS_URL`.
+   - **Fail-Open Policy**: If Redis is offline, unreachable, or unconfigured, all methods silently fail-open and fall back to direct PostgreSQL queries without crashing or throwing 500 errors.
+   - **Standard Keys & Active Invalidation**:
+     - `room:{id}:meta` (TTL 300s): Invalidate via `deleteCache` on room updates, status changes, and pin toggles.
+     - `room:{id}:members` (TTL 600s): Invalidate via `deleteCache` on join, leave/kick, and invite acceptance.
+     - `dashboard:{userId}:{params}` (TTL 30s): Invalidate via `deleteDashboardCache(userId)` on room creation and status changes.
 
 ---
 

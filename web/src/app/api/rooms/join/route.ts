@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteCache, getRoomMembersKey } from "@/lib/redis";
 
 // GET /api/rooms/join?code=...&userId=... - ดึงข้อมูลพรีวิวห้องและเช็คว่าเป็นสมาชิกแล้วหรือไม่
 export async function GET(req: Request) {
@@ -178,6 +179,9 @@ export async function POST(req: Request) {
           status: "ACCEPTED",
         },
       });
+
+      // Invalidate room members cache
+      await deleteCache(getRoomMembersKey(room.id));
     } else {
       // กรณีเคยมีคำเชิญค้างอยู่แต่ผู้ใช้อยู่ในห้องแล้ว ให้เคลียร์เป็น ACCEPTED
       await prisma.roomInvitation.updateMany({

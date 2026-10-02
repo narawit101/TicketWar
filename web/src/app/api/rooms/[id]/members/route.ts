@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  getCache,
+  setCache,
+  deleteCache,
+  getRoomMembersKey,
+  CACHE_TTL,
+} from "@/lib/redis";
 
 type MemberWithUser = {
   id: string;
@@ -22,6 +29,23 @@ export async function GET(
 ) {
   try {
     const { id: roomId } = await context.params;
+    const cacheKey = getRoomMembersKey(roomId);
+
+    // ponytail: Redis cache hits return in < 30ms, skip DB join
+    const cachedMembers = await getCache<Array<{
+      id: string;
+      userId: string;
+      name: string;
+      email: string;
+      avatarUrl: string | null;
+      role: string;
+      joinedAt: string;
+    }>>(cacheKey);
+
+    if (cachedMembers) {
+      return NextResponse.json({ members: cachedMembers });
+    }
+
     const members = await prisma.roomMember.findMany({
       where: { roomId },
       include: {
@@ -39,6 +63,8 @@ export async function GET(
       role: m.role,
       joinedAt: m.joinedAt.toISOString(),
     }));
+
+    await setCache(cacheKey, formatted, CACHE_TTL.ROOM_MEMBERS);
 
     return NextResponse.json(
       { members: formatted },
@@ -116,6 +142,9 @@ export async function DELETE(
         inviteeId: targetUserId,
       },
     });
+
+    // Invalidate room members cache
+    await deleteCache(getRoomMembersKey(roomId));
 
     const actionText = isSelfLeaving
       ? `${targetUserName} ออกจากห้องแล้ว`

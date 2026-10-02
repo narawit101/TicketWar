@@ -43,7 +43,9 @@ Engineered for ultra-low latency, zero operating cost, and hardened for free-tie
 | **Backend & Realtime** | **Node.js + Socket.io** | Deployed on **Render** (Free Web Service) as a pure WebSocket relay server. Built with exponential backoff (`reconnectionDelayMax: 5000`) for Render 50–60s cold starts. |
 | **Database** | **PostgreSQL (Supabase)** | Supabase Free Tier (500MB database). Supports **Transaction Connection Pooler (Port 6543)** via `DATABASE_URL` and direct migrations (Port 5432) via `DIRECT_URL`. |
 | **Storage** | **Cloudinary** | Automatic client-side/server-side WebP compression and separated folders (`ticketwar/chat` for images, `ticketwar/files` for PDFs). |
+| **Cache Layer** | **Redis (`ioredis`)** | Configured via `REDIS_URL` (Local Docker / Redis Cloud). Sub-millisecond response for Dashboard and Room Metadata with Fail-Open fallback to PostgreSQL. |
 | **Audio** | **Web Audio API** | Synthesizes immediate alert chimes directly in-browser with zero external asset requests. |
+
 
 ---
 

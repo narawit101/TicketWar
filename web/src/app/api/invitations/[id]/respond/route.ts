@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteCache, getRoomMembersKey } from "@/lib/redis";
 
 // POST /api/invitations/[id]/respond - ตอบรับ (ACCEPT) หรือปฏิเสธ (DECLINE) คำเชิญ
 export async function POST(
@@ -117,6 +118,8 @@ export async function POST(
           },
         },
       });
+      // Invalidate room members cache
+      await deleteCache(getRoomMembersKey(invitation.roomId));
     }
 
     // Update invitation status to ACCEPTED
