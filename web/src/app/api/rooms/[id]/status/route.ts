@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteCloudinaryImage } from "@/lib/cloudinary";
+import {
+  deleteCacheKeys,
+  deleteDashboardCache,
+  getRoomMetaKey,
+  getRoomMembersKey,
+} from "@/lib/redis";
 
 export async function PATCH(
   req: Request,
@@ -58,6 +64,15 @@ export async function PATCH(
         status: true,
       },
     });
+
+    // Invalidate room metadata & members cache
+    await deleteCacheKeys([
+      getRoomMetaKey(roomId),
+      getRoomMembersKey(roomId),
+    ]);
+
+    // Invalidate dashboard caches across the app
+    await deleteDashboardCache();
 
     const statusLabels: Record<string, string> = {
       ACTIVE: "เปิดใช้งานห้องแล้ว",

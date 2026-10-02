@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { parseDateInBangkok, toInputDateTime } from "@/lib/date";
+import {
+  getCache,
+  setCache,
+  getDashboardKey,
+  deleteDashboardCache,
+  CACHE_TTL,
+} from "@/lib/redis";
 
 export async function GET(req: Request) {
   try {
@@ -15,6 +22,23 @@ export async function GET(req: Request) {
     const dateFilter = searchParams.get("dateFilter") || "UPCOMING"; // UPCOMING | ALL | CUSTOM
     const customDate = searchParams.get("customDate") || "";
     const search = (searchParams.get("search") || "").trim();
+
+    // ponytail: Check short-TTL Redis cache (30s) to avoid running 4 count queries and message loops
+    const cacheKey = getDashboardKey({
+      userId,
+      tab,
+      status,
+      dateFilter,
+      customDate,
+      page,
+      limit,
+      search,
+    });
+
+    const cachedData = await getCache<Record<string, unknown>>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData);
+    }
 
     const statusCondition = status === "ARCHIVED" ? "ARCHIVED" : "ACTIVE";
 
@@ -187,7 +211,7 @@ export async function GET(req: Request) {
 
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-    return NextResponse.json({
+    const responsePayload = {
       rooms: formattedRooms,
       pagination: {
         page,
@@ -200,9 +224,13 @@ export async function GET(req: Request) {
         mine: mineTabCount,
         joined: joinedTabCount,
       },
-    });
-  } catch (error) {
-    console.error("[GET /api/rooms error]:", error);
+    };
+
+    // ponytail: Store in cache with 30s TTL. Background fire-and-forget.
+    setCache(cacheKey, responsePayload, CACHE_TTL.DASHBOARD).catch(() => {});
+
+    return NextResponse.json(responsePayload);
+  } catch (error) {    console.error("[GET /api/rooms error]:", error);
     return NextResponse.json({ error: "ไม่สามารถดึงข้อมูลห้องได้" }, { status: 500 });
   }
 }
@@ -363,6 +391,12 @@ export async function POST(req: Request) {
       status: inv.status,
       createdAt: inv.createdAt.toISOString(),
     }));
+
+    // Invalidate dashboard caches for room owner and invited members
+    await deleteDashboardCache(ownerId);
+    if (validInviteeIds.length > 0) {
+      await Promise.all(validInviteeIds.map((id) => deleteDashboardCache(id)));
+    }
 
     return NextResponse.json(
       {

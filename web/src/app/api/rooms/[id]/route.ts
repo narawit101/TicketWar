@@ -4,6 +4,13 @@ import { Prisma } from "@prisma/client";
 import { uploadRoomPoster, uploadRoomSeatingPlan } from "@/lib/cloudinary";
 import { isSystemShoutout } from "@/lib/validation";
 import { parseDateInBangkok, toInputDateValue } from "@/lib/date";
+import {
+  setCache,
+  deleteCache,
+  deleteDashboardCache,
+  getRoomMetaKey,
+  CACHE_TTL,
+} from "@/lib/redis";
 
 export async function GET(
   req: Request,
@@ -156,27 +163,50 @@ export async function GET(
       joinedAt: m.joinedAt.toISOString(),
     }));
 
-    return NextResponse.json({
-      room: {
+    const responseRoom = {
+      id: room.id,
+      title: room.title,
+      inviteCode: room.inviteCode,
+      status: room.status,
+      createdById: room.createdById,
+      pinnedMessageId: room.pinnedMessageId || null,
+      pinnedMessage,
+      bannerUrl: room.bannerUrl || null,
+      seatingPlanUrl: room.seatingPlanUrl || null,
+      ticketUrl: room.ticketUrl || null,
+      description: room.description || null,
+      hasQueue: Boolean(room.hasQueue),
+      queueTime: room.queueTime || null,
+      memberCount: room.members.length,
+      eventDate: room.eventDate
+        ? room.eventDate.toISOString()
+        : "วันแสดงที่กำหนด",
+      members: formattedMembers,
+    };
+
+    // ponytail: Cache room metadata (banners, info) without caching volatile seat tasks
+    setCache(
+      getRoomMetaKey(id),
+      {
         id: room.id,
         title: room.title,
         inviteCode: room.inviteCode,
         status: room.status,
         createdById: room.createdById,
         pinnedMessageId: room.pinnedMessageId || null,
-        pinnedMessage,
         bannerUrl: room.bannerUrl || null,
         seatingPlanUrl: room.seatingPlanUrl || null,
         ticketUrl: room.ticketUrl || null,
         description: room.description || null,
         hasQueue: Boolean(room.hasQueue),
         queueTime: room.queueTime || null,
-        memberCount: room.members.length,
-        eventDate: room.eventDate
-          ? room.eventDate.toISOString()
-          : "วันแสดงที่กำหนด",
-        members: formattedMembers,
+        eventDate: room.eventDate ? room.eventDate.toISOString() : null,
       },
+      CACHE_TTL.ROOM_META
+    ).catch(() => {});
+
+    return NextResponse.json({
+      room: responseRoom,
       members: formattedMembers,
       tasks: formattedTasks,
       messages: formattedMessages,
@@ -269,6 +299,10 @@ export async function PATCH(
       where: { id },
       data: updateData,
     });
+
+    // Invalidate room metadata cache and dashboard feeds
+    await deleteCache(getRoomMetaKey(id));
+    await deleteDashboardCache();
 
     return NextResponse.json({
       room: {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteCache, getRoomMetaKey } from "@/lib/redis";
 
 export async function PATCH(
   req: Request,
@@ -19,6 +20,8 @@ export async function PATCH(
         where: { id: roomId },
         data: { pinnedMessageId: null },
       });
+
+      await deleteCache(getRoomMetaKey(roomId));
 
       return NextResponse.json({
         roomId,
@@ -42,6 +45,8 @@ export async function PATCH(
       where: { id: roomId },
       data: { pinnedMessageId: messageId },
     });
+
+    await deleteCache(getRoomMetaKey(roomId));
 
     const formattedPinnedMessage = {
       id: message.id,
