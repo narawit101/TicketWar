@@ -14,11 +14,15 @@ const redisUrl = process.env.REDIS_URL;
 function createRedisClient(): IORedis | null {
   if (!redisUrl || !redisUrl.trim()) return null;
 
+  // Auto-strip quotes if user accidentally wrapped URL in quotation marks
+  const cleanUrl = redisUrl.trim().replace(/^["']|["']$/g, "").trim();
+  if (!cleanUrl) return null;
+
   try {
-    const client = new IORedis(redisUrl.trim(), {
+    const client = new IORedis(cleanUrl, {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
-      connectTimeout: 3000,
+      connectTimeout: 5000,
       lazyConnect: false,
       retryStrategy(times) {
         // Retry at most 3 times, then stop to avoid log spam
