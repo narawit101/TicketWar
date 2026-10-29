@@ -17,6 +17,7 @@ TicketWar is a real-time concert ticketing coordination platform and live "war r
 ## Positioning
 
 Unlike generic group chats (LINE, WhatsApp, Discord) where critical updates get buried, TicketWar provides:
+
 - **Fast-Action Seat Target Tracker**: 1-click status toggles (`Available` -> `Pending Payment` -> `Completed`) with real-time remaining quota calculations and fallback zone contingency notes.
 - **Urgent Real-time Audio Shoutouts**: Zero-latency synthetic Web Audio alerts (`🎉 ได้บัตรแล้ว!`, `⚠️ คิวหลุด!`, `🆘 ขอกำลังเสริม!`) that penetrate noisy ticket drop sessions.
 - **Proof Sharing & Audit Trail**: Real-time image and PDF document sharing for ticket receipts, paired with transparent "who updated what and when" audit logs.
