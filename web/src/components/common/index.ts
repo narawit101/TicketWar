@@ -4,4 +4,5 @@ export { NotificationDropdown } from "./NotificationDropdown";
 export { TicketWarLogo } from "./TicketWarLogo";
 export { Pagination } from "./Pagination";
 export { PwaRegister } from "./PwaRegister";
+export { LimitedToaster } from "./LimitedToaster";
 export * from "./Skeleton";

@@ -3,6 +3,7 @@ export type RoomStatus = "ACTIVE" | "ARCHIVED" | "DELETED";
 export type SeatStatus = "AVAILABLE" | "PENDING_PAYMENT" | "COMPLETED";
 
 export interface SecuredByRecord {
+  id?: string;
   userId: string;
   name: string;
   qty: number;

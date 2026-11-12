@@ -17,11 +17,16 @@ interface RoomSeatTasksListProps {
     zoneName: string,
     price: number,
   ) => void;
-  onConfirmPayment?: (taskId: string, pendingId: string) => void;
+  onConfirmPayment?: (
+    taskId: string,
+    pendingId: string,
+    ticketIndex?: number,
+  ) => void;
   onDirectSecured?: (
     taskId: string,
     zoneType: "MAIN" | "BACKUP",
     zoneName: string,
+    ticketIndex?: number,
   ) => void;
   onCancelPendingPayment?: (taskId: string, pendingId: string) => void;
   onDecrement: (taskId: string) => void;

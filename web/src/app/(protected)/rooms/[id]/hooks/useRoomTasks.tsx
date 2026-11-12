@@ -120,17 +120,25 @@ export function useRoomTasks({
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Guardrail: Pending undoable timers map (taskId -> { timer, commit, rollback })
+  // Guardrail: Pending undoable timers map (actionId -> { actionId, taskId, timer, commit, rollback })
   const pendingSecuredTimersRef = useRef<
     Map<
       string,
       {
+        actionId: string;
+        taskId: string;
         timer: NodeJS.Timeout;
         commit: () => void;
         rollback: () => void;
       }
     >
   >(new Map());
+
+  // Keep latest tasks state accessible in async callbacks/timers to prevent stale closures
+  const tasksRef = useRef<SeatTask[]>(tasks);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   // Flush any pending commits on unmount
   useEffect(() => {
@@ -409,43 +417,27 @@ export function useRoomTasks({
   );
 
   const handleConfirmPayment = useCallback(
-    async (taskId: string, pendingId: string) => {
-      const target = tasks.find((t) => t.id === taskId);
+    async (taskId: string, pendingId: string, ticketIndex?: number) => {
+      const target = tasksRef.current.find((t) => t.id === taskId);
       if (!target) return;
 
-      // If existing pending timer exists for this task, commit it immediately
-      const existingTimer = pendingSecuredTimersRef.current.get(taskId);
-      if (existingTimer) {
-        clearTimeout(existingTimer.timer);
-        existingTimer.commit();
-      }
-
-      const previousTarget = { ...target };
       const pendingItem = target.pendingPayments?.find(
         (p) => p.id === pendingId,
       );
-      const remainingPending = (target.pendingPayments || []).filter(
-        (p) => p.id !== pendingId,
-      );
+      if (!pendingItem) return;
 
-      const nextSecured = target.quantitySecured + 1;
-      const isNowFull = nextSecured >= target.quantityNeeded;
-      const nextStatus: SeatStatus = isNowFull
-        ? "COMPLETED"
-        : remainingPending.length > 0
-          ? "PENDING_PAYMENT"
-          : "AVAILABLE";
-
-      const updatedSecuredBy = [...(target.securedBy || [])];
-      const buyerName = pendingItem?.name || currentUserName;
-      const buyerId = pendingItem?.userId || userId || "";
+      const actionId = crypto.randomUUID();
+      const ticketNumber = ticketIndex || target.quantitySecured + 1;
+      const buyerName = pendingItem.name || currentUserName;
+      const buyerId = pendingItem.userId || userId || "";
       const zoneLabel =
-        pendingItem?.zoneName ||
-        (pendingItem?.zoneType === "BACKUP"
+        pendingItem.zoneName ||
+        (pendingItem.zoneType === "BACKUP"
           ? target.backupLocation || "โซนสำรอง"
           : target.targetLocation);
 
-      updatedSecuredBy.push({
+      const newSecuredRecord: SecuredByRecord = {
+        id: actionId,
         userId: buyerId,
         name: buyerName,
         qty: 1,
@@ -456,43 +448,58 @@ export function useRoomTasks({
             hour12: false,
           }) + " น.",
         zoneName: zoneLabel,
-        zoneType: pendingItem?.zoneType,
-      });
+        zoneType: pendingItem.zoneType,
+      };
 
       // 1. Optimistic UI update locally
       setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? {
-                ...t,
-                quantitySecured: nextSecured,
-                status: nextStatus,
-                securedBy: updatedSecuredBy,
-                pendingPayments: remainingPending,
-                lastUpdatedBy: currentUserName,
-                lastUpdatedAt: "เมื่อสักครู่",
-              }
-            : t,
-        ),
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          const remainingPending = (t.pendingPayments || []).filter(
+            (p) => p.id !== pendingId,
+          );
+          const nextSecured = t.quantitySecured + 1;
+          const isNowFull = nextSecured >= t.quantityNeeded;
+          const nextStatus: SeatStatus = isNowFull
+            ? "COMPLETED"
+            : remainingPending.length > 0
+              ? "PENDING_PAYMENT"
+              : "AVAILABLE";
+
+          return {
+            ...t,
+            quantitySecured: nextSecured,
+            status: nextStatus,
+            securedBy: [...(t.securedBy || []), newSecuredRecord],
+            pendingPayments: remainingPending,
+            lastUpdatedBy: currentUserName,
+            lastUpdatedAt: "เมื่อสักครู่",
+          };
+        }),
       );
 
       // 2. Commit function executes network updates & shoutout
       const commit = async () => {
-        pendingSecuredTimersRef.current.delete(taskId);
+        pendingSecuredTimersRef.current.delete(actionId);
+
+        const currentTask = tasksRef.current.find((t) => t.id === taskId);
+        if (!currentTask) return;
 
         getSocket().emit("update_seat_status", {
           roomId,
           taskId,
-          status: nextStatus,
-          quantitySecured: nextSecured,
-          securedBy: updatedSecuredBy,
-          pendingPayments: remainingPending,
+          status: currentTask.status,
+          quantitySecured: currentTask.quantitySecured,
+          securedBy: currentTask.securedBy,
+          pendingPayments: currentTask.pendingPayments,
           updatedBy: currentUserName,
         });
 
+        const isNowFull =
+          currentTask.quantitySecured >= currentTask.quantityNeeded;
         const confirmMsg = isNowFull
-          ? `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
-          : `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} แล้ว (+1 ใบ)`;
+          ? `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} ครบแล้ว! (${currentTask.quantitySecured}/${currentTask.quantityNeeded})`
+          : `${buyerName} ชำระเงินเรียบร้อย! ได้บัตร ${zoneLabel} (ใบที่ ${ticketNumber}) แล้ว (+1 ใบ)`;
 
         onAddChatMessage?.(confirmMsg, undefined, true);
 
@@ -502,10 +509,10 @@ export function useRoomTasks({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               taskId,
-              status: nextStatus,
-              quantitySecured: nextSecured,
-              securedBy: updatedSecuredBy,
-              pendingPayments: remainingPending,
+              status: currentTask.status,
+              quantitySecured: currentTask.quantitySecured,
+              securedBy: currentTask.securedBy,
+              pendingPayments: currentTask.pendingPayments,
               lastUpdatedById: userId,
             }),
           });
@@ -515,12 +522,72 @@ export function useRoomTasks({
       };
 
       // 3. Rollback function cancels action and restores optimistic state
-      const rollback = () => {
-        pendingSecuredTimersRef.current.delete(taskId);
+      const rollback = async () => {
+        pendingSecuredTimersRef.current.delete(actionId);
+
+        let updatedTask: SeatTask | null = null;
         setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? previousTarget : t)),
+          prev.map((t) => {
+            if (t.id !== taskId) return t;
+            const filteredSecured = (t.securedBy || []).filter(
+              (s) => s.id !== actionId,
+            );
+            const nextSecured = Math.max(0, t.quantitySecured - 1);
+            const restoredPending = [...(t.pendingPayments || []), pendingItem];
+            const nextStatus: SeatStatus =
+              nextSecured >= t.quantityNeeded
+                ? "COMPLETED"
+                : restoredPending.length > 0
+                  ? "PENDING_PAYMENT"
+                  : "AVAILABLE";
+
+            const updated = {
+              ...t,
+              quantitySecured: nextSecured,
+              status: nextStatus,
+              securedBy: filteredSecured,
+              pendingPayments: restoredPending,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            };
+            updatedTask = updated;
+            return updated;
+          }),
         );
-        toast.success("ยกเลิกการชำระเงินแล้ว");
+
+        toast.success(
+          `ยกเลิกการชำระเงิน ${zoneLabel} (ใบที่ ${ticketNumber}) แล้ว`,
+        );
+
+        if (updatedTask) {
+          const targetTask: SeatTask = updatedTask;
+          getSocket().emit("update_seat_status", {
+            roomId,
+            taskId,
+            status: targetTask.status,
+            quantitySecured: targetTask.quantitySecured,
+            securedBy: targetTask.securedBy,
+            pendingPayments: targetTask.pendingPayments,
+            updatedBy: currentUserName,
+          });
+
+          try {
+            await fetch(`/api/rooms/${roomId}/tasks`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                taskId,
+                status: targetTask.status,
+                quantitySecured: targetTask.quantitySecured,
+                securedBy: targetTask.securedBy,
+                pendingPayments: targetTask.pendingPayments,
+                lastUpdatedById: userId,
+              }),
+            });
+          } catch (err) {
+            console.error("Failed to sync rollback payment in DB:", err);
+          }
+        }
       };
 
       // 4. Start 5-second timer
@@ -528,14 +595,20 @@ export function useRoomTasks({
         commit();
       }, 5000);
 
-      pendingSecuredTimersRef.current.set(taskId, { timer, commit, rollback });
+      pendingSecuredTimersRef.current.set(actionId, {
+        actionId,
+        taskId,
+        timer,
+        commit,
+        rollback,
+      });
 
       // 5. Toast with 5-second countdown & "เลิกทำ (Undo)" button
       toast(
         (t) => (
           <UndoCountdownToast
             toastId={t.id}
-            title={`ชำระเงิน ${zoneLabel} แล้ว`}
+            title={`ชำระเงิน ${zoneLabel} (ใบที่ ${ticketNumber}) แล้ว`}
             icon="payment"
             onUndo={() => {
               clearTimeout(timer);
@@ -546,7 +619,7 @@ export function useRoomTasks({
         ),
         {
           duration: 5000,
-          id: `undo-payment-${taskId}`,
+          id: `undo-payment-${actionId}`,
           style: {
             background: "#181818",
             color: "#ffffff",
@@ -558,12 +631,17 @@ export function useRoomTasks({
         },
       );
     },
-    [roomId, userId, currentUserName, tasks, onAddChatMessage],
+    [roomId, userId, currentUserName, onAddChatMessage],
   );
 
   const handleDirectSecured = useCallback(
-    async (taskId: string, zoneType: "MAIN" | "BACKUP", zoneName: string) => {
-      const target = tasks.find((t) => t.id === taskId);
+    async (
+      taskId: string,
+      zoneType: "MAIN" | "BACKUP",
+      zoneName: string,
+      ticketIndex?: number,
+    ) => {
+      const target = tasksRef.current.find((t) => t.id === taskId);
       if (!target) return;
       if (target.quantitySecured >= target.quantityNeeded) {
         toast.error(
@@ -572,28 +650,13 @@ export function useRoomTasks({
         return;
       }
 
-      // If existing pending timer exists for this task, commit it immediately
-      const existingTimer = pendingSecuredTimersRef.current.get(taskId);
-      if (existingTimer) {
-        clearTimeout(existingTimer.timer);
-        existingTimer.commit();
-      }
-
-      const previousTarget = { ...target };
-      const nextSecured = target.quantitySecured + 1;
-      const isNowFull = nextSecured >= target.quantityNeeded;
-      const remainingPending = target.pendingPayments || [];
-      const nextStatus: SeatStatus = isNowFull
-        ? "COMPLETED"
-        : remainingPending.length > 0
-          ? "PENDING_PAYMENT"
-          : "AVAILABLE";
-
-      const updatedSecuredBy = [...(target.securedBy || [])];
+      const actionId = crypto.randomUUID();
+      const ticketNumber = ticketIndex || target.quantitySecured + 1;
       const buyerName = currentUserName;
       const buyerId = userId || "";
 
-      updatedSecuredBy.push({
+      const newSecuredRecord: SecuredByRecord = {
+        id: actionId,
         userId: buyerId,
         name: buyerName,
         qty: 1,
@@ -605,41 +668,54 @@ export function useRoomTasks({
           }) + " น.",
         zoneName,
         zoneType,
-      });
+      };
 
       // 1. Optimistic UI update locally so the user gets instant visual satisfaction
       setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId
-            ? {
-                ...t,
-                quantitySecured: nextSecured,
-                status: nextStatus,
-                securedBy: updatedSecuredBy,
-                lastUpdatedBy: currentUserName,
-                lastUpdatedAt: "เมื่อสักครู่",
-              }
-            : t,
-        ),
+        prev.map((t) => {
+          if (t.id !== taskId) return t;
+          const nextSecured = t.quantitySecured + 1;
+          const isNowFull = nextSecured >= t.quantityNeeded;
+          const remainingPending = t.pendingPayments || [];
+          const nextStatus: SeatStatus = isNowFull
+            ? "COMPLETED"
+            : remainingPending.length > 0
+              ? "PENDING_PAYMENT"
+              : "AVAILABLE";
+
+          return {
+            ...t,
+            quantitySecured: nextSecured,
+            status: nextStatus,
+            securedBy: [...(t.securedBy || []), newSecuredRecord],
+            lastUpdatedBy: currentUserName,
+            lastUpdatedAt: "เมื่อสักครู่",
+          };
+        }),
       );
 
       // 2. Commit function executes network updates & shoutout broadcast
       const commit = async () => {
-        pendingSecuredTimersRef.current.delete(taskId);
+        pendingSecuredTimersRef.current.delete(actionId);
+
+        const currentTask = tasksRef.current.find((t) => t.id === taskId);
+        if (!currentTask) return;
 
         getSocket().emit("update_seat_status", {
           roomId,
           taskId,
-          status: nextStatus,
-          quantitySecured: nextSecured,
-          securedBy: updatedSecuredBy,
-          pendingPayments: remainingPending,
+          status: currentTask.status,
+          quantitySecured: currentTask.quantitySecured,
+          securedBy: currentTask.securedBy,
+          pendingPayments: currentTask.pendingPayments,
           updatedBy: currentUserName,
         });
 
+        const isNowFull =
+          currentTask.quantitySecured >= currentTask.quantityNeeded;
         const msg = isNowFull
-          ? `${buyerName} ได้บัตร ${zoneName} ครบแล้ว! (${nextSecured}/${target.quantityNeeded})`
-          : `${buyerName} ได้บัตร ${zoneName} แล้ว! (+1 ใบ)`;
+          ? `${buyerName} ได้บัตร ${zoneName} ครบแล้ว! (${currentTask.quantitySecured}/${currentTask.quantityNeeded})`
+          : `${buyerName} ได้บัตร ${zoneName} (ใบที่ ${ticketNumber}) แล้ว! (+1 ใบ)`;
         onAddChatMessage?.(msg, undefined, true);
 
         try {
@@ -648,9 +724,10 @@ export function useRoomTasks({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               taskId,
-              status: nextStatus,
-              quantitySecured: nextSecured,
-              securedBy: updatedSecuredBy,
+              status: currentTask.status,
+              quantitySecured: currentTask.quantitySecured,
+              securedBy: currentTask.securedBy,
+              pendingPayments: currentTask.pendingPayments,
               lastUpdatedById: userId,
             }),
           });
@@ -660,12 +737,69 @@ export function useRoomTasks({
       };
 
       // 3. Rollback function cancels action and restores optimistic state
-      const rollback = () => {
-        pendingSecuredTimersRef.current.delete(taskId);
+      const rollback = async () => {
+        pendingSecuredTimersRef.current.delete(actionId);
+
+        let updatedTask: SeatTask | null = null;
         setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? previousTarget : t)),
+          prev.map((t) => {
+            if (t.id !== taskId) return t;
+            const filteredSecured = (t.securedBy || []).filter(
+              (s) => s.id !== actionId,
+            );
+            const nextSecured = Math.max(0, t.quantitySecured - 1);
+            const remainingPending = t.pendingPayments || [];
+            const nextStatus: SeatStatus =
+              nextSecured >= t.quantityNeeded
+                ? "COMPLETED"
+                : remainingPending.length > 0
+                  ? "PENDING_PAYMENT"
+                  : "AVAILABLE";
+
+            const updated = {
+              ...t,
+              quantitySecured: nextSecured,
+              status: nextStatus,
+              securedBy: filteredSecured,
+              lastUpdatedBy: currentUserName,
+              lastUpdatedAt: "เมื่อสักครู่",
+            };
+            updatedTask = updated;
+            return updated;
+          }),
         );
-        toast.success("ยกเลิกการบันทึกแล้ว");
+
+        toast.success(`ยกเลิก ${zoneName} (ใบที่ ${ticketNumber}) แล้ว`);
+
+        if (updatedTask) {
+          const targetTask: SeatTask = updatedTask;
+          getSocket().emit("update_seat_status", {
+            roomId,
+            taskId,
+            status: targetTask.status,
+            quantitySecured: targetTask.quantitySecured,
+            securedBy: targetTask.securedBy,
+            pendingPayments: targetTask.pendingPayments,
+            updatedBy: currentUserName,
+          });
+
+          try {
+            await fetch(`/api/rooms/${roomId}/tasks`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                taskId,
+                status: targetTask.status,
+                quantitySecured: targetTask.quantitySecured,
+                securedBy: targetTask.securedBy,
+                pendingPayments: targetTask.pendingPayments,
+                lastUpdatedById: userId,
+              }),
+            });
+          } catch (err) {
+            console.error("Failed to sync rollback in DB:", err);
+          }
+        }
       };
 
       // 4. Start 5-second timer
@@ -673,14 +807,20 @@ export function useRoomTasks({
         commit();
       }, 5000);
 
-      pendingSecuredTimersRef.current.set(taskId, { timer, commit, rollback });
+      pendingSecuredTimersRef.current.set(actionId, {
+        actionId,
+        taskId,
+        timer,
+        commit,
+        rollback,
+      });
 
       // 5. Toast with 5-second countdown & "เลิกทำ (Undo)" button
       toast(
         (t) => (
           <UndoCountdownToast
             toastId={t.id}
-            title={`ได้บัตร ${zoneName} แล้ว`}
+            title={`ได้บัตร ${zoneName} (ใบที่ ${ticketNumber}) แล้ว`}
             icon="ticket"
             onUndo={() => {
               clearTimeout(timer);
@@ -691,7 +831,7 @@ export function useRoomTasks({
         ),
         {
           duration: 5000,
-          id: `undo-secured-${taskId}`,
+          id: `undo-secured-${actionId}`,
           style: {
             background: "#181818",
             color: "#ffffff",
@@ -703,7 +843,7 @@ export function useRoomTasks({
         },
       );
     },
-    [roomId, userId, currentUserName, tasks, onAddChatMessage],
+    [roomId, userId, currentUserName, onAddChatMessage],
   );
 
   const handleAssignTask = useCallback(

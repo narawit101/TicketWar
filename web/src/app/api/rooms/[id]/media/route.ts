@@ -55,6 +55,16 @@ export async function GET(
       ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
     };
 
+    const totalWhereClause: {
+      roomId: string;
+      imageUrl: { not: null };
+      NOT?: { OR: Array<{ imageUrl: { endsWith?: string; startsWith?: string } }> };
+      OR?: Array<{ imageUrl: { endsWith?: string; startsWith?: string } }>;
+    } = {
+      roomId,
+      imageUrl: { not: null },
+    };
+
     if (type === "photos") {
       whereClause.NOT = {
         OR: [
@@ -62,21 +72,28 @@ export async function GET(
           { imageUrl: { startsWith: "data:application/pdf" } },
         ],
       };
+      totalWhereClause.NOT = whereClause.NOT;
     } else if (type === "files") {
       whereClause.OR = [
         { imageUrl: { endsWith: ".pdf" } },
         { imageUrl: { startsWith: "data:application/pdf" } },
       ];
+      totalWhereClause.OR = whereClause.OR;
     }
 
-    const messages = await prisma.message.findMany({
-      where: whereClause,
-      include: {
-        user: { select: { id: true, name: true, avatarUrl: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: limit + 1,
-    });
+    const [messages, totalCount] = await Promise.all([
+      prisma.message.findMany({
+        where: whereClause,
+        include: {
+          user: { select: { id: true, name: true, avatarUrl: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+      }),
+      prisma.message.count({
+        where: totalWhereClause,
+      }),
+    ]);
 
     const hasMore = messages.length > limit;
     const items = hasMore ? messages.slice(0, limit) : messages;
@@ -102,6 +119,7 @@ export async function GET(
       items: formatted,
       hasMore,
       nextCursor,
+      totalCount,
     });
   } catch (error) {
     console.error("[GET /api/rooms/[id]/media error]:", error);

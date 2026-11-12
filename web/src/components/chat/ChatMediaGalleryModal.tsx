@@ -76,6 +76,8 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
   const [filesCursor, setFilesCursor] = useState<string | null>(null);
   const [hasFetchedPhotos, setHasFetchedPhotos] = useState(false);
   const [hasFetchedFiles, setHasFetchedFiles] = useState(false);
+  const [totalPhotosCount, setTotalPhotosCount] = useState<number | null>(null);
+  const [totalFilesCount, setTotalFilesCount] = useState<number | null>(null);
 
   // Synchronize state when roomId changes (React pattern: adjusting state on prop change)
   const [prevRoomId, setPrevRoomId] = useState(roomId);
@@ -87,14 +89,16 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
     setHasFetchedFiles(false);
     setPhotosCursor(null);
     setFilesCursor(null);
+    setTotalPhotosCount(null);
+    setTotalFilesCount(null);
   }
 
-  // Fetch photos / files asynchronously when modal is opened
+  // Fetch photos and files in parallel asynchronously when modal is opened
   useEffect(() => {
     if (!isOpen || !roomId) return;
     let cancelled = false;
 
-    if (mediaTab === "photos" && !hasFetchedPhotos) {
+    if (!hasFetchedPhotos) {
       fetch(`/api/rooms/${roomId}/media?type=photos&limit=30`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch photos");
@@ -105,12 +109,17 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
           setPhotos(data.items || []);
           setHasMorePhotos(Boolean(data.hasMore));
           setPhotosCursor(data.nextCursor || null);
+          if (typeof data.totalCount === "number") {
+            setTotalPhotosCount(data.totalCount);
+          }
           setHasFetchedPhotos(true);
         })
         .catch((err) => {
           console.error("Photos fetch error:", err);
         });
-    } else if (mediaTab === "files" && !hasFetchedFiles) {
+    }
+
+    if (!hasFetchedFiles) {
       fetch(`/api/rooms/${roomId}/media?type=files&limit=30`)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch files");
@@ -121,6 +130,9 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
           setFiles(data.items || []);
           setHasMoreFiles(Boolean(data.hasMore));
           setFilesCursor(data.nextCursor || null);
+          if (typeof data.totalCount === "number") {
+            setTotalFilesCount(data.totalCount);
+          }
           setHasFetchedFiles(true);
         })
         .catch((err) => {
@@ -131,7 +143,40 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, roomId, mediaTab, hasFetchedPhotos, hasFetchedFiles]);
+  }, [isOpen, roomId, hasFetchedPhotos, hasFetchedFiles]);
+
+  // Real-time synchronization when new photos/files arrive via LiveChat messages
+  const [prevRoomPhotos, setPrevRoomPhotos] = useState(roomPhotos);
+  if (roomPhotos !== prevRoomPhotos) {
+    setPrevRoomPhotos(roomPhotos);
+    if (hasFetchedPhotos && roomPhotos.length > 0) {
+      setPhotos((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newItems = roomPhotos.filter((p) => !existingIds.has(p.id));
+        if (newItems.length === 0) return prev;
+        setTotalPhotosCount((c) =>
+          c !== null ? c + newItems.length : prev.length + newItems.length,
+        );
+        return [...newItems, ...prev];
+      });
+    }
+  }
+
+  const [prevRoomFiles, setPrevRoomFiles] = useState(roomFiles);
+  if (roomFiles !== prevRoomFiles) {
+    setPrevRoomFiles(roomFiles);
+    if (hasFetchedFiles && roomFiles.length > 0) {
+      setFiles((prev) => {
+        const existingIds = new Set(prev.map((f) => f.id));
+        const newItems = roomFiles.filter((f) => !existingIds.has(f.id));
+        if (newItems.length === 0) return prev;
+        setTotalFilesCount((c) =>
+          c !== null ? c + newItems.length : prev.length + newItems.length,
+        );
+        return [...newItems, ...prev];
+      });
+    }
+  }
 
   const handleLoadMore = async (type: "photos" | "files") => {
     if (!roomId || loadingMore) return;
@@ -165,8 +210,8 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
     }
   };
 
-  const activePhotos = roomId ? photos : roomPhotos;
-  const activeFiles = roomId ? files : roomFiles;
+  const activePhotos = roomId ? (hasFetchedPhotos ? photos : roomPhotos) : roomPhotos;
+  const activeFiles = roomId ? (hasFetchedFiles ? files : roomFiles) : roomFiles;
 
   // Group photos by Day & Month (newest first)
   const groupedPhotos = useMemo(() => {
@@ -214,8 +259,26 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isPhotosLoading = roomId ? !hasFetchedPhotos : false;
-  const isFilesLoading = roomId ? !hasFetchedFiles : false;
+  const isPhotosLoading = roomId
+    ? !hasFetchedPhotos && roomPhotos.length === 0
+    : false;
+  const isFilesLoading = roomId
+    ? !hasFetchedFiles && roomFiles.length === 0
+    : false;
+
+  const displayPhotosCount =
+    totalPhotosCount !== null
+      ? totalPhotosCount
+      : hasFetchedPhotos
+        ? photos.length
+        : roomPhotos.length;
+
+  const displayFilesCount =
+    totalFilesCount !== null
+      ? totalFilesCount
+      : hasFetchedFiles
+        ? files.length
+        : roomFiles.length;
 
   return (
     <div
@@ -260,12 +323,9 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
             }`}
           >
             <span>รูปภาพ</span>
-            {!isPhotosLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#262626] text-zinc-300 font-medium">
-                {activePhotos.length}
-                {hasMorePhotos ? "+" : ""}
-              </span>
-            )}
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#262626] text-zinc-300 font-medium">
+              {displayPhotosCount}
+            </span>
           </button>
           <button
             type="button"
@@ -277,12 +337,9 @@ export const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
             }`}
           >
             <span>ไฟล์เอกสาร</span>
-            {!isFilesLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#262626] text-zinc-300 font-medium">
-                {activeFiles.length}
-                {hasMoreFiles ? "+" : ""}
-              </span>
-            )}
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#262626] text-zinc-300 font-medium">
+              {displayFilesCount}
+            </span>
           </button>
         </div>
 

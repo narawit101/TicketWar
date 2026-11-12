@@ -37,11 +37,16 @@ interface SeatTaskCardProps {
     zoneName: string,
     price: number,
   ) => void;
-  onConfirmPayment?: (taskId: string, pendingId: string) => void;
+  onConfirmPayment?: (
+    taskId: string,
+    pendingId: string,
+    ticketIndex?: number,
+  ) => void;
   onDirectSecured?: (
     taskId: string,
     zoneType: "MAIN" | "BACKUP",
     zoneName: string,
+    ticketIndex?: number,
   ) => void;
   onCancelPendingPayment?: (taskId: string, pendingId: string) => void;
   onDecrement: (taskId: string) => void;
@@ -154,7 +159,11 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
     if (!task.note) return;
 
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext) {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
         await navigator.clipboard.writeText(task.note);
       } else {
         const textArea = document.createElement("textarea");
@@ -305,10 +314,10 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
     if (targetStatus === "COMPLETED_MAIN") {
       if (slot.status === "COMPLETED" && slot.zoneType === "MAIN") return;
       if (slot.status === "PENDING_PAYMENT" && slot.pendingId) {
-        onConfirmPayment?.(task.id, slot.pendingId);
+        onConfirmPayment?.(task.id, slot.pendingId, slot.index);
       } else {
         if (onDirectSecured) {
-          onDirectSecured(task.id, "MAIN", mainLocation);
+          onDirectSecured(task.id, "MAIN", mainLocation, slot.index);
         } else {
           onStartPendingPayment?.(task.id, "MAIN", mainLocation, task.price);
         }
@@ -320,10 +329,10 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
       if (!backupLocation) return;
       if (slot.status === "COMPLETED" && slot.zoneType === "BACKUP") return;
       if (slot.status === "PENDING_PAYMENT" && slot.pendingId) {
-        onConfirmPayment?.(task.id, slot.pendingId);
+        onConfirmPayment?.(task.id, slot.pendingId, slot.index);
       } else {
         if (onDirectSecured) {
-          onDirectSecured(task.id, "BACKUP", backupLocation);
+          onDirectSecured(task.id, "BACKUP", backupLocation, slot.index);
         } else {
           onStartPendingPayment?.(
             task.id,
@@ -782,7 +791,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
                           <div className="flex items-center gap-2">
                             <span className="w-3.5 h-3.5 rounded-full border-2 border-dashed border-[#777777] inline-block shrink-0" />
                             <span className="text-zinc-200 font-medium">
-                              TO DO (ว่าง)
+                              (ว่าง)
                             </span>
                           </div>
                           {slot.status === "AVAILABLE" ? (
@@ -1010,7 +1019,7 @@ export const SeatTaskCard: React.FC<SeatTaskCardProps> = ({
               )}
             </button>
           </div>
-          <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-line wrap-break-word select-all">
+          <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-line wrap-break-word">
             {task.note}
           </p>
         </div>
